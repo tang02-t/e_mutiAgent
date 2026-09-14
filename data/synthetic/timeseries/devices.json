@@ -1,0 +1,502 @@
+[
+  {
+    "device_id": "TR-0001",
+    "model": "SSZ-31500/110",
+    "voltage_level_kv": 110,
+    "rated_capacity_kva": 31500,
+    "commission_year": 2006,
+    "service_years": 20,
+    "location": "某110kV变电站#5",
+    "cooling_type": "ONAN"
+  },
+  {
+    "device_id": "TR-0002",
+    "model": "SFSZ-240000/220",
+    "voltage_level_kv": 220,
+    "rated_capacity_kva": 240000,
+    "commission_year": 2010,
+    "service_years": 16,
+    "location": "某110kV变电站#2",
+    "cooling_type": "ONAF/OFAF"
+  },
+  {
+    "device_id": "TR-0003",
+    "model": "SSZ-31500/110",
+    "voltage_level_kv": 110,
+    "rated_capacity_kva": 31500,
+    "commission_year": 2020,
+    "service_years": 6,
+    "location": "某110kV变电站#7",
+    "cooling_type": "ONAN"
+  },
+  {
+    "device_id": "TR-0004",
+    "model": "SFSZ-180000/220",
+    "voltage_level_kv": 220,
+    "rated_capacity_kva": 180000,
+    "commission_year": 2003,
+    "service_years": 23,
+    "location": "某110kV变电站#4",
+    "cooling_type": "ONAN/ONAF"
+  },
+  {
+    "device_id": "TR-0005",
+    "model": "SFSZ-240000/220",
+    "voltage_level_kv": 220,
+    "rated_capacity_kva": 240000,
+    "commission_year": 2019,
+    "service_years": 7,
+    "location": "某500kV变电站#1",
+    "cooling_type": "ONAF/OFAF"
+  },
+  {
+    "device_id": "TR-0006",
+    "model": "SFSZ-120000/220",
+    "voltage_level_kv": 220,
+    "rated_capacity_kva": 120000,
+    "commission_year": 2009,
+    "service_years": 17,
+    "location": "某500kV变电站#9",
+    "cooling_type": "ONAN/ONAF"
+  },
+  {
+    "device_id": "TR-0007",
+    "model": "SZ-50000/110",
+    "voltage_level_kv": 110,
+    "rated_capacity_kva": 50000,
+    "commission_year": 2010,
+    "service_years": 16,
+    "location": "某220kV变电站#5",
+    "cooling_type": "ONAN"
+  },
+  {
+    "device_id": "TR-0008",
+    "model": "SFSZ-180000/220",
+    "voltage_level_kv": 220,
+    "rated_capacity_kva": 180000,
+    "commission_year": 2008,
+    "service_years": 18,
+    "location": "某500kV变电站#7",
+    "cooling_type": "ONAN/ONAF"
+  },
+  {
+    "device_id": "TR-0009",
+    "model": "SFP-360000/500",
+    "voltage_level_kv": 500,
+    "rated_capacity_kva": 360000,
+    "commission_year": 2011,
+    "service_years": 15,
+    "location": "某110kV变电站#4",
+    "cooling_type": "ODAF"
+  },
+  {
+    "device_id": "TR-0010",
+    "model": "SFP-360000/500",
+    "voltage_level_kv": 500,
+    "rated_capacity_kva": 360000,
+    "commission_year": 2006,
+    "service_years": 20,
+    "location": "某110kV变电站#7",
+    "cooling_type": "ODAF"
+  },
+  {
+    "device_id": "TR-0011",
+    "model": "SFSZ-180000/220",
+    "voltage_level_kv": 220,
+    "rated_capacity_kva": 180000,
+    "commission_year": 2014,
+    "service_years": 12,
+    "location": "某220kV变电站#5",
+    "cooling_type": "ONAN/ONAF"
+  },
+  {
+    "device_id": "TR-0012",
+    "model": "SFSZ-180000/220",
+    "voltage_level_kv": 220,
+    "rated_capacity_kva": 180000,
+    "commission_year": 2017,
+    "service_years": 9,
+    "location": "某500kV变电站#2",
+    "cooling_type": "ONAN/ONAF"
+  },
+  {
+    "device_id": "TR-0013",
+    "model": "SZ-50000/110",
+    "voltage_level_kv": 110,
+    "rated_capacity_kva": 50000,
+    "commission_year": 2005,
+    "service_years": 21,
+    "location": "某500kV变电站#5",
+    "cooling_type": "ONAN"
+  },
+  {
+    "device_id": "TR-0014",
+    "model": "SSZ-31500/110",
+    "voltage_level_kv": 110,
+    "rated_capacity_kva": 31500,
+    "commission_year": 2022,
+    "service_years": 4,
+    "location": "某220kV变电站#4",
+    "cooling_type": "ONAN"
+  },
+  {
+    "device_id": "TR-0015",
+    "model": "SSZ-31500/110",
+    "voltage_level_kv": 110,
+    "rated_capacity_kva": 31500,
+    "commission_year": 2005,
+    "service_years": 21,
+    "location": "某110kV变电站#4",
+    "cooling_type": "ONAN"
+  },
+  {
+    "device_id": "TR-0016",
+    "model": "SFP-360000/500",
+    "voltage_level_kv": 500,
+    "rated_capacity_kva": 360000,
+    "commission_year": 2005,
+    "service_years": 21,
+    "location": "某110kV变电站#2",
+    "cooling_type": "ODAF"
+  },
+  {
+    "device_id": "TR-0017",
+    "model": "SZ-50000/110",
+    "voltage_level_kv": 110,
+    "rated_capacity_kva": 50000,
+    "commission_year": 2011,
+    "service_years": 15,
+    "location": "某220kV变电站#6",
+    "cooling_type": "ONAN"
+  },
+  {
+    "device_id": "TR-0018",
+    "model": "SFSZ-240000/220",
+    "voltage_level_kv": 220,
+    "rated_capacity_kva": 240000,
+    "commission_year": 2014,
+    "service_years": 12,
+    "location": "某220kV变电站#4",
+    "cooling_type": "ONAF/OFAF"
+  },
+  {
+    "device_id": "TR-0019",
+    "model": "SSZ-31500/110",
+    "voltage_level_kv": 110,
+    "rated_capacity_kva": 31500,
+    "commission_year": 2011,
+    "service_years": 15,
+    "location": "某500kV变电站#2",
+    "cooling_type": "ONAN"
+  },
+  {
+    "device_id": "TR-0020",
+    "model": "SFSZ-120000/220",
+    "voltage_level_kv": 220,
+    "rated_capacity_kva": 120000,
+    "commission_year": 2023,
+    "service_years": 3,
+    "location": "某110kV变电站#9",
+    "cooling_type": "ONAN/ONAF"
+  },
+  {
+    "device_id": "TR-0021",
+    "model": "SSZ-31500/110",
+    "voltage_level_kv": 110,
+    "rated_capacity_kva": 31500,
+    "commission_year": 2010,
+    "service_years": 16,
+    "location": "某110kV变电站#8",
+    "cooling_type": "ONAN"
+  },
+  {
+    "device_id": "TR-0022",
+    "model": "SZ-50000/110",
+    "voltage_level_kv": 110,
+    "rated_capacity_kva": 50000,
+    "commission_year": 2011,
+    "service_years": 15,
+    "location": "某500kV变电站#9",
+    "cooling_type": "ONAN"
+  },
+  {
+    "device_id": "TR-0023",
+    "model": "SFSZ-240000/220",
+    "voltage_level_kv": 220,
+    "rated_capacity_kva": 240000,
+    "commission_year": 2013,
+    "service_years": 13,
+    "location": "某110kV变电站#4",
+    "cooling_type": "ONAF/OFAF"
+  },
+  {
+    "device_id": "TR-0024",
+    "model": "SFSZ-180000/220",
+    "voltage_level_kv": 220,
+    "rated_capacity_kva": 180000,
+    "commission_year": 2013,
+    "service_years": 13,
+    "location": "某220kV变电站#5",
+    "cooling_type": "ONAN/ONAF"
+  },
+  {
+    "device_id": "TR-0025",
+    "model": "SFSZ-180000/220",
+    "voltage_level_kv": 220,
+    "rated_capacity_kva": 180000,
+    "commission_year": 2009,
+    "service_years": 17,
+    "location": "某500kV变电站#6",
+    "cooling_type": "ONAN/ONAF"
+  },
+  {
+    "device_id": "TR-0026",
+    "model": "SFSZ-240000/220",
+    "voltage_level_kv": 220,
+    "rated_capacity_kva": 240000,
+    "commission_year": 2023,
+    "service_years": 3,
+    "location": "某220kV变电站#7",
+    "cooling_type": "ONAF/OFAF"
+  },
+  {
+    "device_id": "TR-0027",
+    "model": "SSZ-31500/110",
+    "voltage_level_kv": 110,
+    "rated_capacity_kva": 31500,
+    "commission_year": 2017,
+    "service_years": 9,
+    "location": "某110kV变电站#5",
+    "cooling_type": "ONAN"
+  },
+  {
+    "device_id": "TR-0028",
+    "model": "SFSZ-240000/220",
+    "voltage_level_kv": 220,
+    "rated_capacity_kva": 240000,
+    "commission_year": 2010,
+    "service_years": 16,
+    "location": "某500kV变电站#9",
+    "cooling_type": "ONAF/OFAF"
+  },
+  {
+    "device_id": "TR-0029",
+    "model": "SFSZ-120000/220",
+    "voltage_level_kv": 220,
+    "rated_capacity_kva": 120000,
+    "commission_year": 2011,
+    "service_years": 15,
+    "location": "某500kV变电站#7",
+    "cooling_type": "ONAN/ONAF"
+  },
+  {
+    "device_id": "TR-0030",
+    "model": "SFSZ-120000/220",
+    "voltage_level_kv": 220,
+    "rated_capacity_kva": 120000,
+    "commission_year": 2015,
+    "service_years": 11,
+    "location": "某220kV变电站#4",
+    "cooling_type": "ONAN/ONAF"
+  },
+  {
+    "device_id": "TR-0031",
+    "model": "SFSZ-240000/220",
+    "voltage_level_kv": 220,
+    "rated_capacity_kva": 240000,
+    "commission_year": 2019,
+    "service_years": 7,
+    "location": "某220kV变电站#2",
+    "cooling_type": "ONAF/OFAF"
+  },
+  {
+    "device_id": "TR-0032",
+    "model": "SFSZ-180000/220",
+    "voltage_level_kv": 220,
+    "rated_capacity_kva": 180000,
+    "commission_year": 2006,
+    "service_years": 20,
+    "location": "某110kV变电站#3",
+    "cooling_type": "ONAN/ONAF"
+  },
+  {
+    "device_id": "TR-0033",
+    "model": "SSZ-31500/110",
+    "voltage_level_kv": 110,
+    "rated_capacity_kva": 31500,
+    "commission_year": 2016,
+    "service_years": 10,
+    "location": "某500kV变电站#2",
+    "cooling_type": "ONAN"
+  },
+  {
+    "device_id": "TR-0034",
+    "model": "SZ-50000/110",
+    "voltage_level_kv": 110,
+    "rated_capacity_kva": 50000,
+    "commission_year": 2015,
+    "service_years": 11,
+    "location": "某500kV变电站#8",
+    "cooling_type": "ONAN"
+  },
+  {
+    "device_id": "TR-0035",
+    "model": "SFSZ-120000/220",
+    "voltage_level_kv": 220,
+    "rated_capacity_kva": 120000,
+    "commission_year": 2011,
+    "service_years": 15,
+    "location": "某500kV变电站#1",
+    "cooling_type": "ONAN/ONAF"
+  },
+  {
+    "device_id": "TR-0036",
+    "model": "SSZ-31500/110",
+    "voltage_level_kv": 110,
+    "rated_capacity_kva": 31500,
+    "commission_year": 2006,
+    "service_years": 20,
+    "location": "某500kV变电站#9",
+    "cooling_type": "ONAN"
+  },
+  {
+    "device_id": "TR-0037",
+    "model": "SFP-360000/500",
+    "voltage_level_kv": 500,
+    "rated_capacity_kva": 360000,
+    "commission_year": 2023,
+    "service_years": 3,
+    "location": "某220kV变电站#2",
+    "cooling_type": "ODAF"
+  },
+  {
+    "device_id": "TR-0038",
+    "model": "SFP-360000/500",
+    "voltage_level_kv": 500,
+    "rated_capacity_kva": 360000,
+    "commission_year": 2016,
+    "service_years": 10,
+    "location": "某110kV变电站#8",
+    "cooling_type": "ODAF"
+  },
+  {
+    "device_id": "TR-0039",
+    "model": "SFSZ-180000/220",
+    "voltage_level_kv": 220,
+    "rated_capacity_kva": 180000,
+    "commission_year": 2011,
+    "service_years": 15,
+    "location": "某500kV变电站#3",
+    "cooling_type": "ONAN/ONAF"
+  },
+  {
+    "device_id": "TR-0040",
+    "model": "SFSZ-120000/220",
+    "voltage_level_kv": 220,
+    "rated_capacity_kva": 120000,
+    "commission_year": 2006,
+    "service_years": 20,
+    "location": "某500kV变电站#5",
+    "cooling_type": "ONAN/ONAF"
+  },
+  {
+    "device_id": "TR-0041",
+    "model": "SSZ-31500/110",
+    "voltage_level_kv": 110,
+    "rated_capacity_kva": 31500,
+    "commission_year": 2019,
+    "service_years": 7,
+    "location": "某500kV变电站#4",
+    "cooling_type": "ONAN"
+  },
+  {
+    "device_id": "TR-0042",
+    "model": "SFSZ-240000/220",
+    "voltage_level_kv": 220,
+    "rated_capacity_kva": 240000,
+    "commission_year": 2014,
+    "service_years": 12,
+    "location": "某110kV变电站#9",
+    "cooling_type": "ONAF/OFAF"
+  },
+  {
+    "device_id": "TR-0043",
+    "model": "SFSZ-120000/220",
+    "voltage_level_kv": 220,
+    "rated_capacity_kva": 120000,
+    "commission_year": 2003,
+    "service_years": 23,
+    "location": "某500kV变电站#6",
+    "cooling_type": "ONAN/ONAF"
+  },
+  {
+    "device_id": "TR-0044",
+    "model": "SZ-50000/110",
+    "voltage_level_kv": 110,
+    "rated_capacity_kva": 50000,
+    "commission_year": 2003,
+    "service_years": 23,
+    "location": "某110kV变电站#6",
+    "cooling_type": "ONAN"
+  },
+  {
+    "device_id": "TR-0045",
+    "model": "SFP-360000/500",
+    "voltage_level_kv": 500,
+    "rated_capacity_kva": 360000,
+    "commission_year": 2010,
+    "service_years": 16,
+    "location": "某110kV变电站#4",
+    "cooling_type": "ODAF"
+  },
+  {
+    "device_id": "TR-0046",
+    "model": "SFSZ-120000/220",
+    "voltage_level_kv": 220,
+    "rated_capacity_kva": 120000,
+    "commission_year": 2005,
+    "service_years": 21,
+    "location": "某110kV变电站#8",
+    "cooling_type": "ONAN/ONAF"
+  },
+  {
+    "device_id": "TR-0047",
+    "model": "SFSZ-180000/220",
+    "voltage_level_kv": 220,
+    "rated_capacity_kva": 180000,
+    "commission_year": 2020,
+    "service_years": 6,
+    "location": "某110kV变电站#3",
+    "cooling_type": "ONAN/ONAF"
+  },
+  {
+    "device_id": "TR-0048",
+    "model": "SSZ-31500/110",
+    "voltage_level_kv": 110,
+    "rated_capacity_kva": 31500,
+    "commission_year": 2018,
+    "service_years": 8,
+    "location": "某500kV变电站#3",
+    "cooling_type": "ONAN"
+  },
+  {
+    "device_id": "TR-0049",
+    "model": "SFP-360000/500",
+    "voltage_level_kv": 500,
+    "rated_capacity_kva": 360000,
+    "commission_year": 2019,
+    "service_years": 7,
+    "location": "某500kV变电站#7",
+    "cooling_type": "ODAF"
+  },
+  {
+    "device_id": "TR-0050",
+    "model": "SFSZ-240000/220",
+    "voltage_level_kv": 220,
+    "rated_capacity_kva": 240000,
+    "commission_year": 2020,
+    "service_years": 6,
+    "location": "某500kV变电站#4",
+    "cooling_type": "ONAF/OFAF"
+  }
+]

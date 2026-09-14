@@ -1,0 +1,106 @@
+project:
+  name: transformer-diagnosis-agent
+  environment: dev
+
+# ============================================================
+# 多 LLM 配置：每个智能体可独立配置不同的模型
+# 若某智能体未配置，则使用 default 的配置
+# ============================================================
+llms:
+  # 默认配置（Planner、Retriever 未单独配置时使用）
+  default:
+    provider: "openai"
+    base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    api_key: "YOUR_API_KEY"
+    model_name: "qwen3.5-35b-a3b"
+    temperature: 0.2
+    max_tokens: 2048
+    enable_thinking: false
+    # 单次请求超时时间（秒）；网络抖动时及时失败并触发降级
+    timeout: 60
+    # 失败后的最大重试次数（指数退避）
+    max_retries: 2
+
+  # Planner：策略规划，需要较强的推理能力
+  planner:
+    provider: "openai"
+    base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    api_key: "YOUR_API_KEY"
+    model_name: "qwen3.5-35b-a3b"
+    temperature: 0.2
+    max_tokens: 2048
+    enable_thinking: false
+
+  # Retriever：检索规划，当前暂不需要 LLM（保留接口）
+  retriever:
+    provider: "openai"
+    base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    api_key: "YOUR_API_KEY"
+    model_name: "qwen3.5-35b-a3b"
+    temperature: 0.2
+    max_tokens: 2048
+    enable_thinking: false
+
+  # Generator：生成诊断建议，可使用较轻量的模型
+  generator:
+    provider: "openai"
+    base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    api_key: "YOUR_API_KEY"
+    model_name: "qwen3.5-35b-a3b"
+    temperature: 0.1
+    max_tokens: 2048
+    enable_thinking: false
+
+  # Validator：质量验证，可使用较轻量的模型
+  validator:
+    provider: "openai"
+    base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    api_key: "YOUR_API_KEY"
+    model_name: "qwen3.5-35b-a3b"
+    temperature: 0.1
+    max_tokens: 1024
+    enable_thinking: false
+
+knowledge_base:
+  milvus:
+    # Zilliz Cloud 推荐使用 uri + token 连接（pymilvus）
+    # 例：uri: "https://YOUR_CLUSTER.zillizcloud.com"
+    # token 通常形如："<username>:<password>" 或 cloud 提供的 token
+    uri: "https://YOUR_CLUSTER.zillizcloud.com"
+    token: "YOUR_MILVUS_TOKEN"
+    # 如需连接自建 Milvus（本地/内网），也可改用 host/port
+    host: "127.0.0.1"
+    port: 19530
+    collection: "transformer_kb"  # ⚠️ 请先在 Zilliz Cloud 控制台创建此 collection 并导入数据
+    text_field: "text"
+    vector_field: "embedding"
+    # 向量检索参数（可按 collection 的索引类型调整）
+    metric_type: "L2"   # 距离度量：L2 / IP / COSINE，需与建索引时一致
+    nprobe: 10           # IVF 类索引的检索探针数，越大召回越高、越慢
+  top_k: 5
+
+tools:
+  timeseries:
+    dcs_endpoint: "http://localhost:8000/dcs"
+  ett:
+    # ETT 油温预测工具配置
+    # 可用数据集：ETTh1 / ETTh2（小时级）、ETTm1 / ETTm2（15分钟级）
+    default_dataset: "ETTh1"
+    default_lookback: 96    # 回看窗口大小（数据点数），默认 96
+    default_horizon: 24     # 预测步数，默认 24
+    train_window_size: 168 # 训练窗口大小（最近N个点），默认 168
+
+embedding:
+  model_type: "dashscope"
+  model_path: ""  # 保留兼容字段
+  api:
+    base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    model: "text-embedding-v4"
+    api_key: "YOUR_API_KEY"
+
+logging:
+  level: "INFO"
+
+workflow:
+  max_iterations: 3  # Generator 重生成的最大迭代次数（Validator 触发）
+  parallel_tools: 3   # Retriever 并行工具调用的最大并发数

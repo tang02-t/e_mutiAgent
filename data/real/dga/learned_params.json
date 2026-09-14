@@ -1,0 +1,489 @@
+{
+  "meta": {
+    "n_samples": 5143,
+    "alpha": 1.0,
+    "fault_distribution": {
+      "partial_discharge": 1070,
+      "normal": 1414,
+      "winding_short_circuit": 653,
+      "overload_overheating": 1495,
+      "insulation_degradation": 511
+    }
+  },
+  "prior": {
+    "winding_deformation": 0.00019,
+    "winding_short_circuit": 0.12697,
+    "core_grounding": 0.00019,
+    "bushing_fault": 0.00019,
+    "olc_fault": 0.00019,
+    "partial_discharge": 0.20792,
+    "overload_overheating": 0.29043,
+    "insulation_degradation": 0.0994
+  },
+  "cpt": {
+    "winding_deformation": {
+      "H2_elevated": {
+        "p_true": 0.5,
+        "p_false": 0.26803
+      },
+      "CH4_elevated": {
+        "p_true": 0.5,
+        "p_false": 0.27483
+      },
+      "C2H2_elevated": {
+        "p_true": 0.5,
+        "p_false": 0.35705
+      },
+      "C2H4_elevated": {
+        "p_true": 0.5,
+        "p_false": 0.34363
+      },
+      "C2H6_elevated": {
+        "p_true": 0.5,
+        "p_false": 0.31856
+      },
+      "CO_elevated": {
+        "p_true": 0.5,
+        "p_false": 0.00019
+      },
+      "CO2_elevated": {
+        "p_true": 0.5,
+        "p_false": 0.00019
+      },
+      "oil_temp_elevated": {
+        "p_true": 0.5,
+        "p_false": 0.00019
+      },
+      "winding_temp_elevated": {
+        "p_true": 0.5,
+        "p_false": 0.00019
+      },
+      "load_elevated": {
+        "p_true": 0.5,
+        "p_false": 0.00019
+      },
+      "vibration_elevated": {
+        "p_true": 0.5,
+        "p_false": 0.00019
+      },
+      "partial_discharge_alarm": {
+        "p_true": 0.5,
+        "p_false": 0.00019
+      },
+      "gas_rate_rapid": {
+        "p_true": 0.5,
+        "p_false": 0.17046
+      },
+      "TDCG_elevated": {
+        "p_true": 0.5,
+        "p_false": 0.47328
+      }
+    },
+    "winding_short_circuit": {
+      "H2_elevated": {
+        "p_true": 0.5374,
+        "p_false": 0.22885
+      },
+      "CH4_elevated": {
+        "p_true": 0.31145,
+        "p_false": 0.26959
+      },
+      "C2H2_elevated": {
+        "p_true": 0.96489,
+        "p_false": 0.26848
+      },
+      "C2H4_elevated": {
+        "p_true": 0.52672,
+        "p_false": 0.31701
+      },
+      "C2H6_elevated": {
+        "p_true": 0.23817,
+        "p_false": 0.33037
+      },
+      "CO_elevated": {
+        "p_true": 0.00153,
+        "p_false": 0.00022
+      },
+      "CO2_elevated": {
+        "p_true": 0.00153,
+        "p_false": 0.00022
+      },
+      "oil_temp_elevated": {
+        "p_true": 0.00153,
+        "p_false": 0.00022
+      },
+      "winding_temp_elevated": {
+        "p_true": 0.00153,
+        "p_false": 0.00022
+      },
+      "load_elevated": {
+        "p_true": 0.00153,
+        "p_false": 0.00022
+      },
+      "vibration_elevated": {
+        "p_true": 0.00153,
+        "p_false": 0.00022
+      },
+      "partial_discharge_alarm": {
+        "p_true": 0.00153,
+        "p_false": 0.00022
+      },
+      "gas_rate_rapid": {
+        "p_true": 0.67023,
+        "p_false": 0.09773
+      },
+      "TDCG_elevated": {
+        "p_true": 0.68092,
+        "p_false": 0.44301
+      }
+    },
+    "core_grounding": {
+      "H2_elevated": {
+        "p_true": 0.5,
+        "p_false": 0.26803
+      },
+      "CH4_elevated": {
+        "p_true": 0.5,
+        "p_false": 0.27483
+      },
+      "C2H2_elevated": {
+        "p_true": 0.5,
+        "p_false": 0.35705
+      },
+      "C2H4_elevated": {
+        "p_true": 0.5,
+        "p_false": 0.34363
+      },
+      "C2H6_elevated": {
+        "p_true": 0.5,
+        "p_false": 0.31856
+      },
+      "CO_elevated": {
+        "p_true": 0.5,
+        "p_false": 0.00019
+      },
+      "CO2_elevated": {
+        "p_true": 0.5,
+        "p_false": 0.00019
+      },
+      "oil_temp_elevated": {
+        "p_true": 0.5,
+        "p_false": 0.00019
+      },
+      "winding_temp_elevated": {
+        "p_true": 0.5,
+        "p_false": 0.00019
+      },
+      "load_elevated": {
+        "p_true": 0.5,
+        "p_false": 0.00019
+      },
+      "vibration_elevated": {
+        "p_true": 0.5,
+        "p_false": 0.00019
+      },
+      "partial_discharge_alarm": {
+        "p_true": 0.5,
+        "p_false": 0.00019
+      },
+      "gas_rate_rapid": {
+        "p_true": 0.5,
+        "p_false": 0.17046
+      },
+      "TDCG_elevated": {
+        "p_true": 0.5,
+        "p_false": 0.47328
+      }
+    },
+    "bushing_fault": {
+      "H2_elevated": {
+        "p_true": 0.5,
+        "p_false": 0.26803
+      },
+      "CH4_elevated": {
+        "p_true": 0.5,
+        "p_false": 0.27483
+      },
+      "C2H2_elevated": {
+        "p_true": 0.5,
+        "p_false": 0.35705
+      },
+      "C2H4_elevated": {
+        "p_true": 0.5,
+        "p_false": 0.34363
+      },
+      "C2H6_elevated": {
+        "p_true": 0.5,
+        "p_false": 0.31856
+      },
+      "CO_elevated": {
+        "p_true": 0.5,
+        "p_false": 0.00019
+      },
+      "CO2_elevated": {
+        "p_true": 0.5,
+        "p_false": 0.00019
+      },
+      "oil_temp_elevated": {
+        "p_true": 0.5,
+        "p_false": 0.00019
+      },
+      "winding_temp_elevated": {
+        "p_true": 0.5,
+        "p_false": 0.00019
+      },
+      "load_elevated": {
+        "p_true": 0.5,
+        "p_false": 0.00019
+      },
+      "vibration_elevated": {
+        "p_true": 0.5,
+        "p_false": 0.00019
+      },
+      "partial_discharge_alarm": {
+        "p_true": 0.5,
+        "p_false": 0.00019
+      },
+      "gas_rate_rapid": {
+        "p_true": 0.5,
+        "p_false": 0.17046
+      },
+      "TDCG_elevated": {
+        "p_true": 0.5,
+        "p_false": 0.47328
+      }
+    },
+    "olc_fault": {
+      "H2_elevated": {
+        "p_true": 0.5,
+        "p_false": 0.26803
+      },
+      "CH4_elevated": {
+        "p_true": 0.5,
+        "p_false": 0.27483
+      },
+      "C2H2_elevated": {
+        "p_true": 0.5,
+        "p_false": 0.35705
+      },
+      "C2H4_elevated": {
+        "p_true": 0.5,
+        "p_false": 0.34363
+      },
+      "C2H6_elevated": {
+        "p_true": 0.5,
+        "p_false": 0.31856
+      },
+      "CO_elevated": {
+        "p_true": 0.5,
+        "p_false": 0.00019
+      },
+      "CO2_elevated": {
+        "p_true": 0.5,
+        "p_false": 0.00019
+      },
+      "oil_temp_elevated": {
+        "p_true": 0.5,
+        "p_false": 0.00019
+      },
+      "winding_temp_elevated": {
+        "p_true": 0.5,
+        "p_false": 0.00019
+      },
+      "load_elevated": {
+        "p_true": 0.5,
+        "p_false": 0.00019
+      },
+      "vibration_elevated": {
+        "p_true": 0.5,
+        "p_false": 0.00019
+      },
+      "partial_discharge_alarm": {
+        "p_true": 0.5,
+        "p_false": 0.00019
+      },
+      "gas_rate_rapid": {
+        "p_true": 0.5,
+        "p_false": 0.17046
+      },
+      "TDCG_elevated": {
+        "p_true": 0.5,
+        "p_false": 0.47328
+      }
+    },
+    "partial_discharge": {
+      "H2_elevated": {
+        "p_true": 0.54851,
+        "p_false": 0.19436
+      },
+      "CH4_elevated": {
+        "p_true": 0.18004,
+        "p_false": 0.29988
+      },
+      "C2H2_elevated": {
+        "p_true": 0.63899,
+        "p_false": 0.28294
+      },
+      "C2H4_elevated": {
+        "p_true": 0.13993,
+        "p_false": 0.3973
+      },
+      "C2H6_elevated": {
+        "p_true": 0.18097,
+        "p_false": 0.35485
+      },
+      "CO_elevated": {
+        "p_true": 0.00093,
+        "p_false": 0.00025
+      },
+      "CO2_elevated": {
+        "p_true": 0.00093,
+        "p_false": 0.00025
+      },
+      "oil_temp_elevated": {
+        "p_true": 0.00093,
+        "p_false": 0.00025
+      },
+      "winding_temp_elevated": {
+        "p_true": 0.00093,
+        "p_false": 0.00025
+      },
+      "load_elevated": {
+        "p_true": 0.00093,
+        "p_false": 0.00025
+      },
+      "vibration_elevated": {
+        "p_true": 0.00093,
+        "p_false": 0.00025
+      },
+      "partial_discharge_alarm": {
+        "p_true": 0.00093,
+        "p_false": 0.00025
+      },
+      "gas_rate_rapid": {
+        "p_true": 0.31157,
+        "p_false": 0.1335
+      },
+      "TDCG_elevated": {
+        "p_true": 0.35914,
+        "p_false": 0.50331
+      }
+    },
+    "overload_overheating": {
+      "H2_elevated": {
+        "p_true": 0.24649,
+        "p_false": 0.27699
+      },
+      "CH4_elevated": {
+        "p_true": 0.5678,
+        "p_false": 0.15479
+      },
+      "C2H2_elevated": {
+        "p_true": 0.29927,
+        "p_false": 0.38082
+      },
+      "C2H4_elevated": {
+        "p_true": 0.74549,
+        "p_false": 0.1789
+      },
+      "C2H6_elevated": {
+        "p_true": 0.61991,
+        "p_false": 0.19507
+      },
+      "CO_elevated": {
+        "p_true": 0.00067,
+        "p_false": 0.00027
+      },
+      "CO2_elevated": {
+        "p_true": 0.00067,
+        "p_false": 0.00027
+      },
+      "oil_temp_elevated": {
+        "p_true": 0.00067,
+        "p_false": 0.00027
+      },
+      "winding_temp_elevated": {
+        "p_true": 0.00067,
+        "p_false": 0.00027
+      },
+      "load_elevated": {
+        "p_true": 0.00067,
+        "p_false": 0.00027
+      },
+      "vibration_elevated": {
+        "p_true": 0.00067,
+        "p_false": 0.00027
+      },
+      "partial_discharge_alarm": {
+        "p_true": 0.00067,
+        "p_false": 0.00027
+      },
+      "gas_rate_rapid": {
+        "p_true": 0.06146,
+        "p_false": 0.21534
+      },
+      "TDCG_elevated": {
+        "p_true": 0.81496,
+        "p_false": 0.33315
+      }
+    },
+    "insulation_degradation": {
+      "H2_elevated": {
+        "p_true": 0.12671,
+        "p_false": 0.28377
+      },
+      "CH4_elevated": {
+        "p_true": 0.31579,
+        "p_false": 0.27039
+      },
+      "C2H2_elevated": {
+        "p_true": 0.09942,
+        "p_false": 0.38563
+      },
+      "C2H4_elevated": {
+        "p_true": 0.26901,
+        "p_false": 0.35196
+      },
+      "C2H6_elevated": {
+        "p_true": 0.66277,
+        "p_false": 0.28054
+      },
+      "CO_elevated": {
+        "p_true": 0.00195,
+        "p_false": 0.00022
+      },
+      "CO2_elevated": {
+        "p_true": 0.00195,
+        "p_false": 0.00022
+      },
+      "oil_temp_elevated": {
+        "p_true": 0.00195,
+        "p_false": 0.00022
+      },
+      "winding_temp_elevated": {
+        "p_true": 0.00195,
+        "p_false": 0.00022
+      },
+      "load_elevated": {
+        "p_true": 0.00195,
+        "p_false": 0.00022
+      },
+      "vibration_elevated": {
+        "p_true": 0.00195,
+        "p_false": 0.00022
+      },
+      "partial_discharge_alarm": {
+        "p_true": 0.00195,
+        "p_false": 0.00022
+      },
+      "gas_rate_rapid": {
+        "p_true": 0.02534,
+        "p_false": 0.18666
+      },
+      "TDCG_elevated": {
+        "p_true": 0.7037,
+        "p_false": 0.44778
+      }
+    }
+  }
+}

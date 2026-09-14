@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# 日志与临时
+*.log
+output_log.txt
+pip_install.log
+.DS_Store
+
+# 大体积数据（保留目录结构，数据用 docs/data_inventory.md 记录）
+data/ETT-small/*.csv
+data/fast_md/
+data/ele_trans/
+data/manuals/
+data/external_transformer/
+data/milvus_data/
+data/dga/*.xlsx
+data/dga/*.csv
+data/real/dga/dga_records.csv
+data/real/dga/dga_records.jsonl
+data/synthetic/dga/
+data/synthetic/timeseries/*.csv
+
+# 含 API Key 的配置：不入库，使用 config.example.yaml 作为模板
+config.yaml
+
+# IDE
+.codebuddy/
+.vscode/
+.idea/

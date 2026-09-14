@@ -1,0 +1,8 @@
+{
+  "synthetic": true,
+  "generated_by": "scripts/generate_synthetic_data.py",
+  "created": "2026-09-14",
+  "allowed_roles": ["demo", "unit_test", "dev_regression"],
+  "forbidden_roles": ["eval_set", "train_set", "test_set", "baseline_report"],
+  "note": "本目录下所有数据均为程序合成，不代表真实设备或真实案例。任何评测集、训练集、基线报告不得引用本目录数据。"
+}
