@@ -52,6 +52,7 @@ USE_LEARNED_CPT=0 bash run_frontend.sh    # 专家默认 CPT 对照
 
 | 报告 | 内容 | 状态 |
 |---|---|---|
+| `docs/data_and_evaluation.md` | 数据来源谱系（R1–R11 / D1–D10）、角色隔离规则、四层评测体系与指标口径、对照关系 | 完成 |
 | `docs/data_inventory.md` | 数据清单、角色标注、合成数据守卫 | 完成 |
 | `docs/kb_ablation_test.md` | 分块 α 网格、切分方式、检索通道消融（Recall@k） | 离线通道版本；稠密向量 + 重排待接口 |
 | `data/kg/eval/report.md`、`docs/kg_schema.md` | 图谱 schema、304 条问答评测、精度抽检 | 规则抽取版本；LLM 抽取待接口 |
