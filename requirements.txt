@@ -1,0 +1,17 @@
+# 运行时依赖（本地开发 / 前端 / 离线脚本）。版本为当前开发环境实测值（Python 3.9）。
+openai==2.41.1
+langgraph==0.6.11
+streamlit==1.50.0
+rank-bm25==0.2.2
+jieba==0.42.1
+PyYAML==6.0.3
+numpy==2.0.2
+pandas==2.3.3
+rich==15.0.0
+python-docx==1.2.0
+
+# 可选
+# pymilvus            # 使用 Milvus / Zilliz 知识库时（默认 local_kb 不需要）
+# dashscope           # 调用百炼导入的 LoRA 模型（config: provider: dashscope）
+# graphviz            # 前端图谱可视化 st.graphviz_chart 需要系统安装 graphviz 二进制；缺失时自动降级为表格
+# ms-swift[llm]       # 训练环境（魔搭 A10），见 docs/planner_training.md

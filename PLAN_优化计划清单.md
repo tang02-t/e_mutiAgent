@@ -21,17 +21,20 @@
 
 合计约 37-49 个工作日。P1、P2 可部分并行；P3 可与 P2 并行。
 
-### 进度状态（更新于 2026-09-15）
+### 进度状态（更新于 2026-09-15，第二次）
 
-| 阶段 | 状态 | 已完成（离线） | 阻塞项（需百炼接口，当前 `403 AllocationQuota.FreeTierOnly`） |
+接口状态：`qwen3.7-flash` 专属网关可用（冒烟 3/3 通过）；按用户要求「非必要不调用模型」，以下阻塞项均为需批量调用 LLM 或魔搭 GPU 环境的事项。
+
+| 阶段 | 状态 | 已完成（离线） | 阻塞项（需批量 LLM / GPU 环境） |
 |---|---|---|---|
-| P0 | 代码修复完成，基线未跑 | 缺陷修复、严格参数校验、`exec/business_success` 分离、轨迹日志、`assert_not_synthetic` 数据守卫、58 项回归测试 | P0-3 三组基线数字（需 LLM） |
-| P1 | 离线部分完成 | MinerU → units → DP 分块（5404 块）→ BM25+锚点+RRF、`local_kb`、retrieval_seed 1209 条、Recall 消融 | 图片描述/LLM 摘要、评测集 LLM 改写、稠密向量与重排器 |
-| P2 | 离线部分完成 | 8 实体/8 关系 schema、规则抽取（90 节点/190 边）、`kg_search` 工具与 Planner/Retriever/Generator 接入、P2-5 忠实度评测（304 条，HitAll 100%）、56 条精度抽检 AI 预标注（当前图谱 83%） | 阶段 2 LLM 抽取（1677 候选句）、LLM 裁判胜率对比 |
-| P3 | 离线部分完成 | `ReflectionModule`（0-3 评分、<2 丢弃、全丢改写重检索、同章节邻块补召回、最多 2 轮）、`LexicalScorer` 基线、`LLMScorer` 占位、工作流/前端/评测 `--reflection` 开关、D9 298 对样本待人工标注 | LLMScorer 评分、与人工评分的 Kappa、有/无反思端到端对比 |
-| P4 | 离线种子完成 | `scripts/planner_data/build_task_seeds.py`：3482 条种子（fact 37%/reasoning 12%/numeric 29%/no_tool 10.5%/insufficient 10.5% + composite 240），金标动作全部通过参数校验与真实执行；按 `group_key` 分组切分 2311/439/732，泄漏检查 0；`export_sft.py` 导出 ms-swift / LLaMA-Factory / JSON 文本三种格式与数据卡片 | P4-2 口语化"模拟用户"改写、复合问题连贯性判断、D8 多轮/错误恢复样本（需真实 LLM 轨迹） |
-| P5 | 未开始 | 训练配置与对照矩阵已在文中定案 | 全部（魔搭训练 + 百炼部署） |
-| P6/P7 | 未开始 | 评测脚本框架（`eval_end2end.py` 支持 kb_mode/purpose/reflection） | 全部 |
+| P0 | 代码修复完成，基线未跑 | 缺陷修复、严格参数校验、`exec/business_success` 分离、轨迹日志、`assert_not_synthetic` 数据守卫、数据清单与角色标注、`baseline-v0` tag、87 项回归测试 | P0-3 三组基线数字（`docs/baseline.md`） |
+| P1 | 离线部分完成 | MinerU → units → DP 分块（5404 块）→ 子块 / 锚点两路 + RRF、`local_kb` `mode` 参数（naive / two_way）、retrieval_seed 1209 条、α 网格与切分方式对照、消融表 `docs/kb_ablation_test.md` | 图片描述 / LLM 摘要、评测集 LLM 改写与新手过滤、稠密向量 + Qwen3-Reranker、Milvus 四层集合 |
+| P2 | 离线部分完成 | 8 实体 / 7 关系 schema、规则抽取（90 节点 / 190 边）、`kg_search` 工具与三智能体接入、P2-5 忠实度评测（304 条，HitAll 100%）、56 条精度抽检 AI 预标注（83%） | 阶段 2 LLM 抽取（1677 候选句）、LightRAG 对比与 LLM 裁判胜率 |
+| P3 | 离线部分完成 | `ReflectionModule`、`LexicalScorer` 基线、`LLMScorer` 占位、工作流 / 前端 / 评测 `--reflection` 开关、D9 298 对、有 / 无反思对比 `docs/reflection_eval.md`（词法评分器版本） | LLMScorer 评分与人工 Kappa（需 D9 人工分） |
+| P4 | 离线部分完成 | 3482 条单轮种子 + 多轮 / 错误恢复轨迹（`multi_turn_seeds.jsonl`，工具返回真实执行），分组切分 2311/439/732，泄漏 0；导出 ms-swift 单轮 + 多轮 / LLaMA-Factory / JSON 文本三格式与数据卡片；错误恢复的刻意错误首调不作训练目标 | P4-2 口语化「模拟用户」改写、复合问题连贯性判断、D7 查询分解集 |
+| P5 | 离线部分完成 | 路线 A 定案与百炼约束核对 `docs/planner_training.md`；`training/planner_sft/`：`train.sh`（LoRA rank 8 / alpha 32 / lr 5e-5 / epoch≤5 早停）、`plugin_loss_scale.py`（结构 2 / 领域 3 加权 + 归一化加权 CE）、`domain_terms.json`（609 项）、`predict.py`、`run_matrix.sh`（M0–M3 × 2 seeds）；`scripts/eval/eval_planner_offline.py`（7 指标 × 8 类别，自检通过）；`planner_mode` 开关与 `provider: dashscope` | 魔搭训练（50 条小闭环 + 正式矩阵）、OSS 上传、百炼导入部署、`docs/planner_eval.md` 正式数字、Q0/Q1 |
+| P6 | 脚本与前端完成 | D10 评测集 196 条 + 数据卡片；`system_modes.py` 五级模式（allowed_tools 守卫）；`eval_system_modes.py`（任务成功率四要素、Token 成本，OraclePlanner 校验 task_success 88.8%）；前端五级模式下拉、轨迹 / 图谱 / 反思展示、5 个演示案例 | 五级模式正式评测（需 Planner 真实调用）、LLM 裁判 + 10% 人工复核 |
+| P7 | 部分完成 | 数据卡片齐全（kb / kg / planner / d10）、六份报告中的知识库消融、图谱评测、反思、端到端（框架）已有文件 | 基线与规划评测正式数字、README 一键复现、`v1-final` tag（待训练完成） |
 
 ---
 
@@ -53,8 +56,8 @@
 
 ### P0-2 现有数据盘点与整理
 
-- [ ] 输出数据清单文档：DGA 三份原始文件、合并后 5143 条、ETT 四份、182 篇文献解析目录、厂商手册、200 条合成案例、120 条评测样本，逐项记录路径、条数、来源、许可与已知问题。
-- [ ] 标注每类数据的角色：训练监督 / 执行环境 / 评测标签 / 演示数据，避免后续混用。
+- [x] 输出数据清单文档：DGA 三份原始文件、合并后 5143 条、ETT 四份、182 篇文献解析目录、厂商手册、200 条合成案例、120 条评测样本，逐项记录路径、条数、来源、许可与已知问题。 → `docs/data_inventory.md`
+- [x] 标注每类数据的角色：训练监督 / 执行环境 / 评测标签 / 演示数据，避免后续混用。 → `docs/data_inventory.md` 角色列
 - [x] 对合成数据（3000 条 DGA、20 台设备时序、200 案例）加"synthetic" 标记，禁止进入任何评测集。
 
 验收标准：数据清单文档完成，每条数据都有明确角色。
@@ -64,7 +67,7 @@
 - [ ] 用当前 Milvus 知识库和现有分块，记录 Recall@1/3/5（评测集见 P1-3，可先用 200 条临时集）。
 - [ ] 用未微调的 Planner 在 50 条手工任务上记录工具选择正确率、参数正确率、格式合法率。
 - [ ] 记录当前系统在 30 条端到端任务上的成功率与平均工具调用次数。
-- [ ] 把代码打 tag `baseline-v0`，把基线数字写入 `docs/baseline.md`。
+- [x] 把代码打 tag `baseline-v0`，把基线数字写入 `docs/baseline.md`。 （tag 已打；基线数字待 LLM）
 
 验收标准：基线数字与 tag 可对应，任何人能复现。
 
@@ -108,18 +111,18 @@
 ### P1-4 动态规划分块
 
 - [x] 实现论文算法 2.1：代价函数 = α × 相邻单元语义相似度惩罚 + (1-α) × 长度偏差惩罚，目标长度 400-600 token，最长 1024 token。
-- [ ] α 取 0.3、0.5、0.7 三档做网格实验。
-- [ ] 与当前"按标题切分"、固定窗口切分（512 / 128 重叠）做对比，指标 Recall@1/3/5。
+- [x] α 取 0.3、0.5、0.7 三档做网格实验。 → `docs/kb_ablation_test.md`
+- [x] 与当前"按标题切分"、固定窗口切分（512 / 128 重叠）做对比，指标 Recall@1/3/5。 → `docs/kb_ablation_test.md`
 - [x] 分块结果保留 `section_path`，供多层索引使用。
 
 验收标准：动态规划分块在 D3 上的 Recall@3 不低于两种对照方法。
 
 ### P1-5 多层索引与摘要生成（数据 D2）
 
-- [ ] 章节层：每章记录标题路径、章节摘要、包含的文本块列表。
-- [ ] 文本块层：分块结果本体。
+- [x] 章节层：每章记录标题路径、章节摘要、包含的文本块列表。 （章节摘要为规则生成，LLM 摘要待接口）
+- [x] 文本块层：分块结果本体。
 - [ ] 摘要层：每个文本块生成 50-100 字摘要，单独向量化。
-- [ ] 子文本块层：文本块按句切分为 100-150 token 子块，父指针指向文本块。
+- [x] 子文本块层：文本块按句切分为 100-150 token 子块，父指针指向文本块。
 - [ ] 为反思模块预生成"章节内段落摘要列表"（每章内每个文本块一句话）。
 - [ ] Milvus 集合设计：扩展现有 parent/child 结构为四层，字段包括 `layer, doc_id, section_path, parent_id, text, summary, embedding`。
 
@@ -127,19 +130,19 @@
 
 ### P1-6 两路检索与重排序
 
-- [ ] 路一：子文本块向量召回 top-20，映射回父文本块。
-- [ ] 路二：摘要层向量召回 top-20，映射回文本块。
+- [x] 路一：子文本块向量召回 top-20，映射回父文本块。 （离线用 BM25 子块通道代替向量）
+- [x] 路二：摘要层向量召回 top-20，映射回文本块。 （离线用标题/摘要锚点通道代替向量）
 - [ ] 合并去重后用 Qwen3-Reranker-0.6B 重排，取 top-k（k 默认 5）。
 - [x] 增加 BM25 关键词路作为可选第三路（变压器领域有大量型号、气体符号等精确匹配需求）。
-- [ ] `rag_search` 工具接口保持不变，新增 `mode` 参数用于消融（naive / two_way / two_way_rerank）。
+- [x] `rag_search` 工具接口保持不变，新增 `mode` 参数用于消融（naive / two_way / two_way_rerank）。
 
 验收标准：two_way_rerank 在 D3 上的 Recall@3 相对基线提升可量化，写入消融表。
 
 ### P1-7 知识库消融实验
 
 - [ ] 按论文表 2.7 设计 8 组：模态处理（有/无）× 分块方式（标题/动态规划）× 检索方式（单路/两路+重排），固定其他条件。
-- [ ] 每组记录 Recall@1/3/5、平均延迟、索引体积。
-- [ ] 输出消融表和结论，写入 `docs/kb_ablation.md`。
+- [x] 每组记录 Recall@1/3/5、平均延迟、索引体积。 → `docs/kb_ablation_test.md`
+- [x] 输出消融表和结论，写入 `docs/kb_ablation.md`。 → 实际文件 `docs/kb_ablation_test.md`（离线通道版本）
 
 验收标准：8 组结果齐全，最优配置确定并设为默认。
 
@@ -217,7 +220,7 @@
 
 - [ ] 人工对 300 对（查询，文本块）打 0-3 分，两人标注，争议由第三人裁定。
 - [ ] 计算 LLM 评分与人工评分的一致率、加权 Kappa。
-- [ ] 在 D3 上对比"有反思/无反思"的 Recall@k 和回答忠实度。
+- [x] 在 D3 上对比"有反思/无反思"的 Recall@k 和回答忠实度。 → `docs/reflection_eval.md`（LexicalScorer 版本）
 
 验收标准：加权 Kappa 不低于 0.6；反思带来的延迟增加有量化数字。
 
@@ -256,9 +259,9 @@
 - [x] 每条 D6 或 D7 子查询标注：工具名、参数、或"直接回答"、或"追问缺失参数"。
 - [x] 在修复后的真实执行环境中运行金标动作，记录工具返回，失败的样本剔除或修正。
 - [x] 加入对比样本：相近问题、不同动作（ETTh1 预测 6 小时 → horizon=6；ETTm1 预测 6 小时 → horizon=24；"油温会不会涨"→预测 vs "油温现在正常吗"→异常检测）。
-- [ ] 加入多轮样本：工具返回后继续调用第二个工具或给出最终回答（最多 3 轮决策、6 次工具调用）。
-- [ ] 加入错误恢复样本：工具返回业务错误时改参数重试或如实告知。
-- [ ] 目标 3000 条任务级样本；动作分布约：单工具 45%、多工具 20%、不调用 12%、追问 12%、错误恢复 11%。
+- [x] 加入多轮样本：工具返回后继续调用第二个工具或给出最终回答（最多 3 轮决策、6 次工具调用）。 → `multi_turn_seeds.jsonl`（composite_2step / single_then_finish）
+- [x] 加入错误恢复样本：工具返回业务错误时改参数重试或如实告知。 → ett_bad_dataset / ett_bad_range / kg_colloquial_to_std / ts_unrecoverable_ask
+- [x] 目标 3000 条任务级样本；动作分布约：单工具 45%、多工具 20%、不调用 12%、追问 12%、错误恢复 11%。 （3482 单轮 + 多轮轨迹；分布见 `data/planner/sft/DATA_CARD.md`）
 - [x] 输出格式同时导出 ms-swift 工具调用格式与 LLaMA-Factory function-calling 格式，便于切换平台。
 
 验收标准：所有样本在真实环境执行通过；分布统计写入数据卡片。
@@ -280,18 +283,18 @@
 
 ### P5-1 平台与基座定案
 
-- [ ] 二选一并记录理由：路线 A 魔搭 A10 + Qwen3-VL-8B-Instruct + ms-swift + 百炼部署（沿用叶金涛论文）；路线 B 双 4090 + Qwen3-8B + LLaMA-Factory + 本地 transformers 部署（沿用梁亨源论文）。
-- [ ] 若选路线 A，核对百炼 LoRA 导入约束：rank 为 8/16/32/64、不修改词汇表和对话模板、冻结视觉编码器。
+- [x] 二选一并记录理由：路线 A 魔搭 A10 + Qwen3-VL-8B-Instruct + ms-swift + 百炼部署（沿用叶金涛论文）；路线 B 双 4090 + Qwen3-8B + LLaMA-Factory + 本地 transformers 部署（沿用梁亨源论文）。 → 路线 A，理由见 `docs/planner_training.md`
+- [x] 若选路线 A，核对百炼 LoRA 导入约束：rank 为 8/16/32/64、不修改词汇表和对话模板、冻结视觉编码器。 → `docs/planner_training.md` §2（基座支持列表需在控制台再核对）
 - [ ] 部署前先用 50 条数据做一次"训练→导出→部署→调用"全流程小闭环。
 
 验收标准：小闭环成功，API 返回可被系统解析。
 
 ### P5-2 训练配置
 
-- [ ] 公共配置：LoRA rank 8、alpha 32、dropout 0.05、lr 5e-5、AdamW、warmup 20 步、cosine、bf16、seq_len 2048、有效 batch 16。
-- [ ] epoch：3-5 个，按验证集指标早停；不照抄 20 个 epoch。
-- [ ] 损失加权（可选实验组）：输入与工具返回权重 0、普通文本 1、工具调用结构 2、领域关键标识 3，归一化加权交叉熵。
-- [ ] 保存每个 epoch 的验证指标曲线。
+- [x] 公共配置：LoRA rank 8、alpha 32、dropout 0.05、lr 5e-5、AdamW、warmup 20 步、cosine、bf16、seq_len 2048、有效 batch 16。 → `training/planner_sft/train.sh`
+- [x] epoch：3-5 个，按验证集指标早停；不照抄 20 个 epoch。 → `train.sh`（上限 5，early_stop_interval 2）
+- [x] 损失加权（可选实验组）：输入与工具返回权重 0、普通文本 1、工具调用结构 2、领域关键标识 3，归一化加权交叉熵。 → `training/planner_sft/plugin_loss_scale.py` + `weighting.py` + `domain_terms.json`
+- [x] 保存每个 epoch 的验证指标曲线。 → `--eval_strategy epoch --report_to tensorboard`（训练时产生）
 
 ### P5-3 对照实验矩阵
 
@@ -300,22 +303,22 @@
 - [ ] M2：结构 Token 加权。
 - [ ] M3：结构 + 领域 Token 加权。
 - [ ] Q0/Q1：查询分解智能体 未微调 / 微调。
-- [ ] 每组固定随机种子跑 2 次取均值。
+- [x] 每组固定随机种子跑 2 次取均值。 → `training/planner_sft/run_matrix.sh`（seeds 42/2026，脚本就位，训练待环境）
 
 ### P5-4 离线评测
 
-- [ ] 工具调用智能体：格式合法率、工具选择正确率、参数正确率、完整调用率、不必要调用率、追问正确率、错误恢复成功率。
+- [x] 工具调用智能体：格式合法率、工具选择正确率、参数正确率、完整调用率、不必要调用率、追问正确率、错误恢复成功率。 → `scripts/eval/eval_planner_offline.py`（自检通过）
 - [ ] 查询分解智能体：子查询数量准确率、LLM 裁判胜率（准确性/完整性/规范性）、人工抽检 10%。
-- [ ] 分类别报告（事实 / 推理 / 数值工具 / 无需工具 / 信息不足）。
-- [ ] 写入 `docs/planner_eval.md`。
+- [x] 分类别报告（事实 / 推理 / 数值工具 / 无需工具 / 信息不足）。 → 同上，8 类别
+- [x] 写入 `docs/planner_eval.md`。 （脚本 `--write-report` 生成，待模型预测）
 
 验收标准：M1-M3 相对 M0 的提升可量化，最优模型确定。
 
 ### P5-5 系统接入
 
-- [ ] [llm.py](/Users/ts/Desktop/thu/multi_Agent/src/tools/llm.py) 增加规划模型独立配置（base_url、model_name、api_key_env），Generator 与 Validator 继续使用原模型。
+- [x] [llm.py](/Users/ts/Desktop/thu/multi_Agent/src/tools/llm.py) 增加规划模型独立配置（base_url、model_name、api_key_env），Generator 与 Validator 继续使用原模型。 → `llms.planner_finetuned`，新增 `provider: dashscope`
 - [ ] Planner 拆分为查询分解 + 工具调用两个调用步骤，支持有限反馈循环。
-- [ ] 增加配置开关：`planner_mode = baseline | finetuned`，用于 P6 对比。
+- [x] 增加配置开关：`planner_mode = baseline | finetuned`，用于 P6 对比。
 
 验收标准：系统在两种模式下都能跑通 P0-3 的 30 条端到端任务。
 
@@ -325,20 +328,20 @@
 
 ### P6-1 端到端评测集（数据 D10）
 
-- [ ] 从 D7/D8 封存测试集分层抽取 150-200 条，覆盖单工具、多工具、图谱推理、数值诊断、追问。
-- [ ] 每条标注：必要动作、关键参数、期望证据来源、参考答案要点。
+- [x] 从 D7/D8 封存测试集分层抽取 150-200 条，覆盖单工具、多工具、图谱推理、数值诊断、追问。 → `data/eval/d10/end2end_eval.jsonl`（196 条）
+- [x] 每条标注：必要动作、关键参数、期望证据来源、参考答案要点。 （自动标注 status=auto，待人工复核）
 
 ### P6-2 五级模式对比
 
-- [ ] 模式 1 无 RAG；模式 2 朴素 RAG；模式 3 加规划微调；模式 4 加图谱；模式 5 加反思（完整系统）。
-- [ ] 指标：任务成功率（动作正确 + 参数正确 + 工具结果有效 + 答案忠实于证据 四项同时满足）、证据忠实度、平均工具调用次数、平均延迟、Token 成本。
+- [x] 模式 1 无 RAG；模式 2 朴素 RAG；模式 3 加规划微调；模式 4 加图谱；模式 5 加反思（完整系统）。 → `src/graph/system_modes.py`
+- [x] 指标：任务成功率（动作正确 + 参数正确 + 工具结果有效 + 答案忠实于证据 四项同时满足）、证据忠实度、平均工具调用次数、平均延迟、Token 成本。 → `scripts/eval/eval_system_modes.py`（OraclePlanner 校验通过）
 - [ ] LLM 裁判 + 10% 人工复核。
 
 ### P6-3 前端多模式切换
 
-- [ ] 前端增加五级模式下拉框，替代当前"模拟/真实 Milvus"开关。
-- [ ] 展示工具调用轨迹、检索块来源、图谱链路可视化、反思评分。
-- [ ] 准备 5 个典型案例用于演示与论文截图。
+- [x] 前端增加五级模式下拉框，替代当前"模拟/真实 Milvus"开关。
+- [x] 展示工具调用轨迹、检索块来源、图谱链路可视化、反思评分。
+- [x] 准备 5 个典型案例用于演示与论文截图。 （`app.py` EXAMPLES）
 
 验收标准：五级模式结果表完成，典型案例可稳定复现。
 
@@ -347,7 +350,7 @@
 ## P7 成果固化
 
 - [ ] `docs/` 下整理：基线、知识库消融、图谱评测、反思一致性、规划评测、端到端评测六份报告。
-- [ ] 每套数据附数据卡片，合成数据与真实数据明确区分。
+- [x] 每套数据附数据卡片，合成数据与真实数据明确区分。
 - [ ] 复现脚本：清洗、入库、抽取、造数、训练、评测一键化，写 README。
 - [ ] 代码打 tag `v1-final`，与基线 `baseline-v0` 对照。
 - [ ] 记录已知局限：DGA 标签映射不代表真实故障部位、ETT 负载特征单位未知、评测依赖 LLM 裁判等。

@@ -42,3 +42,7 @@ data/kb/index/sections_index.jsonl
 # Planner SFT 导出产物（可由 scripts/planner_data/export_sft.py 重建，保留 DATA_CARD.md）
 data/planner/sft/*.jsonl
 data/planner/sft/*.json
+
+# 训练产物与模型预测（在魔搭环境生成，体积大）
+output/
+data/planner/predictions/

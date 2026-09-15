@@ -1,4 +1,5 @@
 import logging
+import os
 from typing import Optional
 
 from rich.logging import RichHandler
@@ -12,6 +13,8 @@ def _configure_root_logger(level: str = "INFO") -> None:
     if _CONFIGURED:
         return
 
+    # 批量脚本可用 LOG_LEVEL=WARNING 静音智能体的 INFO 日志
+    level = os.environ.get("LOG_LEVEL", level)
     logging.basicConfig(
         level=getattr(logging, level.upper(), logging.INFO),
         format="%(message)s",
