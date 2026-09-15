@@ -1,0 +1,38 @@
+{
+  "n_candidates": 280,
+  "n_prompts": 60,
+  "elapsed": 2.37,
+  "rag": "local_kb:two_way",
+  "dpo_style": "tool_calls",
+  "source_mean_full": {
+    "gold": 1.0,
+    "perturb:bad_format": 0.0,
+    "perturb:bad_schema": 0.6667,
+    "perturb:extra_calls": 0.6055,
+    "perturb:no_ask": 0.8333,
+    "perturb:spurious_call": 0.6417,
+    "perturb:wrong_tool": 0.5333
+  },
+  "subsets": {
+    "exec": {
+      "n_pairs": 50,
+      "n_invalid_records": 0,
+      "mean_gap": 1.0,
+      "leakage": {
+        "n_checked": 50,
+        "n_leaks": 0,
+        "leaks": []
+      }
+    },
+    "full": {
+      "n_pairs": 60,
+      "n_invalid_records": 0,
+      "mean_gap": 0.9222,
+      "leakage": {
+        "n_checked": 60,
+        "n_leaks": 0,
+        "leaks": []
+      }
+    }
+  }
+}

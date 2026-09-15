@@ -48,3 +48,6 @@ data/planner/sft/*.json
 output/
 data/planner/predictions/
 data/planner/dpo/candidates/
+
+# D13 偏好对导出产物（可由 scripts/planner_data/score_candidates.py 重建，保留 DATA_CARD.md 与 summary）
+data/planner/dpo/*.jsonl

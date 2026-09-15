@@ -287,15 +287,17 @@
 
 ### D-2 偏好对构造（数据 D13）
 
-- [ ] 采样 prompt：从 D8 train 切分抽 1500 条任务（分层覆盖单工具 / 多工具 / 追问 / 错误恢复 / 无需工具），加 B-3 模拟器生成的 500 条部分观测任务。
-- [ ] 候选生成：对每条 prompt 用 M1 模型（temperature 0.7 / 1.0）各采样 2 个 Planner 输出，加 M0 基座 1 个，共 5 个候选；在真实工具环境执行（复用 [retriever.py](/Users/ts/Desktop/thu/multi_Agent/src/agents/retriever.py) 的执行与 `exec/business_success` 记录）。
-- [ ] 候选打分（`scripts/planner_data/score_candidates.py`）：分项打分并加权求和，权重可配：格式合法（0/1）、工具与金标一致（0/1）、参数 Schema 通过（0/1）、工具业务成功（0/1）、下游声明忠实度（把候选轨迹送 Generator + C-2 核查器，取 `1 - unsupported_ratio`）、追问是否在推荐列表（B-2，0/1）、调用成本惩罚（`-0.1 × 多余调用数`）。
-- [ ] 配对规则：同一 prompt 内分差 ≥ 0.3 的最高与最低候选组成 `(chosen, rejected)`；分差不足则丢弃该 prompt；每 prompt 最多 1 对。
-- [ ] 偏好来源消融准备：额外导出两份子集，`D13-exec`（只用格式 + 工具 + 参数 + 业务成功打分）与 `D13-full`（加声明忠实度 + 推荐一致 + 成本），用于 D-4。
-- [ ] 人工抽 100 对复核偏好方向正确率；泄漏检查：prompt 的 `seed_source` 不得出现在 D8 test 与 D10。
-- [ ] 导出百炼 DPO 格式（`prompt / chosen / rejected` jsonl，prompt 含 system + 历史轮次）；数据卡片 `data/planner/dpo/DATA_CARD.md`。
+- [ ] 采样 prompt：从 D8 train 切分抽 1500 条任务（分层覆盖单工具 / 多工具 / 追问 / 错误恢复 / 无需工具），加 B-3 模拟器生成的 500 条部分观测任务。（分层抽样函数 `stratified_train_seeds` 已就绪；正式抽样与候选生成同步进行，后置）
+- [ ] 候选生成：对每条 prompt 用 M1 模型（temperature 0.7 / 1.0）各采样 2 个 Planner 输出，加 M0 基座 1 个，共 5 个候选；在真实工具环境执行（复用 [retriever.py](/Users/ts/Desktop/thu/multi_Agent/src/agents/retriever.py) 的执行与 `exec/business_success` 记录）。（后置：需 M1 部署与 M0 调用；候选文件格式 `{seed_id, candidate_id, source, raw{content, tool_calls}}` 已由 `score_candidates.py --candidates` 定义，真实执行部分已实现 `CandidatePlanner` + `Executor`）
+- [x] 候选打分（`scripts/planner_data/score_candidates.py`）：分项打分并加权求和，权重可配：格式合法（0/1）、工具与金标一致（0/1）、参数 Schema 通过（0/1）、工具业务成功（0/1）、下游声明忠实度（把候选轨迹送 Generator + C-2 核查器，取 `1 - unsupported_ratio`）、追问是否在推荐列表（B-2，0/1）、调用成本惩罚（`-0.1 × 多余调用数`）。（2026-09-15：[score_candidates.py](/Users/ts/Desktop/thu/multi_Agent/scripts/planner_data/score_candidates.py) `score_candidate` 六分项 + 成本惩罚，`WEIGHTS_EXEC / WEIGHTS_FULL` 可配；候选解析与线上一致（tool_calls 优先，否则 json_text）；追问项按金标 `missing` 命中判定（金标非追问而候选追问记 0）。）
+- [x] 配对规则：同一 prompt 内分差 ≥ 0.3 的最高与最低候选组成 `(chosen, rejected)`；分差不足则丢弃该 prompt；每 prompt 最多 1 对。（`make_pairs`，同分按 candidate_id 字典序，可复现）
+- [x] 偏好来源消融准备：额外导出两份子集，`D13-exec`（只用格式 + 工具 + 参数 + 业务成功打分）与 `D13-full`（加声明忠实度 + 推荐一致 + 成本），用于 D-4。（`d13_exec*.jsonl` / `d13_full*.jsonl` + `*_pairs_meta.jsonl` 记录分项）
+- [ ] 人工抽 100 对复核偏好方向正确率；泄漏检查：prompt 的 `seed_source` 不得出现在 D8 test 与 D10。（人工复核后置；泄漏检查 `leakage_check` 已实现：seed_source / group_key 对 D8 test 与 D10 双查，且要求 split=train）
+- [x] 导出百炼 DPO 格式（`prompt / chosen / rejected` jsonl，prompt 含 system + 历史轮次）；数据卡片 `data/planner/dpo/DATA_CARD.md`。（百炼 DPO 实际字段为 `messages`（以 user 结尾）+ `chosen` / `rejected`（assistant 消息）+ `tools`；`--dpo-style tool_calls|jsontext` 两种目标风格，默认 tool_calls 与 SFT 分布一致；每条经 `validate_dpo_record` 复核）
 
 验收标准：有效偏好对不少于 1200 条；人工复核偏好方向正确率不低于 90%；泄漏 0。
+
+验收结果（2026-09-15，离线管线部分）：`--synthetic-demo --n 60 --seed 20260915`（金标 + 6 类扰动候选 280 条，真实工具执行，2.4 s，Token 0）：gold 平均 full 分 1.0，各扰动 0 ~ 0.83 且方向正确（格式坏 0、换错工具 0.53、多余调用 0.61、Schema 错 0.67、该问不问 0.83）；D13-exec 50 对（追问类 10 条在 exec 分下无分差，正是消融差异）、D13-full 60 对，非法记录 0，泄漏 0；[test_d2_preference_pairs.py](/Users/ts/Desktop/thu/multi_Agent/tests/test_d2_preference_pairs.py) 29 项通过。demo 产物仅验证管线、不用于训练（数据卡片已标注）。**离线可完成部分验收通过；1200 对与 90% 人工复核依赖 M1 / M0 候选生成与人工，后置。**
 
 ### D-3 百炼 DPO 训练（M4）
 
