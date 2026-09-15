@@ -62,12 +62,25 @@ def stub_fa(dga_data=None, evidence=None, query=""):
     return {"status": "ok", "primary_fault_name": "x"}
 
 
+def stub_kg(query, relations=None, hops=1, direction="both", max_paths=20):
+    CALLS.append(("kg_search", {"query": query, "relations": relations, "hops": hops, "direction": direction}))
+    if "无实体" in query:
+        return {"status": "no_match", "matched_entities": [], "paths": []}
+    if "孤立" in query:
+        return {"status": "no_relation", "matched_entities": [{"id": "Fault:x", "name": "x"}], "paths": []}
+    return {"status": "ok", "matched_entities": [{"id": "Fault:铁心多点接地", "name": "铁心多点接地", "type": "Fault"}],
+            "paths": [{"path": ["Fault:铁心多点接地", "CAUSES", "Fault:过热故障"], "support_count": 8,
+                       "confidence": 0.6, "evidence": "多点接地引起过热"}],
+            "summary": "铁心多点接地 → 导致 → 过热故障（8 篇支持，置信 0.6）"}
+
+
 def make_mcp() -> MCPClient:
     m = MCPClient()
     m.register_tool("rag_search", stub_rag)
     m.register_tool("timeseries_anomaly", stub_ts)
     m.register_tool("ett_forecast", stub_ett)
     m.register_tool("fault_attribution", stub_fa)
+    m.register_tool("kg_search", stub_kg)
     return m
 
 
@@ -165,6 +178,47 @@ try:
     check("ETTm1 行数未被扩张（≈69680）", 69000 <= len(df) <= 70500, str(len(df)))
 except Exception as exc:  # noqa: BLE001
     check("ETT 加载", False, f"异常：{exc}")
+
+print("\n== 9. kg_search 接入（P2） ==")
+v = validate_arguments_strict("kg_search", {"query": "铁心多点接地", "hops": 2, "direction": "out"})
+check("kg_search 合法参数通过", v["valid"], str(v))
+v = validate_arguments_strict("kg_search", {"query": "x", "relations": ["FOO"]})
+check("非法关系枚举被报告", not v["valid"] and any(e["code"] == "invalid_enum" for e in v["errors"]), str(v))
+v = validate_arguments_strict("kg_search", {"query": "x", "direction": "up"})
+check("非法 direction 被报告", not v["valid"], str(v))
+
+st = run_with_plan([{"id": 1, "tool": "kg_search",
+                     "arguments": {"query": "铁心多点接地", "relations": ["CAUSES"], "hops": 2, "direction": "out"}}])
+check("kg_search 正常执行并透传参数",
+      CALLS and CALLS[0][0] == "kg_search" and CALLS[0][1]["relations"] == ["CAUSES"] and CALLS[0][1]["hops"] == 2,
+      str(CALLS))
+check("kg_search ok → success=True", st.tool_calls[0]["success"] is True, str(st.tool_calls[0]))
+
+st = run_with_plan([{"id": 1, "tool": "kg_search", "arguments": {"query": "无实体"}}])
+check("no_match → business_success=False, error_code=tool_no_match",
+      st.tool_calls[0]["business_success"] is False and st.tool_calls[0]["error_code"] == "tool_no_match",
+      str(st.tool_calls[0]))
+st = run_with_plan([{"id": 1, "tool": "kg_search", "arguments": {"query": "孤立"}}])
+check("no_relation → error_code=tool_no_relation",
+      st.tool_calls[0]["error_code"] == "tool_no_relation", str(st.tool_calls[0]))
+
+try:
+    from src.agents.generator import GeneratorAgent
+    from src.utils.prompts import render_generator_user
+    g = GeneratorAgent({})
+    st = run_with_plan([{"id": 1, "tool": "kg_search", "arguments": {"query": "铁心多点接地"}}])
+    kb_t, ts_t, at_t, fc_t, kg_t = g._extract_tool_results(st)
+    check("Generator 提取到图谱文本", "铁心多点接地" in kg_t and "过热故障" in kg_t, kg_t)
+    u = render_generator_user(query="q", kb_text=kb_t, ts_text=ts_t, attribution_text=at_t,
+                              forecast_text=fc_t, kg_text=kg_t)
+    check("Generator 用户提示词含图谱段且无未填占位", "【故障关系图谱】" in u and "{{" not in u)
+    st = run_with_plan([{"id": 1, "tool": "kg_search", "arguments": {"query": "无实体"}}])
+    kg_t = g._extract_tool_results(st)[4]
+    check("no_match 时给出明确说明而非空串", "未识别到图谱实体" in kg_t, kg_t)
+    draft = g._template_generate(st)
+    check("模板生成包含图谱章节", "故障关系图谱" in draft)
+except Exception as exc:  # noqa: BLE001
+    check("Generator 图谱接入", False, f"异常：{exc}")
 
 print(f"\n结果：{PASSED} passed, {FAILED} failed")
 sys.exit(1 if FAILED else 0)

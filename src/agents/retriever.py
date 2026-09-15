@@ -30,7 +30,7 @@ logger = get_logger(__name__)
 _DEFAULT_MAX_PARALLEL_TOOLS = 3
 
 # 工具返回中表示「业务失败」的 status 取值
-_BUSINESS_ERROR_STATUS = {"error", "no_data", "failed"}
+_BUSINESS_ERROR_STATUS = {"error", "no_data", "failed", "no_match", "no_relation"}
 
 
 def _judge_business_result(tool: str, result: Any) -> Tuple[bool, Optional[str], Optional[str]]:
@@ -150,6 +150,10 @@ class RetrieverAgent:
                     evidence=evidence,
                     query=query,
                 )
+
+            elif tool == "kg_search":
+                kwargs = {k: v for k, v in args.items() if v is not None}
+                result = self.mcp.call_tool("kg_search", **kwargs)
 
             else:
                 return self._make_record(

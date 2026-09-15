@@ -137,21 +137,62 @@ def render_planner_user(query: str, context: str = "（无额外上下文）") -
     return _loader.render_user("planner", query=query, context=context)
 
 
+def _generator_user_fallback(
+    query: str,
+    kb_text: str,
+    kg_text: str,
+    ts_text: str,
+    attribution_text: str,
+    forecast_text: str,
+) -> str:
+    """templates/generator/user.txt 缺失时的内置回退，保证 LLM 永远收到非空用户消息。"""
+    return f"""请根据以下信息生成诊断建议：
+
+【用户问题】
+{query}
+
+【知识库检索结果】
+{kb_text}
+
+【故障关系图谱】
+{kg_text}
+
+【时序分析结果】
+{ts_text}
+
+【故障归因分析】
+{attribution_text}
+
+【油温预测结果】
+{forecast_text}
+
+请按以下结构输出：
+一、诊断结论（区分确定/可能/待确认，并说明依据来源）
+二、处理与检修建议（安全优先，按优先级排序）
+三、进一步检查建议
+"""
+
+
 def render_generator_user(
     query: str,
     kb_text: str,
     ts_text: str,
     attribution_text: str = "",
     forecast_text: str = "",
+    kg_text: str = "",
 ) -> str:
-    return _loader.render_user(
-        "generator",
+    kwargs = dict(
         query=query,
-        kb_text=kb_text,
-        ts_text=ts_text,
+        kb_text=kb_text or "（无知识库检索结果）",
+        kg_text=kg_text or "（无图谱关系检索结果）",
+        ts_text=ts_text or "（无时序分析结果）",
         attribution_text=attribution_text or "（无故障归因分析结果）",
         forecast_text=forecast_text or "（无油温预测分析结果）",
     )
+    rendered = _loader.render_user("generator", **kwargs)
+    if not rendered.strip():
+        rendered = _generator_user_fallback(**kwargs)
+    return rendered
 
 
 def render_validator_user(draft_answer: str) -> str:
@@ -170,6 +211,7 @@ def render_generator_revision_user(
     forecast_text: str = "",
     revision_feedback: str = "",
     previous_draft: str = "",
+    kg_text: str = "",
 ) -> str:
     """
     渲染 Generator 重生成时的用户提示词。
@@ -182,6 +224,7 @@ def render_generator_revision_user(
     - forecast_text: 油温预测结果
     - revision_feedback: Validator 的改进建议
     - previous_draft: 上一版本的诊断草案
+    - kg_text: 故障关系图谱检索结果
     """
     feedback_section = f"""
 【Validator 改进建议】
@@ -200,6 +243,9 @@ def render_generator_revision_user(
 
 【知识库检索结果】
 {kb_text}
+
+【故障关系图谱】
+{kg_text or "（无）"}
 
 【时序分析结果】
 {ts_text}

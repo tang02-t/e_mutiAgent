@@ -32,8 +32,8 @@ TOOL_SPECS: List[Dict[str, Any]] = [
             "返回最相关的知识片段。用于补充诊断所需的领域知识与处理建议依据。"
         ),
         "when_to_use": (
-            "几乎所有诊断都建议调用，用于获取标准依据、典型案例与检修建议；"
-            "尤其当用户问题涉及『如何处理 / 规程 / 标准 / 案例』时必选。"
+            "当用户问题涉及『如何处理 / 规程 / 标准 / 案例 / 依据』或需要文献支撑时调用；"
+            "纯数据计算类问题（只要故障概率或油温数值）不必调用。"
         ),
         "parameters": {
             "type": "object",
@@ -41,6 +41,48 @@ TOOL_SPECS: List[Dict[str, Any]] = [
                 "query": {
                     "type": "string",
                     "description": "检索关键词或问题，通常可直接用用户原始问题，必要时可改写以提升召回。",
+                },
+            },
+            "required": ["query"],
+        },
+    },
+    {
+        "name": "kg_search",
+        "description": (
+            "在变压器故障关系链路图谱中检索实体及其关系链路。图谱由文献抽取，节点类型包括故障、部件、"
+            "症状、指标、方法、工况、处理措施、标准；关系包括 CAUSES（导致）、PRODUCES（产生气体）、"
+            "INDICATES（症状指示故障）、LOCATED_IN（故障部位）、DETECTED_BY（检测手段）、"
+            "TREATED_BY（处理措施）、SPECIFIED_IN（依据标准）。返回带文献支持数的关系路径。"
+        ),
+        "when_to_use": (
+            "需要回答『X 会导致什么 / X 由什么引起 / X 发生在哪个部件 / X 如何检测或处理 / "
+            "某症状指示哪些故障』这类结构化因果与关系问题时调用；已得到故障归因结果后，"
+            "可用它补充部位、处理措施与复核手段。"
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "要定位的实体或包含实体的短语，如『铁心多点接地』『乙炔升高』『突发短路』。",
+                },
+                "relations": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": ["CAUSES", "PRODUCES", "INDICATES", "LOCATED_IN",
+                                 "DETECTED_BY", "TREATED_BY", "SPECIFIED_IN"],
+                    },
+                    "description": "限定关系类型；省略则返回全部关系。",
+                },
+                "hops": {
+                    "type": "integer",
+                    "description": "扩展跳数，1~3，默认 1。因果链追溯用 2。",
+                },
+                "direction": {
+                    "type": "string",
+                    "enum": ["out", "in", "both"],
+                    "description": "out=从实体出发（X 导致什么），in=指向实体（什么导致 X），both=双向，默认 both。",
                 },
             },
             "required": ["query"],
@@ -289,7 +331,8 @@ def validate_arguments_strict(name: str, arguments: Dict[str, Any]) -> Dict[str,
                 "message": f"参数 {key} 取值 {value!r} 不在允许范围 {enum}",
             })
         if ptype == "array":
-            item_type = (pdef.get("items") or {}).get("type")
+            item_def = pdef.get("items") or {}
+            item_type = item_def.get("type")
             item_checker = _JSON_TYPE_CHECK.get(item_type)
             if item_checker:
                 bad = [i for i, v in enumerate(value) if not item_checker(v)]
@@ -298,6 +341,15 @@ def validate_arguments_strict(name: str, arguments: Dict[str, Any]) -> Dict[str,
                         "field": key,
                         "code": "invalid_item_type",
                         "message": f"参数 {key} 中第 {bad[:5]} 项不是 {item_type}",
+                    })
+            item_enum = item_def.get("enum")
+            if item_enum:
+                bad_vals = [v for v in value if v not in item_enum]
+                if bad_vals:
+                    errors.append({
+                        "field": key,
+                        "code": "invalid_enum",
+                        "message": f"参数 {key} 中的元素 {bad_vals[:5]!r} 不在允许范围 {item_enum}",
                     })
 
     return {"valid": not errors, "arguments": raw, "errors": errors}

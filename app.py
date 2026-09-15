@@ -110,8 +110,8 @@ def timeseries_anomaly_tool(signal=None) -> Dict[str, Any]:
     }
 
 
-def build_mcp(real_rag: bool, user_dga: Dict[str, Any] | None) -> MCPClient:
-    """构造 MCP 客户端并注册工具。"""
+def build_mcp(kb_mode: str, user_dga: Dict[str, Any] | None) -> MCPClient:
+    """构造 MCP 客户端并注册工具。kb_mode: local_kb | milvus | mock"""
     mcp = MCPClient()
 
     # fault_attribution：用闭包注入前端填写的 DGA（当 plan 未带 dga_data 时生效）
@@ -124,7 +124,14 @@ def build_mcp(real_rag: bool, user_dga: Dict[str, Any] | None) -> MCPClient:
     mcp.register_tool("timeseries_anomaly", timeseries_anomaly_tool)
     mcp.register_tool("ett_forecast", ett_forecast)
 
-    if real_rag:
+    # kg_search：故障关系链路图谱（本地 graph.json）
+    try:
+        from src.tools.kg_search import kg_search
+        mcp.register_tool("kg_search", kg_search)
+    except Exception as exc:  # noqa: BLE001
+        st.warning(f"图谱工具初始化失败：{exc}")
+
+    if kb_mode == "milvus":
         try:
             from src.tools.rag_engine import RAGEngine
             cfg = load_config()
@@ -139,9 +146,16 @@ def build_mcp(real_rag: bool, user_dga: Dict[str, Any] | None) -> MCPClient:
             )
             mcp.register_tool("rag_search", engine.search)
         except Exception as exc:  # noqa: BLE001
-            st.warning(f"真实 RAG 初始化失败，已回退到本地案例 mock：{exc}")
-            mcp.register_tool("rag_search", mock_rag_search)
-    else:
+            st.warning(f"Milvus 初始化失败，已回退到本地文献库：{exc}")
+            kb_mode = "local_kb"
+    if kb_mode == "local_kb":
+        try:
+            from src.tools.local_kb import local_kb_search
+            mcp.register_tool("rag_search", local_kb_search)
+        except Exception as exc:  # noqa: BLE001
+            st.warning(f"本地文献库初始化失败，已回退到合成案例 mock：{exc}")
+            kb_mode = "mock"
+    if kb_mode == "mock":
         mcp.register_tool("rag_search", mock_rag_search)
 
     return mcp
@@ -389,10 +403,14 @@ with st.sidebar:
         value=True,
         help="关闭后各智能体将使用模板/规则降级，可离线演示流程连通性。",
     )
-    real_rag = st.toggle(
-        "使用真实 Milvus 知识库",
-        value=False,
-        help="关闭时使用本地故障案例库做关键词匹配 mock。",
+    kb_mode = st.radio(
+        "知识库来源",
+        options=["local_kb", "milvus", "mock"],
+        index=0,
+        format_func=lambda x: {"local_kb": "本地文献库（182 篇，BM25+锚点）",
+                               "milvus": "Milvus 向量库（需 embedding 接口）",
+                               "mock": "合成案例 mock（仅演示）"}[x],
+        help="local_kb 由 data/kb 离线构建，不依赖网络；mock 为程序合成案例，不得用于评测。",
     )
     max_iter = st.slider("最大迭代轮次", 1, 5, value=config.get("workflow", {}).get("max_iterations", 3))
 
@@ -458,7 +476,7 @@ if run_clicked:
     if use_dga and dga:
         # 显式进入 Planner 输入：模型必须能看到前端填写的数据，才能被要求填对 dga_data
         context["dga"] = dict(dga)
-    mcp = build_mcp(real_rag=real_rag, user_dga=dga if use_dga else None)
+    mcp = build_mcp(kb_mode=kb_mode, user_dga=dga if use_dga else None)
 
     with st.spinner("多智能体协同诊断中…（Planner → Retriever → Generator → Validator）"):
         final, elapsed, err = run_workflow(user_query, context, run_cfg, mcp)

@@ -66,18 +66,69 @@ class GeneratorAgent:
             lines.append(f"   片段：{str(text)[:200]}...")
         return "\n".join(lines)
 
-    def _extract_tool_results(self, state: AgentState) -> tuple[str, str, str, str]:
-        """从 tool_calls 中提取各类工具的结果文本。"""
-        ts_calls = [c for c in state.tool_calls if c.get("tool") == "timeseries_anomaly"]
-        ts_result = ts_calls[0]["result"] if ts_calls else None
+    @staticmethod
+    def _first_result(state: AgentState, tool: str, require_ok: bool = False):
+        """取指定工具第一条调用的 result；require_ok=True 时优先取 success 的那条。"""
+        calls = [c for c in state.tool_calls if c.get("tool") == tool]
+        if not calls:
+            return None
+        if require_ok:
+            ok_calls = [c for c in calls if c.get("success", True) and c.get("result")]
+            if ok_calls:
+                return ok_calls[0].get("result")
+        return calls[0].get("result")
 
-        attr_calls = [c for c in state.tool_calls if c.get("tool") == "fault_attribution"]
-        attr_result = attr_calls[0]["result"] if attr_calls else None
+    def _format_kg_result(self, kg_result: Any) -> str:
+        """把 kg_search 的返回渲染为提示词文本。"""
+        if not isinstance(kg_result, dict):
+            return "（未调用故障关系图谱）"
+        status = kg_result.get("status")
+        if status == "no_match":
+            return "（问题中未识别到图谱实体，图谱无可用关系）"
+        if status == "no_relation":
+            matched = "、".join(
+                e.get("name", "") if isinstance(e, dict) else str(e)
+                for e in kg_result.get("matched_entities", [])
+            )
+            return f"（识别到实体：{matched or '无'}，但图谱中无满足条件的关系链）"
+        if status != "ok":
+            return f"（图谱检索失败：{kg_result.get('message', status)}）"
 
-        forecast_calls = [c for c in state.tool_calls if c.get("tool") == "ett_forecast"]
-        forecast_result = forecast_calls[0]["result"] if forecast_calls else None
+        summary = (kg_result.get("summary") or "").strip()
+        paths = kg_result.get("paths") or []
+        matched = "、".join(
+            f"{e.get('name', '')}({e.get('type', '')})" if isinstance(e, dict) else str(e)
+            for e in kg_result.get("matched_entities", [])[:5]
+        )
+        lines: List[str] = []
+        if matched:
+            lines.append(f"识别实体：{matched}")
+        if summary:
+            lines.append("关系链（支持文献数 / 置信度）：")
+            lines.append(summary)
+        # 附最多 3 条证据原句，帮助 LLM 判断关系是否适用
+        evid_shown = 0
+        for p in paths:
+            ev = (p.get("evidence") or "").strip() if isinstance(p, dict) else ""
+            if ev:
+                lines.append(f"  证据：{ev[:120]}")
+                evid_shown += 1
+            if evid_shown >= 3:
+                break
+        if not lines:
+            return "（图谱返回为空）"
+        lines.append("注：图谱关系来自文献规则抽取，用于解释与提示，需与实测数据交叉验证。")
+        return "\n".join(lines)
+
+    def _extract_tool_results(self, state: AgentState) -> tuple[str, str, str, str, str]:
+        """从 tool_calls 中提取各类工具的结果文本。返回 (kb, ts, attribution, forecast, kg)。"""
+        ts_result = self._first_result(state, "timeseries_anomaly", require_ok=True)
+        attr_result = self._first_result(state, "fault_attribution", require_ok=True)
+        forecast_result = self._first_result(state, "ett_forecast", require_ok=True)
+        kg_result = self._first_result(state, "kg_search", require_ok=True)
 
         kb_text = self._format_kb_snippets(state.retrieved_knowledge)
+        kg_text = self._format_kg_result(kg_result)
 
         ts_text = ""
         if ts_result and ts_result.get("status") == "ok":
@@ -139,11 +190,11 @@ class GeneratorAgent:
             if forecast_result and forecast_result.get("status") == "error":
                 forecast_text = f"- 油温预测分析失败：{forecast_result.get('message', '未知错误')}"
 
-        return kb_text, ts_text, attribution_text, forecast_text
+        return kb_text, ts_text, attribution_text, forecast_text, kg_text
 
     def _llm_revision(self, state: AgentState, revision_feedback: str) -> str:
         """调用 LLM 根据 Validator 反馈重新生成诊断草案。"""
-        kb_text, ts_text, attribution_text, forecast_text = self._extract_tool_results(state)
+        kb_text, ts_text, attribution_text, forecast_text, kg_text = self._extract_tool_results(state)
         previous_draft = state.draft_answer or ""
 
         system_msg = GENERATOR_REVISION_SYSTEM_PROMPT()
@@ -155,6 +206,7 @@ class GeneratorAgent:
             forecast_text=forecast_text,
             revision_feedback=revision_feedback,
             previous_draft=previous_draft,
+            kg_text=kg_text,
         )
 
         messages: List[Dict[str, str]] = [
@@ -167,7 +219,7 @@ class GeneratorAgent:
 
     def _llm_generate(self, state: AgentState) -> str:
         """调用 LLM 生成诊断草案（首次生成）。"""
-        kb_text, ts_text, attribution_text, forecast_text = self._extract_tool_results(state)
+        kb_text, ts_text, attribution_text, forecast_text, kg_text = self._extract_tool_results(state)
 
         system_msg = GENERATOR_SYSTEM_PROMPT()
         user_msg = render_generator_user(
@@ -176,6 +228,7 @@ class GeneratorAgent:
             ts_text=ts_text,
             attribution_text=attribution_text,
             forecast_text=forecast_text,
+            kg_text=kg_text,
         )
 
         messages: List[Dict[str, str]] = [
@@ -187,37 +240,34 @@ class GeneratorAgent:
         return choice.get("content", "") if isinstance(choice, dict) else ""
 
     def _template_generate(self, state: AgentState) -> str:
-        """使用模板填充生成诊断草案。"""
-        kb = state.retrieved_knowledge
-        ts_calls = [c for c in state.tool_calls if c.get("tool") == "timeseries_anomaly"]
-        ts_result = ts_calls[0]["result"] if ts_calls else None
-
-        kb_text = self._format_kb_snippets(kb)
+        """使用模板填充生成诊断草案（LLM 不可用时的降级路径）。"""
+        kb_text, ts_text, attribution_text, forecast_text, kg_text = self._extract_tool_results(state)
 
         draft_parts: List[str] = [
-            GENERATOR_SYSTEM_PROMPT(),
+            "【模板生成模式：LLM 未启用或调用失败，以下为基于工具结果的结构化摘要】",
             "",
             "用户问题：" + state.user_query,
             "",
             "一、相关案例与知识片段：",
             kb_text,
             "",
-            "二、时序信号分析要点：",
+            "二、故障关系图谱：",
+            kg_text,
+            "",
+            "三、时序信号分析要点：",
+            ts_text,
+            "",
+            "四、故障归因分析：",
+            attribution_text,
+            "",
+            "五、油温预测：",
+            forecast_text,
         ]
-
-        if ts_result and ts_result.get("status") == "ok":
-            anomaly_cnt = len(ts_result.get("anomaly_indices", []))
-            draft_parts.append(
-                f"- 信号平均值约为 {ts_result.get('mean'):.2f}，标准差约为 {ts_result.get('std'):.2f}。"
-            )
-            draft_parts.append(f"- 检测到 {anomaly_cnt} 个疑似异常点，可能对应负载突变或设备异常。")
-        else:
-            draft_parts.append("- 当前未获得有效时序分析结果。")
 
         draft_parts.extend(
             [
                 "",
-                "三、诊断结论与处理建议（示例）：",
+                "六、诊断结论与处理建议（通用）：",
                 "1. 【安全优先】在进行任何检修前，确认相关保护装置（差动保护、瓦斯保护）处于正常状态。",
                 "2. 建议取油样进行 DGA（溶解气体分析），根据 GB/T 7252 标准判定故障类型。",
                 "3. 结合红外热成像检测套管及引线接头温升，关注是否超过额定温升限值（油浸式 A 级绝缘绕组温升≤65K）。",
