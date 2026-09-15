@@ -215,14 +215,16 @@
 
 ### C-2 约束核查器
 
-- [ ] 新建 `src/agents/claim_checker.py`，两层核查：
-- [ ] 确定性层（无 LLM）：数值一致性（声明中的气体浓度、概率、预测值、horizon 与 `state.tool_results` 逐项比对，容差可配）；引用存在性（`ref` 在本轮工具返回中可找到，`span` 为其子串）；适用性（声明中的设备号、数据集名、时间范围与工具入参一致）；安全前提（推荐类声明若涉及停电 / 吊罩 / 更换，必须存在对应 `observation` 声明支撑）。
-- [ ] 语义层（LLM）：对通过确定性层的 `inference` 声明做 NLI 判定 `entail | contradict | unsupported`，提示词只给该声明与其引用的证据片段，不给全文。
-- [ ] 输出 `ValidationResult` v2：新增 `claim_verdicts: [{claim_id, verdict, violated_constraints: [...], detail}]`、`unsupported_ratio`、`violation_counts`；保留旧字段兼容前端。
-- [ ] 判定规则：任一 `SAFETY` 或 `DATA` 违反 → `REVISION`；`unsupported_ratio > 0.3` → `REVISION`；两轮修订仍不通过 → `ABSTAIN`（输出「证据不足，建议补充 X」而非强行结论）。
-- [ ] 单元测试：四类约束各 5 个构造样例。
+- [x] 新建 `src/agents/claim_checker.py`，两层核查：（2026-09-15，`ClaimChecker.check(state) -> ClaimCheckResult`）
+- [x] 确定性层（无 LLM）：数值一致性（声明中的气体浓度、概率、预测值、horizon 与 `state.tool_results` 逐项比对，容差可配）；引用存在性（`ref` 在本轮工具返回中可找到，`span` 为其子串）；适用性（声明中的设备号、数据集名、时间范围与工具入参一致）；安全前提（推荐类声明若涉及停电 / 吊罩 / 更换，必须存在对应 `observation` 声明支撑）。（2026-09-15，容差 `claim_rel_tol` 0.02 / `claim_abs_tol` 0.05 / 百分比 ±0.15 pp；工具证据 span 按 JSON 叶值逐键比对，文本证据按去空白子串；另检三比值编码、后验熵、异常点数、故障名-概率错位、「无需处理」与高危检测矛盾、以知识库片段冒充本次检测）
+- [x] 语义层（LLM）：对通过确定性层的 `inference` 声明做 NLI 判定 `entail | contradict | unsupported`，提示词只给该声明与其引用的证据片段，不给全文。（2026-09-15，`_semantic_layer` 已实现，LLM 未启用时自动跳过；`claim_semantic_layer` 开关）
+- [x] 输出 `ValidationResult` v2：新增 `claim_verdicts: [{claim_id, verdict, violated_constraints: [...], detail}]`、`unsupported_ratio`、`violation_counts`；保留旧字段兼容前端。（2026-09-15，另加 `claim_check_verdict` / `missing_evidence`；`to_report` 附「声明级核查」段；`claim_check=off` 时 `to_dict` 与 v1 完全一致）
+- [x] 判定规则：任一 `SAFETY` 或 `DATA` 违反 → `REVISION`；`unsupported_ratio > 0.3` → `REVISION`；两轮修订仍不通过 → `ABSTAIN`（输出「证据不足，建议补充 X」而非强行结论）。（2026-09-15，`ValidatorAgent(config, claim_check=off|check|route)` 集成，配置 `workflow.claim_check`、`claim_abstain_after`；ABSTAIN 时 `final_answer` 列出未通过声明与建议补充的工具；每轮写 `state.claim_check_log`）
+- [x] 单元测试：四类约束各 5 个构造样例。（2026-09-15，`tests/test_c2_claim_checker.py` 59 项：四类 × 5 违反 + 5 合规、判定规则、v2 兼容、Validator 集成）
 
 验收标准：确定性层对构造样例检出率 100%，误报 0；语义层在 30 条人工标注声明上与人工一致率不低于 85%。
+
+验收结果（2026-09-15，`scripts/eval/eval_claim_checker_c2.py`，报告 [claim_checker_acceptance.md](/Users/ts/Desktop/thu/multi_Agent/docs/claim_checker_acceptance.md)）：确定性层对 20 条构造违反样例检出 20/20（100%），20 条合规样例误报 0；D10 全量 196 条规则声明（817 条，视为干净样本）核查误报 0 条，196 条全部 PASS，耗时 1.5 s。回归 c1 50 / p0 87 / b1 47 / b2 34 / b3 33 / b4 51 / b5 30 全绿。**确定性层验收通过。** 标注：语义层「30 条人工标注一致率 ≥ 85%」需启用 LLM 并人工标注，后置到 C-5 与人工项一并完成（已实现，未验收）。
 
 ### C-3 补证与重规划路由
 

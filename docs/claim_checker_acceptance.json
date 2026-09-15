@@ -1,0 +1,49 @@
+{
+  "constructed": {
+    "DATA": {
+      "n_bad": 5,
+      "detected": 5,
+      "n_good": 5,
+      "false_positive": 0
+    },
+    "EVIDENCE": {
+      "n_bad": 5,
+      "detected": 5,
+      "n_good": 5,
+      "false_positive": 0
+    },
+    "APPLICABILITY": {
+      "n_bad": 5,
+      "detected": 5,
+      "n_good": 5,
+      "false_positive": 0
+    },
+    "SAFETY": {
+      "n_bad": 5,
+      "detected": 5,
+      "n_good": 5,
+      "false_positive": 0
+    }
+  },
+  "d10_clean": {
+    "n_samples": 196,
+    "n_claims": 817,
+    "n_nonpass_claims": 0,
+    "n_samples_with_nonpass": 0,
+    "claim_fp_rate": 0.0,
+    "sample_fp_rate": 0.0,
+    "violation_counts": {
+      "DATA": 0,
+      "EVIDENCE": 0,
+      "APPLICABILITY": 0,
+      "SAFETY": 0
+    },
+    "verdicts": {
+      "PASS": 196
+    },
+    "rag": "local_kb:two_way",
+    "elapsed": 1.54,
+    "bad_examples": []
+  },
+  "pass_deterministic": true
+}

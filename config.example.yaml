@@ -90,3 +90,16 @@ workflow:
   #   claims —— 先输出 JSON 声明列表（state.draft_claims，见 docs/claim_schema.md）再输出自然语言草案；
   #             LLM 不可用或 JSON 非法时按工具结果规则拼装声明，链路不断
   generator_output_mode: text
+  # C-2 声明级约束核查（依赖 generator_output_mode=claims 或模板回退产出的规则声明）：
+  #   claim_check: off   —— v1 整体评分 Validator
+  #                check —— 逐条核对声明与证据（DATA / EVIDENCE / APPLICABILITY / SAFETY），按规则判定 PASS / REVISION / ABSTAIN
+  #                route —— check + 补证 / 重规划路由（C-3，写入 state.missing_evidence）
+  #   claim_semantic_layer: 是否对 inference 声明做 LLM NLI 判定（LLM 不可用时自动跳过）
+  #   claim_rel_tol / claim_abs_tol: 数值一致性容差；claim_unsupported_threshold: 无依据占比阈值；
+  #   claim_abstain_after: 第 N 次评估仍不通过则 ABSTAIN（默认 3 = 两轮修订后）
+  claim_check: off
+  claim_semantic_layer: true
+  claim_rel_tol: 0.02
+  claim_abs_tol: 0.05
+  claim_unsupported_threshold: 0.3
+  claim_abstain_after: 3

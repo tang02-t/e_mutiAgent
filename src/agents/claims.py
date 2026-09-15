@@ -303,6 +303,11 @@ def _attribution_claims(state, ids: _IdGen) -> List[Dict[str, Any]]:
                               [make_evidence("tool", ref, {"dga_analysis": {"interpretation": interp}}, tool=tool)]))
 
     matched = dga_an.get("matched_rules") or []
+    codes = dga_an.get("ratio_codes") or {}
+    if codes and not dga_an.get("ratios_incomplete"):
+        code_txt = "-".join(str(codes.get(k, "?")) for k in ("code_C2H2_C2H4", "code_CH4_H2", "code_C2H4_C2H6"))
+        out.append(make_claim(ids.next(), f"三比值法编码（C2H2/C2H4、CH4/H2、C2H4/C2H6）：{code_txt}。", "observation",
+                              [make_evidence("tool", ref, {"ratio_codes": codes}, tool=tool)]))
     if matched:
         names = "、".join(
             f"{m.get('rule_name')}（置信度 {m.get('confidence')}）" if isinstance(m, dict) else str(m)
@@ -427,12 +432,13 @@ def _forecast_claims(state, ids: _IdGen) -> List[Dict[str, Any]]:
         [make_evidence("tool", ref, {"dataset": ds, "freq": res.get("freq"), "lookback": lookback, "horizon": horizon,
                                      "history_summary": {"ot_mean": hist.get("ot_mean"), "ot_std": hist.get("ot_std")}}, tool=tool)])]
     if fc.get("mean_predicted_ot") is not None:
+        slim_fc = {k: fc.get(k) for k in ("mean_predicted_ot", "min_predicted_ot", "max_predicted_ot") if k in fc}
         out.append(make_claim(
             ids.next(),
             f"未来 {horizon} 步油温预测均值 {_fmt_num(fc.get('mean_predicted_ot'))}℃，"
             f"范围 {_fmt_num(fc.get('min_predicted_ot'))}℃ ~ {_fmt_num(fc.get('max_predicted_ot'))}℃。",
             "inference",
-            [make_evidence("tool", ref, {"horizon": horizon, "forecast": fc}, tool=tool)]))
+            [make_evidence("tool", ref, {"horizon": horizon, "forecast": slim_fc}, tool=tool)]))
     cnt = anom.get("count")
     if cnt is not None:
         text = (f"历史窗口 3σ 检出 {cnt} 个油温异常点，建议关注油温突变风险并核查冷却系统。" if cnt

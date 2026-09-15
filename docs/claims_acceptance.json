@@ -9,20 +9,20 @@
     "json_valid_rate": 1.0,
     "all_evidence_rate": 1.0,
     "claim_evidence_coverage": 1.0,
-    "total_claims": 110,
-    "total_evidence": 116,
-    "avg_claims_per_sample": 3.6666666666666665,
-    "avg_evidence_per_claim": 1.0545454545454545,
+    "total_claims": 115,
+    "total_evidence": 121,
+    "avg_claims_per_sample": 3.8333333333333335,
+    "avg_evidence_per_claim": 1.0521739130434782,
     "ref_unknown_total": 0,
     "safety_supported_rate": 1.0,
     "type_counts": {
-      "observation": 40,
+      "observation": 45,
       "inference": 43,
       "safety": 6,
       "recommendation": 21
     },
     "source_counts": {
-      "tool": 73,
+      "tool": 78,
       "user": 6,
       "kg": 16,
       "kb": 21
@@ -38,8 +38,8 @@
       "context_contrast": {
         "n": 2,
         "schema_ok": 2,
-        "avg_claims": 7.5,
-        "avg_evidence": 8.5,
+        "avg_claims": 8.5,
+        "avg_evidence": 9.5,
         "ref_unknown": 0
       },
       "error_recovery": {
@@ -59,8 +59,8 @@
       "multi_tool": {
         "n": 4,
         "schema_ok": 4,
-        "avg_claims": 7.75,
-        "avg_evidence": 8.25,
+        "avg_claims": 8.0,
+        "avg_evidence": 8.5,
         "ref_unknown": 0
       },
       "no_tool": {
@@ -80,12 +80,12 @@
       "single_tool_numeric": {
         "n": 5,
         "schema_ok": 5,
-        "avg_claims": 5.0,
-        "avg_evidence": 5.4,
+        "avg_claims": 5.4,
+        "avg_evidence": 5.8,
         "ref_unknown": 0
       }
     },
-    "avg_elapsed": 0.014100000000000003,
+    "avg_elapsed": 0.014133333333333336,
     "pass": true,
     "elapsed_total": 0.64
   },
@@ -95,27 +95,27 @@
       "scenario": "context_contrast",
       "sub_type": "dga_from_context",
       "error": null,
-      "elapsed": 0.146,
+      "elapsed": 0.147,
       "claims_source": "rule",
       "claims_json_valid": true,
-      "n_claims": 8,
-      "n_evidence": 9,
+      "n_claims": 9,
+      "n_evidence": 10,
       "schema_ok": true,
       "all_have_evidence": true,
       "ref_unknown": 0,
       "hard_errors": [],
       "safety_supported": true,
       "type_counts": {
-        "observation": 4,
+        "observation": 5,
         "inference": 3,
         "safety": 1
       },
       "source_counts": {
-        "tool": 9
+        "tool": 10
       },
       "n_tool_calls": 1,
       "n_kb": 0,
-      "draft_len": 1364,
+      "draft_len": 1430,
       "claims": [
         {
           "id": "c1",
@@ -145,6 +145,19 @@
         },
         {
           "id": "c3",
+          "text": "三比值法编码（C2H2/C2H4、CH4/H2、C2H4/C2H6）：0-2-0。",
+          "type": "observation",
+          "evidence": [
+            {
+              "source": "tool",
+              "ref": "call:0",
+              "span": "{\"ratio_codes\": {\"code_C2H2_C2H4\": 0, \"code_C2H4_C2H6\": 0, \"code_CH4_H2\": 2}}",
+              "tool": "fault_attribution"
+            }
+          ]
+        },
+        {
+          "id": "c4",
           "text": "三比值 / 特征气体规则命中：低温过热（150℃~300℃）（置信度 0.76）。",
           "type": "observation",
           "evidence": [
@@ -157,7 +170,7 @@
           ]
         },
         {
-          "id": "c4",
+          "id": "c5",
           "text": "已排除的征兆（负观测）：H2_elevated, CH4_elevated, C2H2_elevated, C2H4_elevated, gas_rate_rapid。",
           "type": "observation",
           "evidence": [
@@ -170,7 +183,7 @@
           ]
         },
         {
-          "id": "c5",
+          "id": "c6",
           "text": "主要故障推断为「绝缘老化」，后验概率 62.7%（置信等级：可能）。",
           "type": "inference",
           "evidence": [
@@ -183,7 +196,7 @@
           ]
         },
         {
-          "id": "c6",
+          "id": "c7",
           "text": "故障概率排序（前三）：1. 绝缘老化 62.7%；2. 过载过热 30.9%；3. 局部放电 5.9%。",
           "type": "inference",
           "evidence": [
@@ -196,7 +209,7 @@
           ]
         },
         {
-          "id": "c7",
+          "id": "c8",
           "text": "归因不确定性：后验熵 1.23 bit，Top-1 与 Top-2 概率差 31.8%（参数已校准）。",
           "type": "inference",
           "evidence": [
@@ -209,7 +222,7 @@
           ]
         },
         {
-          "id": "c8",
+          "id": "c9",
           "text": "鉴于「绝缘老化」概率 62.7% 且属高危类型，建议在确认差动 / 瓦斯保护正常、复测 DGA 趋势后申请停电检查；停电检修须执行工作票、验电、接地等安全措施。",
           "type": "safety",
           "evidence": [
@@ -237,24 +250,24 @@
       "elapsed": 0.002,
       "claims_source": "rule",
       "claims_json_valid": true,
-      "n_claims": 8,
-      "n_evidence": 9,
+      "n_claims": 9,
+      "n_evidence": 10,
       "schema_ok": true,
       "all_have_evidence": true,
       "ref_unknown": 0,
       "hard_errors": [],
       "safety_supported": true,
       "type_counts": {
-        "observation": 4,
+        "observation": 5,
         "inference": 3,
         "safety": 1
       },
       "source_counts": {
-        "tool": 9
+        "tool": 10
       },
       "n_tool_calls": 1,
       "n_kb": 0,
-      "draft_len": 1511,
+      "draft_len": 1577,
       "claims": [
         {
           "id": "c1",
@@ -284,6 +297,19 @@
         },
         {
           "id": "c3",
+          "text": "三比值法编码（C2H2/C2H4、CH4/H2、C2H4/C2H6）：0-2-0。",
+          "type": "observation",
+          "evidence": [
+            {
+              "source": "tool",
+              "ref": "call:0",
+              "span": "{\"ratio_codes\": {\"code_C2H2_C2H4\": 0, \"code_C2H4_C2H6\": 0, \"code_CH4_H2\": 2}}",
+              "tool": "fault_attribution"
+            }
+          ]
+        },
+        {
+          "id": "c4",
           "text": "三比值 / 特征气体规则命中：低温过热（150℃~300℃）（置信度 0.76）。",
           "type": "observation",
           "evidence": [
@@ -296,7 +322,7 @@
           ]
         },
         {
-          "id": "c4",
+          "id": "c5",
           "text": "已排除的征兆（负观测）：H2_elevated, CH4_elevated, C2H2_elevated, C2H4_elevated, C2H6_elevated, TDCG_elevated, gas_rate_rapid。",
           "type": "observation",
           "evidence": [
@@ -309,7 +335,7 @@
           ]
         },
         {
-          "id": "c5",
+          "id": "c6",
           "text": "主要故障推断为「局部放电」，后验概率 49.6%（置信等级：可能）。",
           "type": "inference",
           "evidence": [
@@ -322,7 +348,7 @@
           ]
         },
         {
-          "id": "c6",
+          "id": "c7",
           "text": "故障概率排序（前三）：1. 局部放电 49.6%；2. 绝缘老化 40.2%；3. 过载过热 9.3%。",
           "type": "inference",
           "evidence": [
@@ -335,7 +361,7 @@
           ]
         },
         {
-          "id": "c7",
+          "id": "c8",
           "text": "归因不确定性：后验熵 1.42 bit，Top-1 与 Top-2 概率差 9.4%（参数已校准）。",
           "type": "inference",
           "evidence": [
@@ -348,7 +374,7 @@
           ]
         },
         {
-          "id": "c8",
+          "id": "c9",
           "text": "鉴于「局部放电」概率 49.6% 且属高危类型，建议在确认差动 / 瓦斯保护正常、复测 DGA 趋势后申请停电检查；停电检修须执行工作票、验电、接地等安全措施。",
           "type": "safety",
           "evidence": [
@@ -569,7 +595,7 @@
       "scenario": "error_recovery",
       "sub_type": "ett_bad_range",
       "error": null,
-      "elapsed": 0.047,
+      "elapsed": 0.048,
       "claims_source": "rule",
       "claims_json_valid": true,
       "n_claims": 3,
@@ -611,7 +637,7 @@
             {
               "source": "tool",
               "ref": "call:0",
-              "span": "{\"forecast\": {\"max_predicted_ot\": 40.689, \"mean_predicted_ot\": 40.381, \"min_predicted_ot\": 40.366, \"num_steps\": 24, \"values\": [40.689, 40.398, 40.369, 40.366, 40.366, 40.366, 40.366, 40.366, 40.366, 40.366, 40.366, 40.366, 40.366, 40.366, 40.366, 40.366, 40.366, 40.366, 40.366, 40.366, 40.366, 40.36",
+              "span": "{\"forecast\": {\"max_predicted_ot\": 40.689, \"mean_predicted_ot\": 40.381, \"min_predicted_ot\": 40.366}, \"horizon\": 24}",
               "tool": "ett_forecast"
             }
           ]
@@ -639,24 +665,24 @@
       "elapsed": 0.002,
       "claims_source": "rule",
       "claims_json_valid": true,
-      "n_claims": 8,
-      "n_evidence": 9,
+      "n_claims": 9,
+      "n_evidence": 10,
       "schema_ok": true,
       "all_have_evidence": true,
       "ref_unknown": 0,
       "hard_errors": [],
       "safety_supported": true,
       "type_counts": {
-        "observation": 4,
+        "observation": 5,
         "inference": 3,
         "safety": 1
       },
       "source_counts": {
-        "tool": 9
+        "tool": 10
       },
       "n_tool_calls": 1,
       "n_kb": 0,
-      "draft_len": 1480,
+      "draft_len": 1546,
       "claims": [
         {
           "id": "c1",
@@ -686,6 +712,19 @@
         },
         {
           "id": "c3",
+          "text": "三比值法编码（C2H2/C2H4、CH4/H2、C2H4/C2H6）：0-2-0。",
+          "type": "observation",
+          "evidence": [
+            {
+              "source": "tool",
+              "ref": "call:0",
+              "span": "{\"ratio_codes\": {\"code_C2H2_C2H4\": 0, \"code_C2H4_C2H6\": 0, \"code_CH4_H2\": 2}}",
+              "tool": "fault_attribution"
+            }
+          ]
+        },
+        {
+          "id": "c4",
           "text": "三比值 / 特征气体规则命中：低温过热（150℃~300℃）（置信度 0.76）。",
           "type": "observation",
           "evidence": [
@@ -698,7 +737,7 @@
           ]
         },
         {
-          "id": "c4",
+          "id": "c5",
           "text": "已排除的征兆（负观测）：H2_elevated, CH4_elevated, C2H2_elevated, C2H4_elevated, C2H6_elevated, TDCG_elevated, gas_rate_rapid。",
           "type": "observation",
           "evidence": [
@@ -711,7 +750,7 @@
           ]
         },
         {
-          "id": "c5",
+          "id": "c6",
           "text": "主要故障推断为「局部放电」，后验概率 49.6%（置信等级：可能）。",
           "type": "inference",
           "evidence": [
@@ -724,7 +763,7 @@
           ]
         },
         {
-          "id": "c6",
+          "id": "c7",
           "text": "故障概率排序（前三）：1. 局部放电 49.6%；2. 绝缘老化 40.2%；3. 过载过热 9.3%。",
           "type": "inference",
           "evidence": [
@@ -737,7 +776,7 @@
           ]
         },
         {
-          "id": "c7",
+          "id": "c8",
           "text": "归因不确定性：后验熵 1.42 bit，Top-1 与 Top-2 概率差 9.4%（参数已校准）。",
           "type": "inference",
           "evidence": [
@@ -750,7 +789,7 @@
           ]
         },
         {
-          "id": "c8",
+          "id": "c9",
           "text": "鉴于「局部放电」概率 49.6% 且属高危类型，建议在确认差动 / 瓦斯保护正常、复测 DGA 趋势后申请停电检查；停电检修须执行工作票、验电、接地等安全措施。",
           "type": "safety",
           "evidence": [
@@ -775,7 +814,7 @@
       "scenario": "multi_tool",
       "sub_type": "ett_anomaly",
       "error": null,
-      "elapsed": 0.014,
+      "elapsed": 0.013,
       "claims_source": "rule",
       "claims_json_valid": true,
       "n_claims": 3,
@@ -817,7 +856,7 @@
             {
               "source": "tool",
               "ref": "call:0",
-              "span": "{\"forecast\": {\"max_predicted_ot\": 43.989, \"mean_predicted_ot\": 43.787, \"min_predicted_ot\": 43.767, \"num_steps\": 12, \"values\": [43.989, 43.789, 43.769, 43.767, 43.767, 43.767, 43.767, 43.767, 43.767, 43.767, 43.767, 43.767]}, \"horizon\": 12}",
+              "span": "{\"forecast\": {\"max_predicted_ot\": 43.989, \"mean_predicted_ot\": 43.787, \"min_predicted_ot\": 43.767}, \"horizon\": 12}",
               "tool": "ett_forecast"
             }
           ]
@@ -947,24 +986,24 @@
       "elapsed": 0.002,
       "claims_source": "rule",
       "claims_json_valid": true,
-      "n_claims": 7,
-      "n_evidence": 8,
+      "n_claims": 8,
+      "n_evidence": 9,
       "schema_ok": true,
       "all_have_evidence": true,
       "ref_unknown": 0,
       "hard_errors": [],
       "safety_supported": true,
       "type_counts": {
-        "observation": 3,
+        "observation": 4,
         "inference": 3,
         "safety": 1
       },
       "source_counts": {
-        "tool": 8
+        "tool": 9
       },
       "n_tool_calls": 1,
       "n_kb": 0,
-      "draft_len": 1317,
+      "draft_len": 1383,
       "claims": [
         {
           "id": "c1",
@@ -994,6 +1033,19 @@
         },
         {
           "id": "c3",
+          "text": "三比值法编码（C2H2/C2H4、CH4/H2、C2H4/C2H6）：2-0-1。",
+          "type": "observation",
+          "evidence": [
+            {
+              "source": "tool",
+              "ref": "call:0",
+              "span": "{\"ratio_codes\": {\"code_C2H2_C2H4\": 2, \"code_C2H4_C2H6\": 1, \"code_CH4_H2\": 0}}",
+              "tool": "fault_attribution"
+            }
+          ]
+        },
+        {
+          "id": "c4",
           "text": "三比值 / 特征气体规则命中：电弧放电（置信度 0.93）。",
           "type": "observation",
           "evidence": [
@@ -1006,7 +1058,7 @@
           ]
         },
         {
-          "id": "c4",
+          "id": "c5",
           "text": "主要故障推断为「绕组匝间短路」，后验概率 72.5%（置信等级：确定）。",
           "type": "inference",
           "evidence": [
@@ -1019,7 +1071,7 @@
           ]
         },
         {
-          "id": "c5",
+          "id": "c6",
           "text": "故障概率排序（前三）：1. 绕组匝间短路 72.5%；2. 过载过热 21.9%；3. 局部放电 4.2%。",
           "type": "inference",
           "evidence": [
@@ -1032,7 +1084,7 @@
           ]
         },
         {
-          "id": "c6",
+          "id": "c7",
           "text": "归因不确定性：后验熵 1.13 bit，Top-1 与 Top-2 概率差 50.6%（参数已校准）。",
           "type": "inference",
           "evidence": [
@@ -1045,7 +1097,7 @@
           ]
         },
         {
-          "id": "c7",
+          "id": "c8",
           "text": "鉴于「绕组匝间短路」概率 72.5% 且属高危类型，建议在确认差动 / 瓦斯保护正常、复测 DGA 趋势后申请停电检查；停电检修须执行工作票、验电、接地等安全措施。",
           "type": "safety",
           "evidence": [
@@ -1602,25 +1654,25 @@
       "elapsed": 0.002,
       "claims_source": "rule",
       "claims_json_valid": true,
-      "n_claims": 10,
-      "n_evidence": 11,
+      "n_claims": 11,
+      "n_evidence": 12,
       "schema_ok": true,
       "all_have_evidence": true,
       "ref_unknown": 0,
       "hard_errors": [],
       "safety_supported": true,
       "type_counts": {
-        "observation": 4,
+        "observation": 5,
         "inference": 5,
         "safety": 1
       },
       "source_counts": {
-        "tool": 9,
+        "tool": 10,
         "kg": 2
       },
       "n_tool_calls": 2,
       "n_kb": 0,
-      "draft_len": 2060,
+      "draft_len": 2127,
       "claims": [
         {
           "id": "c1",
@@ -1650,6 +1702,19 @@
         },
         {
           "id": "c3",
+          "text": "三比值法编码（C2H2/C2H4、CH4/H2、C2H4/C2H6）：2-0-0。",
+          "type": "observation",
+          "evidence": [
+            {
+              "source": "tool",
+              "ref": "call:0",
+              "span": "{\"ratio_codes\": {\"code_C2H2_C2H4\": 2, \"code_C2H4_C2H6\": 0, \"code_CH4_H2\": 0}}",
+              "tool": "fault_attribution"
+            }
+          ]
+        },
+        {
+          "id": "c4",
           "text": "三比值 / 特征气体规则命中：电弧放电（置信度 0.93）。",
           "type": "observation",
           "evidence": [
@@ -1662,7 +1727,7 @@
           ]
         },
         {
-          "id": "c4",
+          "id": "c5",
           "text": "已排除的征兆（负观测）：H2_elevated, CH4_elevated, C2H4_elevated, C2H6_elevated, TDCG_elevated。",
           "type": "observation",
           "evidence": [
@@ -1675,7 +1740,7 @@
           ]
         },
         {
-          "id": "c5",
+          "id": "c6",
           "text": "主要故障推断为「局部放电」，后验概率 59.6%（置信等级：可能）。",
           "type": "inference",
           "evidence": [
@@ -1688,7 +1753,7 @@
           ]
         },
         {
-          "id": "c6",
+          "id": "c7",
           "text": "故障概率排序（前三）：1. 局部放电 59.6%；2. 绕组匝间短路 39.1%；3. 过载过热 0.7%。",
           "type": "inference",
           "evidence": [
@@ -1701,7 +1766,7 @@
           ]
         },
         {
-          "id": "c7",
+          "id": "c8",
           "text": "归因不确定性：后验熵 1.08 bit，Top-1 与 Top-2 概率差 20.5%（参数已校准）。",
           "type": "inference",
           "evidence": [
@@ -1714,7 +1779,7 @@
           ]
         },
         {
-          "id": "c8",
+          "id": "c9",
           "text": "鉴于「局部放电」概率 59.6% 且属高危类型，建议在确认差动 / 瓦斯保护正常、复测 DGA 趋势后申请停电检查；停电检修须执行工作票、验电、接地等安全措施。",
           "type": "safety",
           "evidence": [
@@ -1733,7 +1798,7 @@
           ]
         },
         {
-          "id": "c9",
+          "id": "c10",
           "text": "图谱关系链「Fault:匝间短路 → LOCATED_IN → Component:绕组」（支持文献 4，置信度 0.6）可用于解释当前征兆的因果机理，需与实测数据交叉验证。",
           "type": "inference",
           "evidence": [
@@ -1745,7 +1810,7 @@
           ]
         },
         {
-          "id": "c10",
+          "id": "c11",
           "text": "图谱关系链「Fault:匝间短路 → TREATED_BY → Action:停运」（支持文献 1，置信度 0.6）可用于解释当前征兆的因果机理，需与实测数据交叉验证。",
           "type": "inference",
           "evidence": [

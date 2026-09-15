@@ -12,16 +12,21 @@ logger = get_logger(__name__)
 
 
 class ValidationResult:
-    """Validator 结构化评估结果。"""
+    """Validator 结构化评估结果（v2：可选携带声明级核查字段，旧字段全部保留）。"""
 
     def __init__(
         self,
-        verdict: str,  # PASS / REVISION / FAIL
+        verdict: str,  # PASS / REVISION / FAIL / ABSTAIN
         score: int,
         strengths: List[str],
         weaknesses: List[str],
         improvement_suggestions: List[str],
         summary: str,
+        claim_verdicts: Optional[List[Dict[str, Any]]] = None,
+        unsupported_ratio: Optional[float] = None,
+        violation_counts: Optional[Dict[str, int]] = None,
+        claim_check_verdict: Optional[str] = None,
+        missing_evidence: Optional[List[Dict[str, Any]]] = None,
     ) -> None:
         self.verdict = verdict
         self.score = score
@@ -29,9 +34,15 @@ class ValidationResult:
         self.weaknesses = weaknesses
         self.improvement_suggestions = improvement_suggestions
         self.summary = summary
+        # ── v2（C-2）声明级核查 ──
+        self.claim_verdicts = claim_verdicts
+        self.unsupported_ratio = unsupported_ratio
+        self.violation_counts = violation_counts
+        self.claim_check_verdict = claim_check_verdict
+        self.missing_evidence = missing_evidence or []
 
     def to_dict(self) -> Dict[str, Any]:
-        return {
+        d = {
             "verdict": self.verdict,
             "score": self.score,
             "strengths": self.strengths,
@@ -39,6 +50,15 @@ class ValidationResult:
             "improvement_suggestions": self.improvement_suggestions,
             "summary": self.summary,
         }
+        if self.claim_verdicts is not None:
+            d.update({
+                "claim_verdicts": self.claim_verdicts,
+                "unsupported_ratio": self.unsupported_ratio,
+                "violation_counts": self.violation_counts,
+                "claim_check_verdict": self.claim_check_verdict,
+                "missing_evidence": self.missing_evidence,
+            })
+        return d
 
     def to_report(self) -> str:
         """生成可读的验证报告文本。"""
@@ -60,6 +80,21 @@ class ValidationResult:
         if self.improvement_suggestions:
             lines.append("【改进建议】")
             lines.extend(f"- {s}" for s in self.improvement_suggestions)
+            lines.append("")
+        if self.claim_verdicts is not None:
+            n = len(self.claim_verdicts)
+            n_bad = sum(1 for v in self.claim_verdicts if v.get("verdict") != "pass")
+            vc = self.violation_counts or {}
+            lines.append(
+                f"【声明级核查】结论 {self.claim_check_verdict}；声明 {n} 条，未通过 {n_bad} 条，"
+                f"无依据占比 {(self.unsupported_ratio or 0) * 100:.0f}%；"
+                f"约束违反 DATA {vc.get('DATA', 0)} / EVIDENCE {vc.get('EVIDENCE', 0)} / "
+                f"APPLICABILITY {vc.get('APPLICABILITY', 0)} / SAFETY {vc.get('SAFETY', 0)}"
+            )
+            for v in self.claim_verdicts:
+                if v.get("verdict") != "pass":
+                    lines.append(f"- [{v.get('claim_id')}] {v.get('verdict')} {'/'.join(v.get('violated_constraints') or [])}："
+                                 f"{'；'.join(v.get('detail') or [])}")
             lines.append("")
         return "\n".join(lines)
 
@@ -85,8 +120,13 @@ class ValidatorAgent:
     - FAIL 时标记工作流终止
     """
 
-    def __init__(self, config: Dict[str, Any]) -> None:
+    def __init__(self, config: Dict[str, Any], claim_check: Optional[str] = None) -> None:
         self.config = config
+        wf = config.get("workflow", {}) or {}
+        # C-2 声明级核查：off | check（核查并按规则判定，不产出补证路由）| route（C-3：核查 + 补证 / 重规划路由）
+        mode = claim_check or wf.get("claim_check", "off")
+        self.claim_check = mode if mode in ("off", "check", "route") else "off"
+        self.abstain_after = int(wf.get("claim_abstain_after", 3))
         model_cfg = get_llm_config(config, "validator")
         self.llm = LLMClient(
             LLMConfig(
@@ -102,6 +142,16 @@ class ValidatorAgent:
                 max_retries=int(model_cfg.get("max_retries", 2)),
             )
         )
+        self.checker = None
+        if self.claim_check != "off":
+            from src.agents.claim_checker import ClaimChecker
+            self.checker = ClaimChecker(
+                rel_tol=float(wf.get("claim_rel_tol", 0.02)),
+                abs_tol=float(wf.get("claim_abs_tol", 0.05)),
+                unsupported_threshold=float(wf.get("claim_unsupported_threshold", 0.3)),
+                abstain_after=self.abstain_after,
+                llm=self.llm if wf.get("claim_semantic_layer", True) else None,
+            )
 
     def _parse_structured_response(self, content: str) -> Optional[ValidationResult]:
         """从 LLM 返回内容中解析结构化 JSON（复用统一的 parse_llm_json）。"""
@@ -229,6 +279,34 @@ class ValidatorAgent:
 
         return result
 
+    def _merge_claim_check(self, base: ValidationResult, check) -> ValidationResult:
+        """
+        把声明级核查结论合并进整体评估（C-2 判定规则优先）：
+        - check.verdict == PASS：保留 base（整体评分仍可触发 REVISION），仅附加 v2 字段
+        - check.verdict == REVISION：覆盖为 REVISION，并把逐条问题写入 weaknesses / improvement_suggestions
+        - check.verdict == ABSTAIN：覆盖为 ABSTAIN
+        """
+        weaknesses = list(base.weaknesses)
+        suggestions = list(base.improvement_suggestions)
+        verdict, score, summary = base.verdict, base.score, base.summary
+        if check.verdict != "PASS":
+            lines = check.feedback_lines()
+            weaknesses = lines + weaknesses
+            suggestions = [f"修正声明 {l.split(']')[0].lstrip('[')}：{l.split('：', 1)[-1]}" for l in lines] + suggestions
+            verdict = check.verdict
+            score = min(score, 5 if check.verdict == "REVISION" else 3)
+            summary = "声明级核查未通过（" + "；".join(check.reasons) + "）。" + (summary or "")
+        elif base.verdict == "FAIL":
+            # 声明全部有据但整体评分 FAIL：降为 REVISION 给 Generator 修正机会
+            verdict = "REVISION"
+        return ValidationResult(
+            verdict=verdict, score=score, strengths=list(base.strengths), weaknesses=weaknesses,
+            improvement_suggestions=suggestions, summary=summary,
+            claim_verdicts=[v.to_dict() for v in check.claim_verdicts],
+            unsupported_ratio=check.unsupported_ratio, violation_counts=dict(check.violation_counts),
+            claim_check_verdict=check.verdict, missing_evidence=list(check.missing_evidence),
+        )
+
     def run(self, state: AgentState) -> AgentState:
         """
         执行验证任务，返回状态中包含：
@@ -268,6 +346,24 @@ class ValidatorAgent:
             logger.info("Validator LLM not enabled, using rule-based validation.")
             result = self._rule_validate(answer)
 
+        # ── C-2 声明级核查（claim_check != off 且草案带声明时）──
+        check_res = None
+        if self.checker is not None and getattr(state, "draft_claims", None):
+            try:
+                check_res = self.checker.check(state)
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("ClaimChecker failed: %s", exc)
+                state.errors.append({"agent": "validator", "error": f"声明级核查异常：{exc}"})
+        if check_res is not None:
+            result = self._merge_claim_check(result, check_res)
+            state.claim_check_log.append({
+                "iteration": state.iteration, "verdict": check_res.verdict,
+                "n_claims": check_res.n_claims, "unsupported_ratio": round(check_res.unsupported_ratio, 4),
+                "violation_counts": dict(check_res.violation_counts), "reasons": list(check_res.reasons),
+                "n_checked_llm": check_res.n_checked_llm,
+            })
+            state.missing_evidence = list(check_res.missing_evidence) if self.claim_check == "route" else []
+
         # 填充状态
         state.validation_report = result.to_report()
         state.validation_verdict = result.verdict
@@ -279,6 +375,19 @@ class ValidatorAgent:
             state.next_node = "END"
             state.final_answer = answer
             logger.info("Validator: PASS (score=%d), routing to END.", result.score)
+        elif result.verdict == "ABSTAIN":
+            # C-2：两轮修订仍不通过 → 弃答，输出「证据不足，建议补充 X」
+            state.next_node = "END"
+            missing = state.missing_evidence or (check_res.missing_evidence if check_res else [])
+            need = "、".join(
+                f"{m.get('suggested_tool') or '相关检测'}（声明 {m.get('claim_id')}）" for m in missing[:5]) or "更多检测数据或知识依据"
+            bad_lines = [w for w in result.weaknesses if w.startswith("[")][:6]
+            state.final_answer = (
+                "【证据不足，暂不给出诊断结论】经多轮修订，草案中仍有声明缺乏可核对的证据支撑或与检测结果矛盾。\n\n"
+                "未通过核查的声明：\n" + ("\n".join(f"- {l}" for l in bad_lines) if bad_lines else "- （见验证报告）")
+                + f"\n\n建议补充：{need}。补充后可重新提交诊断请求。"
+            )
+            logger.warning("Validator: ABSTAIN after %d iterations, routing to END.", state.iteration)
         elif result.verdict == "REVISION":
             # 保存改进建议到 state，供 Generator 下次迭代使用
             state.revision_feedback = result.get_feedback_text()

@@ -124,7 +124,7 @@ flowchart LR
 
 | 工具 / 来源 | observation | inference | recommendation | safety |
 |---|---|---|---|---|
-| `fault_attribution` | DGA 入参、特征解释、规则命中、负观测 | 主要故障 + 置信等级、前三排序、不确定性 | | 主要故障高危且概率 ≥ 0.4 时产出，双引用（归因结果 + DGA 入参） |
+| `fault_attribution` | DGA 入参、特征解释、三比值编码、规则命中、负观测 | 主要故障 + 置信等级、前三排序、不确定性 | | 主要故障高危且概率 ≥ 0.4 时产出，双引用（归因结果 + DGA 入参） |
 | `inquiry_log` | 每轮用户回答（`user:n`） | | | |
 | `timeseries_anomaly` | 均值 / 标准差 / 异常点数 | 异常点解释 | | |
 | `ett_forecast` | 数据集 / 窗口 / 历史统计 | 预测均值与范围 | 异常点 > 0 时提示冷却系统 | |

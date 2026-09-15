@@ -41,8 +41,12 @@ class AgentState:
 
     # ── Validator 输出 ──────────────────────────────────────────────
     validation_report: Optional[str] = None
-    # 验证结论：PASS（通过）/ REVISION（需改进，触发重生成）/ FAIL（失败，直接输出）
+    # 验证结论：PASS（通过）/ REVISION（需改进，触发重生成）/ FAIL（失败，直接输出）/ ABSTAIN（C-2 弃答）
     validation_verdict: str = "PENDING"
+    # C-2 声明级核查日志（每轮：iteration / verdict / n_claims / unsupported_ratio / violation_counts / reasons）
+    claim_check_log: List[Dict[str, Any]] = field(default_factory=list)
+    # C-3 补证路由：待补证声明 [{claim_id, suggested_tool, suggested_query, reason}]（claim_check=route 时填充）
+    missing_evidence: List[Dict[str, Any]] = field(default_factory=list)
     # Validator 给出的改进建议（供 Generator 迭代重生成使用）
     revision_feedback: Optional[str] = None
     # 上一轮 Validator 输出的改进建议（仅用于 Validator 下一轮评估对比，避免回传整份报告）

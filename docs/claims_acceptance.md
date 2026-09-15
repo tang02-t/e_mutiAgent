@@ -1,6 +1,6 @@
 # C-1 声明级输出验收报告
 
-生成时间：2026-09-15 22:33:47；脚本 `scripts/eval/eval_claims_c1.py`；seed=20260915。
+生成时间：2026-09-15 22:50:29；脚本 `scripts/eval/eval_claims_c1.py`；seed=20260915。
 
 ## 1. 设置
 
@@ -14,9 +14,9 @@
 | 指标 | 值 | 验收线 |
 |---|---|---|
 | JSON 合法率（schema_ok） | 100.0%（30/30） | ≥ 95% |
-| 每条 claim ≥1 evidence 的声明占比 | 100.0%（110 条声明） | 100% |
+| 每条 claim ≥1 evidence 的声明占比 | 100.0%（115 条声明） | 100% |
 | 样本级全部声明有证据 | 100.0% | - |
-| 平均声明数 / 样本 | 3.67 | - |
+| 平均声明数 / 样本 | 3.83 | - |
 | 平均证据数 / 声明 | 1.05 | - |
 | ref 不在本轮证据目录的证据数 | 0 | 0 |
 | safety 声明均有 tool 证据支撑的样本占比 | 100.0% | 100% |
@@ -29,14 +29,14 @@
 
 | type | 数量 |
 |---|---|
-| observation | 40 |
+| observation | 45 |
 | inference | 43 |
 | recommendation | 21 |
 | safety | 6 |
 
 | evidence.source | 数量 |
 |---|---|
-| tool | 73 |
+| tool | 78 |
 | kb | 21 |
 | kg | 16 |
 | user | 6 |
@@ -46,13 +46,13 @@
 | scenario | n | schema_ok | 平均声明数 | 平均证据数 | 未知 ref |
 |---|---|---|---|---|---|
 | ask_user | 3 | 3 | 1.0 | 1.0 | 0 |
-| context_contrast | 2 | 2 | 7.5 | 8.5 | 0 |
+| context_contrast | 2 | 2 | 8.5 | 9.5 | 0 |
 | error_recovery | 3 | 3 | 2.33 | 2.33 | 0 |
 | kg_reasoning | 4 | 4 | 2.0 | 2.0 | 0 |
-| multi_tool | 4 | 4 | 7.75 | 8.25 | 0 |
+| multi_tool | 4 | 4 | 8.0 | 8.5 | 0 |
 | no_tool | 3 | 3 | 1.0 | 1.0 | 0 |
 | single_tool_fact | 6 | 6 | 3.0 | 3.0 | 0 |
-| single_tool_numeric | 5 | 5 | 5.0 | 5.4 | 0 |
+| single_tool_numeric | 5 | 5 | 5.4 | 5.8 | 0 |
 
 ## 5. 样例（前 3 条）
 
@@ -89,6 +89,19 @@
     },
     {
       "id": "c3",
+      "text": "三比值法编码（C2H2/C2H4、CH4/H2、C2H4/C2H6）：0-2-0。",
+      "type": "observation",
+      "evidence": [
+        {
+          "source": "tool",
+          "ref": "call:0",
+          "span": "{\"ratio_codes\": {\"code_C2H2_C2H4\": 0, \"code_C2H4_C2H6\": 0, \"code_CH4_H2\": 2}}",
+          "tool": "fault_attribution"
+        }
+      ]
+    },
+    {
+      "id": "c4",
       "text": "三比值 / 特征气体规则命中：低温过热（150℃~300℃）（置信度 0.76）。",
       "type": "observation",
       "evidence": [
@@ -96,19 +109,6 @@
           "source": "tool",
           "ref": "call:0",
           "span": "{\"matched_rules\": [{\"confidence\": 0.76, \"rule_name\": \"低温过热（150℃~300℃）\"}]}",
-          "tool": "fault_attribution"
-        }
-      ]
-    },
-    {
-      "id": "c4",
-      "text": "已排除的征兆（负观测）：H2_elevated, CH4_elevated, C2H2_elevated, C2H4_elevated, gas_rate_rapid。",
-      "type": "observation",
-      "evidence": [
-        {
-          "source": "tool",
-          "ref": "call:0",
-          "span": "{\"evidence_negative\": [\"H2_elevated\", \"CH4_elevated\", \"C2H2_elevated\", \"C2H4_elevated\", \"gas_rate_rapid\"]}",
           "tool": "fault_attribution"
         }
       ]
@@ -150,6 +150,19 @@
     },
     {
       "id": "c3",
+      "text": "三比值法编码（C2H2/C2H4、CH4/H2、C2H4/C2H6）：0-2-0。",
+      "type": "observation",
+      "evidence": [
+        {
+          "source": "tool",
+          "ref": "call:0",
+          "span": "{\"ratio_codes\": {\"code_C2H2_C2H4\": 0, \"code_C2H4_C2H6\": 0, \"code_CH4_H2\": 2}}",
+          "tool": "fault_attribution"
+        }
+      ]
+    },
+    {
+      "id": "c4",
       "text": "三比值 / 特征气体规则命中：低温过热（150℃~300℃）（置信度 0.76）。",
       "type": "observation",
       "evidence": [
@@ -157,19 +170,6 @@
           "source": "tool",
           "ref": "call:0",
           "span": "{\"matched_rules\": [{\"confidence\": 0.76, \"rule_name\": \"低温过热（150℃~300℃）\"}]}",
-          "tool": "fault_attribution"
-        }
-      ]
-    },
-    {
-      "id": "c4",
-      "text": "已排除的征兆（负观测）：H2_elevated, CH4_elevated, C2H2_elevated, C2H4_elevated, C2H6_elevated, TDCG_elevated, gas_rate_rapid。",
-      "type": "observation",
-      "evidence": [
-        {
-          "source": "tool",
-          "ref": "call:0",
-          "span": "{\"evidence_negative\": [\"H2_elevated\", \"CH4_elevated\", \"C2H2_elevated\", \"C2H4_elevated\", \"C2H6_elevated\", \"TDCG_elevated\", \"gas_rate_rapid\"]}",
           "tool": "fault_attribution"
         }
       ]
