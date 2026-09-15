@@ -31,3 +31,10 @@ config.yaml
 .codebuddy/
 .vscode/
 .idea/
+
+# 知识库派生产物（可由 scripts/kb 重建）
+data/kb/index/*.pkl
+data/kb/index/*.npy
+data/kb/units.jsonl
+data/kb/chunks.jsonl
+data/kb/index/sections_index.jsonl
