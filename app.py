@@ -170,6 +170,7 @@ def run_workflow(
     config: Dict[str, Any],
     mcp: MCPClient,
     reflection_mode: str = "off",
+    planner_mode: str = "baseline",
 ) -> tuple[AgentState | None, float, str | None]:
     """执行完整诊断工作流，返回 (final_state, elapsed, error)。"""
     from src.agents.planner import PlannerAgent
@@ -183,7 +184,7 @@ def run_workflow(
         max_iterations=config.get("workflow", {}).get("max_iterations", 3),
     )
 
-    planner = PlannerAgent(config)
+    planner = PlannerAgent(config, planner_mode=planner_mode)
     retriever = RetrieverAgent(config, mcp)
     generator = GeneratorAgent(config)
     validator = ValidatorAgent(config)
@@ -432,6 +433,18 @@ with st.sidebar:
                                "lexical": "开启（离线词法评分，丢弃<2分，同章节补召回）"}[x],
         help="对应论文反思模块：0-3 分评估检索块，低分丢弃、全丢时改写重检索。LLM 评分需接口，当前仅提供离线基线。",
     )
+    _ft_ready = isinstance(config.get("llms", {}).get("planner_finetuned"), dict)
+    _default_pm = (config.get("workflow", {}) or {}).get("planner_mode", "baseline")
+    planner_mode = st.radio(
+        "Planner 模型（P6 对比）",
+        options=["baseline", "finetuned"],
+        index=1 if (_default_pm == "finetuned" and _ft_ready) else 0,
+        format_func=lambda x: {
+            "baseline": "基线：通用大模型（llms.planner）",
+            "finetuned": "微调：LoRA Planner（llms.planner_finetuned）" + ("" if _ft_ready else "　⚠ 未配置，将回退基线"),
+        }[x],
+        help="finetuned 需在 config.yaml 的 llms.planner_finetuned 配置微调模型的 OpenAI 兼容接口；未配置时自动回退 baseline。",
+    )
 
     st.divider()
     st.subheader("🧪 DGA 油色谱（可选）")
@@ -498,7 +511,8 @@ if run_clicked:
     mcp = build_mcp(kb_mode=kb_mode, user_dga=dga if use_dga else None)
 
     with st.spinner("多智能体协同诊断中…（Planner → Retriever → Generator → Validator）"):
-        final, elapsed, err = run_workflow(user_query, context, run_cfg, mcp, reflection_mode=reflection_mode)
+        final, elapsed, err = run_workflow(user_query, context, run_cfg, mcp,
+                                           reflection_mode=reflection_mode, planner_mode=planner_mode)
 
     if err:
         st.error("工作流执行失败：")

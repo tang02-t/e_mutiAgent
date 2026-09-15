@@ -31,9 +31,30 @@ class PlannerAgent:
       避免「模型没看到的数据却被要求填对参数」。
     """
 
-    def __init__(self, config: Dict[str, Any]) -> None:
+    def __init__(self, config: Dict[str, Any], planner_mode: Optional[str] = None) -> None:
+        """
+        planner_mode（P5-5 / P6 对比开关）：
+          baseline   使用 llms.planner（或 default）配置的通用模型
+          finetuned  使用 llms.planner_finetuned 配置的微调 Planner（百炼部署的 LoRA 模型或本地服务）；
+                     若该节点不存在则回退 baseline 并记录 warning
+        取值优先级：构造参数 > config["workflow"]["planner_mode"] > "baseline"
+        """
         self.config = config
-        model_cfg = get_llm_config(config, "planner")
+        mode = planner_mode or (config.get("workflow", {}) or {}).get("planner_mode") or "baseline"
+        if mode not in ("baseline", "finetuned"):
+            raise ValueError(f"planner_mode 只能是 baseline|finetuned，得到 {mode!r}")
+        self.planner_mode = mode
+        if mode == "finetuned":
+            model_cfg = (config.get("llms", {}) or {}).get("planner_finetuned")
+            if not model_cfg:
+                logger.warning("planner_mode=finetuned 但 config.llms.planner_finetuned 缺失，回退 baseline")
+                self.planner_mode = "baseline"
+                model_cfg = get_llm_config(config, "planner")
+            else:
+                model_cfg = {**get_llm_config(config, "planner"), **model_cfg}
+        else:
+            model_cfg = get_llm_config(config, "planner")
+        self.model_name = model_cfg.get("model_name", "")
         self.llm = LLMClient(
             LLMConfig(
                 provider=model_cfg.get("provider", "openai"),
@@ -248,6 +269,8 @@ class PlannerAgent:
 
         plan_json.setdefault("plan_status", "ok" if plan_json.get("steps") else "no_tool")
         plan_json["raw_content"] = raw_content
+        plan_json["planner_experiment_mode"] = self.planner_mode
+        plan_json["planner_model"] = self.model_name
         state.plan_status = plan_json["plan_status"]
         state.reasoning_trace.append({
             "agent": "planner",

@@ -181,7 +181,8 @@ def build_reflector(config: Dict[str, Any], mode: str):
     return ReflectionModule(scorer=scorer, kb=kb)
 
 
-def run_one(sample: Dict[str, Any], config: Dict[str, Any], mcp: MCPClient, reflector=None) -> Dict[str, Any]:
+def run_one(sample: Dict[str, Any], config: Dict[str, Any], mcp: MCPClient, reflector=None,
+            planner_mode: str | None = None) -> Dict[str, Any]:
     from src.agents.planner import PlannerAgent
     from src.agents.retriever import RetrieverAgent
     from src.agents.generator import GeneratorAgent
@@ -193,7 +194,7 @@ def run_one(sample: Dict[str, Any], config: Dict[str, Any], mcp: MCPClient, refl
         max_iterations=config.get("workflow", {}).get("max_iterations", 3),
     )
 
-    planner = PlannerAgent(config)
+    planner = PlannerAgent(config, planner_mode=planner_mode)
     retriever = RetrieverAgent(config, mcp)
     generator = GeneratorAgent(config)
     validator = ValidatorAgent(config)
@@ -346,6 +347,9 @@ def main():
                     help="dev_regression：开发回归（允许合成数据）；eval_set：正式评测（拒绝合成数据）")
     ap.add_argument("--reflection", default="off", choices=["off", "lexical", "llm"],
                     help="反思模块：off 关闭；lexical 离线词法评分；llm LLM 评分（不可用时回退 lexical）")
+    ap.add_argument("--planner-mode", default=None, choices=["baseline", "finetuned"],
+                    help="Planner 实验模式（P6 对比）：baseline 通用模型；finetuned 使用 llms.planner_finetuned；"
+                         "留空则读 config.workflow.planner_mode")
     args = ap.parse_args()
     if args.real_rag:
         args.kb_mode = "milvus"
@@ -371,6 +375,9 @@ def main():
     reflector = build_reflector(config, args.reflection)
     if args.reflection != "off" and not args.out.endswith(f"_refl_{args.reflection}.md"):
         args.out = args.out[:-3] + f"_refl_{args.reflection}.md" if args.out.endswith(".md") else args.out
+    planner_mode = args.planner_mode or (config.get("workflow", {}) or {}).get("planner_mode") or "baseline"
+    if planner_mode != "baseline" and args.out.endswith(".md") and f"_planner_{planner_mode}" not in args.out:
+        args.out = args.out[:-3] + f"_planner_{planner_mode}.md"
 
     samples = []
     with open(args.eval, encoding="utf-8") as f:
@@ -381,10 +388,10 @@ def main():
         samples = samples[: args.limit]
 
     print(f"开始端到端评测：{len(samples)} 条，kb_mode={args.kb_mode}, no_llm={args.no_llm}, "
-          f"purpose={args.purpose}, reflection={args.reflection}")
+          f"purpose={args.purpose}, reflection={args.reflection}, planner_mode={planner_mode}")
     results = []
     for i, s in enumerate(samples, 1):
-        r = run_one(s, config, mcp, reflector=reflector)
+        r = run_one(s, config, mcp, reflector=reflector, planner_mode=planner_mode)
         results.append(r)
         flag = "OK" if r.get("completed") else "ERR"
         print(f"  [{i}/{len(samples)}] {flag} {s['eval_id']} "

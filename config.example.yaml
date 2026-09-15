@@ -41,6 +41,16 @@ llms:
     max_tokens: 2048
     enable_thinking: false
 
+  # 微调后的 Planner（P5 产物）。仅当 workflow.planner_mode = finetuned 时启用；
+  # 缺省字段继承 planner。百炼 LoRA 导入模型只支持 DashScope 原生接口，provider 需按 llm.py 适配层填写。
+  # planner_finetuned:
+  #   provider: "openai"
+  #   base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+  #   api_key: "YOUR_API_KEY"
+  #   model_name: "qwen3-vl-8b-planner-lora-m3"   # 百炼「我的模型」中的部署名
+  #   temperature: 0.0
+  #   enable_thinking: false
+
   # Generator：生成诊断建议，可使用较轻量的模型
   generator:
     provider: "openai"
@@ -104,3 +114,8 @@ logging:
 workflow:
   max_iterations: 3  # Generator 重生成的最大迭代次数（Validator 触发）
   parallel_tools: 3   # Retriever 并行工具调用的最大并发数
+  # Planner 实验模式（P5-5 / P6 对比开关）：
+  #   baseline  —— 使用 llms.planner（通用大模型）
+  #   finetuned —— 使用 llms.planner_finetuned（LoRA 微调后的 Planner）；缺失时自动回退 baseline
+  # 可被 scripts/eval_end2end.py --planner-mode 与前端侧边栏覆盖
+  planner_mode: baseline
