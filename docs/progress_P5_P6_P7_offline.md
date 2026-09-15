@@ -38,7 +38,7 @@
 | 事项 | 需要 | 入口 |
 |---|---|---|
 | P0-3 基线数字 | LLM | `scripts/eval_end2end.py --purpose eval_set` |
-| P4-2 口语化改写 / 复合连贯性 / D7 分解集 | LLM | 待写 `scripts/planner_data/rewrite_queries.py`（对 `needs_llm_rewrite` 种子改写后重跑 `export_sft.py`） |
+| P4-2 口语化改写 / 复合连贯性 / D7 分解集 | LLM | `scripts/planner_data/rewrite_queries.py`（已就位，dry-run 估算 2750 条 / 约 1.2 元）→ `export_sft.py --seeds task_seeds_rewritten.jsonl` |
 | P3 LLMScorer 与人工 Kappa | LLM + 人工 D9 | `build_reflection_evalset.py --eval-only` |
 | P2 LLM 抽取补图谱 / LightRAG 对比 | LLM | 1677 候选句 |
 | P1 图片描述 / 摘要 / 稠密向量 / 重排 | LLM + embedding | — |
