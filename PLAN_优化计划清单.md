@@ -189,8 +189,10 @@
 
 ### B-6 章节素材
 
-- [ ] 整理算法伪代码（EIG 计算、停止准则、动作选择）与符号表。
-- [ ] 与 Active Task Disambiguation、BED-LLM、When Should AI Ask、InfoGatherer 的差异说明：本文用领域概率模型精确计算 EIG，而非 LLM 采样估计；引入工程获取成本。
+- [x] 整理算法伪代码（EIG 计算、停止准则、动作选择、追问循环）与符号表 → `docs/chapter3_active_planning_material.md` §1–§3（含 Mermaid 状态图、复杂度说明）。
+- [x] 与 Active Task Disambiguation、BED-LLM、When Should AI Ask、InfoGatherer 的差异说明 → 同文件 §6（对比表 + 五条差异要点 + 局限）：本文用校准的领域概率模型闭式计算 EIG，而非 LLM 采样估计；动作空间统一追问与工具调用；引入分级工程获取成本。
+
+产出（2026-09-15）：`docs/chapter3_active_planning_material.md` 另含实验设置摘要（§4）、写作用主结果数字（§5）与图表清单（§7），所有数字引自 B-1 / B-2 / B-3 / B-5 报告。
 
 ---
 
