@@ -161,33 +161,101 @@ class LocalKBRetriever:
         out: List[Dict[str, Any]] = []
         for x in cands[:k]:
             c = x["chunk"]
-            out.append({
-                "score": x.get("rerank_score", x["fused_score"]),
-                "text": c["text"],
-                "chunk_id": c["chunk_id"],
-                "channels": x["channels"],
-                "metadata": {
-                    "source": "local_kb",
-                    "doc_id": c["doc_id"],
-                    "doc_name": c["doc_title"],
-                    "title": c["doc_title"],
-                    "section_path": c["section_path"],
-                    "unit_types": c["unit_types"],
-                    "page_start": c["page_start"],
-                    "page_end": c["page_end"],
-                    "published_date": "",
-                    "image_paths": [],
-                },
-            })
+            item = self.format_chunk(c, score=x.get("rerank_score", x["fused_score"]))
+            item["channels"] = x["channels"]
+            out.append(item)
+        return out
+
+    # ── 上下文扩展（P3 补召回用）──
+    def format_chunk(self, c: Dict[str, Any], score: float = 0.0) -> Dict[str, Any]:
+        return {
+            "score": score,
+            "text": c["text"],
+            "chunk_id": c["chunk_id"],
+            "channels": {},
+            "metadata": {
+                "source": "local_kb",
+                "doc_id": c["doc_id"],
+                "doc_name": c["doc_title"],
+                "title": c["doc_title"],
+                "section_path": c["section_path"],
+                "unit_types": c["unit_types"],
+                "page_start": c["page_start"],
+                "page_end": c["page_end"],
+                "published_date": "",
+                "image_paths": [],
+            },
+        }
+
+    def get_chunk(self, chunk_id: str) -> Optional[Dict[str, Any]]:
+        i = self.chunk_pos.get(chunk_id)
+        return self.chunks[i] if i is not None else None
+
+    @staticmethod
+    def _same_section(a: Dict[str, Any], b: Dict[str, Any]) -> bool:
+        """chunks.jsonl 的 section_path 是块跨越的章节标题列表；两块共享任一章节即视为同章节。"""
+        sa, sb = set(a.get("section_path") or []), set(b.get("section_path") or [])
+        if not sa and not sb:
+            return True
+        return bool(sa & sb)
+
+    def neighbors(self, chunk_id: str, window: int = 1, same_section: bool = True) -> List[Dict[str, Any]]:
+        """
+        返回 chunk_id 在同一文献内前后 window 个相邻块（chunks.jsonl 按文献内顺序写入）。
+        same_section=True 时只保留与目标块共享章节的邻块。
+        """
+        i = self.chunk_pos.get(chunk_id)
+        if i is None:
+            return []
+        base = self.chunks[i]
+        out: List[Dict[str, Any]] = []
+        for j in range(i - window, i + window + 1):
+            if j == i or j < 0 or j >= len(self.chunks):
+                continue
+            c = self.chunks[j]
+            if c["doc_id"] != base["doc_id"]:
+                continue
+            if same_section and not self._same_section(base, c):
+                continue
+            out.append(c)
+        return out
+
+    def section_chunks(self, chunk_id: str, max_chunks: int = 6) -> List[Dict[str, Any]]:
+        """返回与 chunk_id 同文献且章节连通（相邻块章节集合有交集，链式向两侧延伸）的块，不含自身。"""
+        i = self.chunk_pos.get(chunk_id)
+        if i is None:
+            return []
+        base = self.chunks[i]
+        left: List[Dict[str, Any]] = []
+        j, prev = i - 1, base
+        while j >= 0 and self.chunks[j]["doc_id"] == base["doc_id"] and self._same_section(prev, self.chunks[j]):
+            left.append(self.chunks[j]); prev = self.chunks[j]; j -= 1
+        right: List[Dict[str, Any]] = []
+        j, prev = i + 1, base
+        while j < len(self.chunks) and self.chunks[j]["doc_id"] == base["doc_id"] and self._same_section(prev, self.chunks[j]):
+            right.append(self.chunks[j]); prev = self.chunks[j]; j += 1
+        # 以目标块为中心交错取，直到 max_chunks
+        out: List[Dict[str, Any]] = []
+        li = ri = 0
+        while len(out) < max_chunks and (li < len(left) or ri < len(right)):
+            if li < len(left):
+                out.append(left[li]); li += 1
+            if len(out) < max_chunks and ri < len(right):
+                out.append(right[ri]); ri += 1
+        out.sort(key=lambda c: self.chunk_pos[c["chunk_id"]])
         return out
 
 
 _singleton: Optional[LocalKBRetriever] = None
 
 
-def local_kb_search(query: str, top_k: int = 5) -> List[Dict[str, Any]]:
-    """可直接注册为 rag_search 工具的函数。"""
+def get_local_kb(top_k: int = 5) -> LocalKBRetriever:
     global _singleton
     if _singleton is None:
         _singleton = LocalKBRetriever(top_k=top_k)
-    return _singleton.search(query, top_k=top_k)
+    return _singleton
+
+
+def local_kb_search(query: str, top_k: int = 5) -> List[Dict[str, Any]]:
+    """可直接注册为 rag_search 工具的函数。"""
+    return get_local_kb(top_k).search(query, top_k=top_k)

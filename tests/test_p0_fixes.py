@@ -220,5 +220,141 @@ try:
 except Exception as exc:  # noqa: BLE001
     check("Generator 图谱接入", False, f"异常：{exc}")
 
+# ──────────────────────────────────────────────────────────────
+# 10. P3 反思模块：评分丢弃 / 同章节补召回 / 全丢改写重检索 / 无输入 / 工作流接入
+# ──────────────────────────────────────────────────────────────
+print("\n[10] P3 反思模块")
+try:
+    from src.agents.reflection import ReflectionModule, Scorer, LexicalScorer
+    from src.graph.workflow import run_diagnosis_workflow
+
+    class KeywordScorer(Scorer):
+        """桩评分器：块正文含 'good' 记 3 分，含 'mid' 记 2 分，否则 0 分。"""
+        name = "stub_keyword"
+
+        def score(self, query, chunk_text, section_title=""):
+            return 3 if "good" in chunk_text else (2 if "mid" in chunk_text else 0)
+
+    class StubKB:
+        """桩知识库：c1 的同章节邻块为 n1；重检索固定返回 r1（good）。"""
+        RESEARCH_CALLS: list = []
+
+        def neighbors(self, chunk_id, window=1, same_section=True):
+            return [{"chunk_id": "n1", "text": "neighbor mid text", "doc_id": "d", "section_path": ["s"]}] \
+                if chunk_id == "c1" else []
+
+        def format_chunk(self, c, score=0.0):
+            return {"chunk_id": c["chunk_id"], "text": c["text"], "doc_id": c.get("doc_id"),
+                    "section_path": c.get("section_path", []), "score": score}
+
+        def search(self, query):
+            self.RESEARCH_CALLS.append(query)
+            return [{"chunk_id": "r1", "text": "good rewritten hit", "score": 0.5}]
+
+    def mk_state(items):
+        s = AgentState(user_query="变压器铁心多点接地 的原因")
+        s.retrieved_knowledge = items
+        return s
+
+    kb = StubKB()
+    refl = ReflectionModule(scorer=KeywordScorer(), kb=kb, max_rounds=2, max_total_chunks=8)
+
+    # (a) 评分丢弃 + 补召回：c1 good 保留，c2 bad 丢弃，c1 邻块 n1（mid=2）补入
+    st = refl.run(mk_state([{"chunk_id": "c1", "text": "good text", "score": 0.9},
+                            {"chunk_id": "c2", "text": "bad text", "score": 0.8}]))
+    ids = [it["chunk_id"] for it in st.retrieved_knowledge]
+    check("低分块被丢弃", "c2" not in ids, str(ids))
+    check("高分块保留并带 reflection_score", "c1" in ids and st.retrieved_knowledge[0]["reflection_score"] == 3,
+          str(st.retrieved_knowledge))
+    check("同章节邻块补召回并标记 expanded_from",
+          "n1" in ids and any(it.get("expanded_from") == "c1" for it in st.retrieved_knowledge), str(ids))
+    log = st.reflection_log[-1]
+    check("反思日志 decision=kept 且两轮", log["decision"] == "kept" and len(log["rounds"]) == 2, str(log))
+    check("reasoning_trace 记录反思", any(t.get("agent") == "reflection" for t in st.reasoning_trace))
+    check("输出按 reflection_score 降序", [it["reflection_score"] for it in st.retrieved_knowledge]
+          == sorted([it["reflection_score"] for it in st.retrieved_knowledge], reverse=True))
+
+    # (b) 全丢 → 改写重检索一次
+    kb.RESEARCH_CALLS.clear()
+    st = refl.run(mk_state([{"chunk_id": "c9", "text": "bad", "score": 0.7}]))
+    log = st.reflection_log[-1]
+    check("全丢触发改写重检索", log["rewrite_triggered"] and len(kb.RESEARCH_CALLS) == 1, str(log))
+    check("改写后查询不等于原查询", log.get("rewritten_query") and log["rewritten_query"] != st.user_query,
+          str(log.get("rewritten_query")))
+    check("重检索结果被采纳并标记 from_rewrite",
+          [it["chunk_id"] for it in st.retrieved_knowledge] == ["r1"] and st.retrieved_knowledge[0].get("from_rewrite"),
+          str(st.retrieved_knowledge))
+
+    # (c) 无输入
+    st = refl.run(mk_state([]))
+    log = st.reflection_log[-1]
+    check("无输入 decision=no_input 且 output_count=0", log["decision"] == "no_input" and log["output_count"] == 0, str(log))
+
+    # (d) 重检索仍全丢 → all_dropped，检索结果为空
+    class BadKB(StubKB):
+        def search(self, query):
+            return [{"chunk_id": "r2", "text": "still bad", "score": 0.1}]
+    st = ReflectionModule(scorer=KeywordScorer(), kb=BadKB()).run(mk_state([{"chunk_id": "c9", "text": "bad"}]))
+    check("重检索仍全丢 → all_dropped 且结果为空",
+          st.reflection_log[-1]["decision"] == "all_dropped" and st.retrieved_knowledge == [],
+          str(st.reflection_log[-1]))
+
+    # (e) enabled=False 不改动状态
+    st = ReflectionModule(scorer=KeywordScorer(), kb=kb, enabled=False).run(
+        mk_state([{"chunk_id": "c2", "text": "bad"}]))
+    check("禁用时不过滤、不写日志", len(st.retrieved_knowledge) == 1 and not st.reflection_log)
+
+    # (f) 评分器异常 → 回退 lexical
+    class BoomScorer(Scorer):
+        name = "boom"
+
+        def score_batch(self, query, items):
+            raise RuntimeError("llm down")
+    st = ReflectionModule(scorer=BoomScorer(), kb=kb).run(
+        mk_state([{"chunk_id": "c1", "text": "铁心多点接地会引起铁心过热。", "score": 0.9}]))
+    check("评分器异常回退到 lexical", "fallback" in st.reflection_log[-1]["rounds"][0]["scorer"],
+          str(st.reflection_log[-1]))
+
+    # (g) LexicalScorer 基本区分度
+    lx = LexicalScorer()
+    q = "铁心多点接地的原因"
+    check("LexicalScorer 相关块 > 无关块",
+          lx.score(q, "铁心多点接地的主要原因是铁心绝缘损坏或夹件与铁心短接。", "铁心故障")
+          > lx.score(q, "本标准规定了绝缘油色谱分析的取样周期。", "取样"))
+
+    # (h) 工作流接入：reflector 非 None 时 retriever→reflection→generator
+    class StubAgent:
+        def __init__(self, name, fn=None):
+            self.name, self.fn = name, fn
+
+        def run(self, state, **kwargs):
+            state.reasoning_trace.append({"agent": self.name})
+            if self.fn:
+                self.fn(state)
+            return state
+
+    def fill_kb(state):
+        state.retrieved_knowledge = [{"chunk_id": "c1", "text": "good", "score": 1.0},
+                                     {"chunk_id": "c2", "text": "bad", "score": 0.9}]
+
+    def gen(state):
+        state.final_answer = f"n_kb={len(state.retrieved_knowledge)}"
+
+    st = run_diagnosis_workflow(mk_state([]), StubAgent("planner"), StubAgent("retriever", fill_kb),
+                                StubAgent("generator", gen), StubAgent("validator"),
+                                reflector=ReflectionModule(scorer=KeywordScorer(), kb=kb))
+    order = [t.get("agent") for t in st.reasoning_trace]
+    check("工作流中反思位于 retriever 与 generator 之间",
+          order.index("retriever") < order.index("reflection") < order.index("generator"), str(order))
+    check("Generator 拿到的是反思过滤后的知识", st.final_answer == "n_kb=2", str(st.final_answer))
+    st = run_diagnosis_workflow(mk_state([]), StubAgent("planner"), StubAgent("retriever", fill_kb),
+                                StubAgent("generator", gen), StubAgent("validator"))
+    check("无 reflector 时工作流不含反思节点",
+          "reflection" not in [t.get("agent") for t in st.reasoning_trace] and st.final_answer == "n_kb=2")
+except Exception as exc:  # noqa: BLE001
+    import traceback
+    traceback.print_exc()
+    check("反思模块用例", False, f"异常：{exc}")
+
 print(f"\n结果：{PASSED} passed, {FAILED} failed")
 sys.exit(1 if FAILED else 0)

@@ -169,6 +169,7 @@ def run_workflow(
     context: Dict[str, Any],
     config: Dict[str, Any],
     mcp: MCPClient,
+    reflection_mode: str = "off",
 ) -> tuple[AgentState | None, float, str | None]:
     """执行完整诊断工作流，返回 (final_state, elapsed, error)。"""
     from src.agents.planner import PlannerAgent
@@ -186,10 +187,18 @@ def run_workflow(
     retriever = RetrieverAgent(config, mcp)
     generator = GeneratorAgent(config)
     validator = ValidatorAgent(config)
+    reflector = None
+    if reflection_mode != "off":
+        try:
+            from src.agents.reflection import ReflectionModule, LexicalScorer
+            from src.tools.local_kb import get_local_kb
+            reflector = ReflectionModule(scorer=LexicalScorer(), kb=get_local_kb())
+        except Exception as exc:  # noqa: BLE001
+            st.warning(f"反思模块初始化失败，已关闭：{exc}")
 
     t0 = time.time()
     try:
-        final = run_diagnosis_workflow(state, planner, retriever, generator, validator)
+        final = run_diagnosis_workflow(state, planner, retriever, generator, validator, reflector=reflector)
         return final, time.time() - t0, None
     except Exception as exc:  # noqa: BLE001
         import traceback
@@ -353,10 +362,12 @@ TRACE_ICON = {
     "thought": "💭",
     "tool_call": "🔧",
     "evaluation": "🔎",
+    "reflection": "🪞",
 }
 AGENT_CN = {
     "planner": "规划智能体 Planner",
     "retriever": "检索智能体 Retriever",
+    "reflection": "反思模块 Reflection",
     "generator": "生成智能体 Generator",
     "validator": "验证智能体 Validator",
 }
@@ -413,6 +424,14 @@ with st.sidebar:
         help="local_kb 由 data/kb 离线构建，不依赖网络；mock 为程序合成案例，不得用于评测。",
     )
     max_iter = st.slider("最大迭代轮次", 1, 5, value=config.get("workflow", {}).get("max_iterations", 3))
+    reflection_mode = st.radio(
+        "反思模块（检索后评分过滤）",
+        options=["off", "lexical"],
+        index=0,
+        format_func=lambda x: {"off": "关闭（Retriever → Generator）",
+                               "lexical": "开启（离线词法评分，丢弃<2分，同章节补召回）"}[x],
+        help="对应论文反思模块：0-3 分评估检索块，低分丢弃、全丢时改写重检索。LLM 评分需接口，当前仅提供离线基线。",
+    )
 
     st.divider()
     st.subheader("🧪 DGA 油色谱（可选）")
@@ -479,7 +498,7 @@ if run_clicked:
     mcp = build_mcp(kb_mode=kb_mode, user_dga=dga if use_dga else None)
 
     with st.spinner("多智能体协同诊断中…（Planner → Retriever → Generator → Validator）"):
-        final, elapsed, err = run_workflow(user_query, context, run_cfg, mcp)
+        final, elapsed, err = run_workflow(user_query, context, run_cfg, mcp, reflection_mode=reflection_mode)
 
     if err:
         st.error("工作流执行失败：")

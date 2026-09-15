@@ -62,6 +62,12 @@ def _retriever_node(state: AgentState, retriever) -> AgentState:
     return retriever.run(state)
 
 
+def _reflection_node(state: AgentState, reflector) -> AgentState:
+    """Reflection 节点（P3，可选）：对检索片段评分、丢弃低分块、同章节补召回。"""
+    logger.info("[bold cyan]LangGraph Node: reflection[/bold cyan]")
+    return reflector.run(state)
+
+
 def _generator_node(state: AgentState, generator, revision_feedback: str = "") -> AgentState:
     """Generator 节点：生成诊断草案。"""
     logger.info(
@@ -111,6 +117,7 @@ def run_langgraph_workflow(
     retriever,
     generator,
     validator,
+    reflector=None,
 ) -> AgentState:
     """
     基于 LangGraph 的图式编排工作流。
@@ -118,6 +125,7 @@ def run_langgraph_workflow(
     支持：
     - 动态路由（Validator 根据评估结果决定下一步）
     - 迭代优化（REVISION 时 Generator 重生成，最多 max_iterations 轮）
+    - 可选 Reflection 节点（reflector 非 None 时插入 Retriever → Reflection → Generator）
     - 清晰的执行轨迹
     """
     try:
@@ -132,7 +140,7 @@ def run_langgraph_workflow(
 
     if not _LANGGRAPH_AVAILABLE:
         # 降级到串行工作流
-        return _run_sequential_workflow(state, planner, retriever, generator, validator)
+        return _run_sequential_workflow(state, planner, retriever, generator, validator, reflector)
 
     # 构建图
     graph = StateGraph(AgentState)
@@ -148,7 +156,12 @@ def run_langgraph_workflow(
     # 设置入口和边
     graph.add_edge(START, "planner")
     graph.add_edge("planner", "retriever")
-    graph.add_edge("retriever", "generator")
+    if reflector is not None:
+        graph.add_node("reflection", partial(_reflection_node, reflector=reflector))
+        graph.add_edge("retriever", "reflection")
+        graph.add_edge("reflection", "generator")
+    else:
+        graph.add_edge("retriever", "generator")
     graph.add_edge("generator", "validator")
 
     # 条件路由：Validator → (generator | END)
@@ -189,6 +202,7 @@ def _run_sequential_workflow(
     retriever,
     generator,
     validator,
+    reflector=None,
 ) -> AgentState:
     """
     简化版串行工作流（LangGraph 不可用时的降级方案）。
@@ -198,6 +212,8 @@ def _run_sequential_workflow(
 
     state = planner.run(state)
     state = retriever.run(state)
+    if reflector is not None:
+        state = reflector.run(state)
     state = generator.run(state)
     state = validator.run(state)
 
@@ -215,6 +231,7 @@ def run_diagnosis_workflow(
     retriever,
     generator,
     validator,
+    reflector=None,
 ) -> AgentState:
     """
     简化的串行工作流入口（向后兼容）。
@@ -223,5 +240,6 @@ def run_diagnosis_workflow(
     当前实现会自动检测 LangGraph 是否可用：
     - 可用：使用 LangGraph 工作流（支持迭代优化）
     - 不可用：降级到串行工作流
+    reflector 为 None 时不启用反思节点（保持与基线一致）。
     """
-    return run_langgraph_workflow(state, planner, retriever, generator, validator)
+    return run_langgraph_workflow(state, planner, retriever, generator, validator, reflector)

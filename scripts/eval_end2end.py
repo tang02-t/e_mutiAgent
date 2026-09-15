@@ -151,7 +151,37 @@ def build_mcp(kb_mode: str = "local_kb") -> MCPClient:
 # ──────────────────────────────────────────────────────────────
 # 评测主流程
 # ──────────────────────────────────────────────────────────────
-def run_one(sample: Dict[str, Any], config: Dict[str, Any], mcp: MCPClient) -> Dict[str, Any]:
+def build_reflector(config: Dict[str, Any], mode: str):
+    """
+    mode: off | lexical | llm
+    - lexical：离线词法评分器（不依赖接口）
+    - llm    ：LLM 评分器，接口不可用时自动回退 lexical（ReflectionModule 内部处理）
+    """
+    if mode == "off":
+        return None
+    from src.agents.reflection import ReflectionModule, LexicalScorer, LLMScorer
+    from src.tools.local_kb import get_local_kb
+    kb = get_local_kb()
+    scorer = LexicalScorer()
+    if mode == "llm":
+        try:
+            from src.utils.llm import LLMClient, LLMConfig
+            from src.utils.config import get_llm_config
+            m = get_llm_config(config, "reflection")
+            client = LLMClient(LLMConfig(
+                provider=m.get("provider", "openai"), model_name=m.get("model_name", ""),
+                temperature=0.0, max_tokens=int(m.get("max_tokens", 256)),
+                base_url=m.get("base_url", "https://api.openai.com/v1"),
+                api_key=m.get("api_key", ""), api_key_env=m.get("api_key_env", "OPENAI_API_KEY"),
+                timeout=float(m.get("timeout", 60.0)), max_retries=int(m.get("max_retries", 1)),
+            ))
+            scorer = LLMScorer(client)
+        except Exception as exc:  # noqa: BLE001
+            print(f"[reflection] LLM 评分器不可用（{exc}），回退 lexical")
+    return ReflectionModule(scorer=scorer, kb=kb)
+
+
+def run_one(sample: Dict[str, Any], config: Dict[str, Any], mcp: MCPClient, reflector=None) -> Dict[str, Any]:
     from src.agents.planner import PlannerAgent
     from src.agents.retriever import RetrieverAgent
     from src.agents.generator import GeneratorAgent
@@ -170,7 +200,7 @@ def run_one(sample: Dict[str, Any], config: Dict[str, Any], mcp: MCPClient) -> D
 
     t0 = time.time()
     try:
-        final = run_diagnosis_workflow(state, planner, retriever, generator, validator)
+        final = run_diagnosis_workflow(state, planner, retriever, generator, validator, reflector=reflector)
         ok = True
     except Exception as exc:
         return {"completed": False, "error": str(exc), "elapsed": time.time() - t0}
@@ -213,6 +243,9 @@ def run_one(sample: Dict[str, Any], config: Dict[str, Any], mcp: MCPClient) -> D
     n_calls = len(traj)
     n_ok = sum(1 for t in traj if t.get("success"))
 
+    rlog = (getattr(final, "reflection_log", None) or [])
+    rlog = rlog[-1] if rlog else {}
+
     return {
         "completed": ok,
         "hit_primary": hit_primary,
@@ -226,6 +259,13 @@ def run_one(sample: Dict[str, Any], config: Dict[str, Any], mcp: MCPClient) -> D
         "plan_status": getattr(final, "plan_status", None),
         "n_tool_calls": n_calls,
         "n_tool_ok": n_ok,
+        "reflection": {
+            "decision": rlog.get("decision"),
+            "input_count": rlog.get("input_count", 0),
+            "output_count": rlog.get("output_count", 0),
+            "rewrite_triggered": bool(rlog.get("rewrite_triggered")),
+            "scorer": rlog.get("scorer"),
+        } if rlog else None,
         "elapsed": time.time() - t0,
         "answer_len": len(answer),
     }
@@ -270,6 +310,19 @@ def aggregate(results: List[Dict[str, Any]]) -> str:
     tot_ok = sum(r.get("n_tool_ok", 0) for r in done)
     L.append(f"- 工具调用：{tot_calls} 次，业务成功 {tot_ok} 次"
              + (f"（成功率 {tot_ok/tot_calls:.1%}）" if tot_calls else ""))
+    refl = [r["reflection"] for r in done if r.get("reflection")]
+    if refl:
+        dec: Dict[str, int] = {}
+        for x in refl:
+            dec[str(x.get("decision"))] = dec.get(str(x.get("decision")), 0) + 1
+        tin = sum(x["input_count"] for x in refl); tout = sum(x["output_count"] for x in refl)
+        nrw = sum(1 for x in refl if x["rewrite_triggered"])
+        scorers = sorted({str(x.get("scorer")) for x in refl})
+        L.append(f"- 反思模块：评分器 {scorers}，决策分布 {dec}，输入块 {tin} → 输出块 {tout}"
+                 f"（保留率 {tout/tin:.1%}），触发改写重检索 {nrw} 条" if tin else
+                 f"- 反思模块：评分器 {scorers}，决策分布 {dec}，无检索输入")
+    else:
+        L.append("- 反思模块：未启用（--reflection off）")
     L.append("")
     L.append("## 指标说明")
     L.append("- **完成率**：流程连通性。低于 100% 说明存在崩溃，需查工具/LLM 配置。")
@@ -291,6 +344,8 @@ def main():
     ap.add_argument("--no-llm", action="store_true", help="强制禁用 LLM（清空 api_key）")
     ap.add_argument("--purpose", default="dev_regression", choices=["dev_regression", "eval_set"],
                     help="dev_regression：开发回归（允许合成数据）；eval_set：正式评测（拒绝合成数据）")
+    ap.add_argument("--reflection", default="off", choices=["off", "lexical", "llm"],
+                    help="反思模块：off 关闭；lexical 离线词法评分；llm LLM 评分（不可用时回退 lexical）")
     args = ap.parse_args()
     if args.real_rag:
         args.kb_mode = "milvus"
@@ -313,6 +368,9 @@ def main():
                 v["api_key_env"] = "___DISABLED___"
 
     mcp = build_mcp(kb_mode=args.kb_mode)
+    reflector = build_reflector(config, args.reflection)
+    if args.reflection != "off" and not args.out.endswith(f"_refl_{args.reflection}.md"):
+        args.out = args.out[:-3] + f"_refl_{args.reflection}.md" if args.out.endswith(".md") else args.out
 
     samples = []
     with open(args.eval, encoding="utf-8") as f:
@@ -322,10 +380,11 @@ def main():
     if args.limit:
         samples = samples[: args.limit]
 
-    print(f"开始端到端评测：{len(samples)} 条，kb_mode={args.kb_mode}, no_llm={args.no_llm}, purpose={args.purpose}")
+    print(f"开始端到端评测：{len(samples)} 条，kb_mode={args.kb_mode}, no_llm={args.no_llm}, "
+          f"purpose={args.purpose}, reflection={args.reflection}")
     results = []
     for i, s in enumerate(samples, 1):
-        r = run_one(s, config, mcp)
+        r = run_one(s, config, mcp, reflector=reflector)
         results.append(r)
         flag = "OK" if r.get("completed") else "ERR"
         print(f"  [{i}/{len(samples)}] {flag} {s['eval_id']} "

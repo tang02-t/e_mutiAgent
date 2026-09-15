@@ -1,98 +1,105 @@
 {
  "schema_version": "0.1",
- "n_nodes": 95,
- "n_edges": 206,
+ "n_nodes": 90,
+ "n_edges": 190,
  "nodes": [
   {
    "id": "Fault:过热故障",
    "name": "过热故障",
    "type": "Fault",
-   "degree": 29,
-   "n_docs": 42
-  },
-  {
-   "id": "Fault:绝缘受潮",
-   "name": "绝缘受潮",
-   "type": "Fault",
-   "degree": 21,
-   "n_docs": 38
+   "degree": 28,
+   "n_docs": 43
   },
   {
    "id": "Fault:接触不良",
    "name": "接触不良",
    "type": "Fault",
    "degree": 19,
-   "n_docs": 21
+   "n_docs": 22
   },
   {
-   "id": "Fault:放电故障",
-   "name": "放电故障",
+   "id": "Fault:绝缘受潮",
+   "name": "绝缘受潮",
    "type": "Fault",
    "degree": 19,
-   "n_docs": 21
-  },
-  {
-   "id": "Fault:渗漏油",
-   "name": "渗漏油",
-   "type": "Fault",
-   "degree": 16,
-   "n_docs": 25
+   "n_docs": 38
   },
   {
    "id": "Fault:局部放电",
    "name": "局部放电",
    "type": "Fault",
-   "degree": 15,
+   "degree": 17,
    "n_docs": 18
   },
   {
-   "id": "Standard:DL/T 722",
-   "name": "DL/T 722",
-   "type": "Standard",
-   "degree": 13,
-   "n_docs": 8
+   "id": "Fault:放电故障",
+   "name": "放电故障",
+   "type": "Fault",
+   "degree": 17,
+   "n_docs": 19
+  },
+  {
+   "id": "Fault:渗漏油",
+   "name": "渗漏油",
+   "type": "Fault",
+   "degree": 14,
+   "n_docs": 24
+  },
+  {
+   "id": "Method:油色谱分析",
+   "name": "油色谱分析",
+   "type": "Method",
+   "degree": 11,
+   "n_docs": 13
   },
   {
    "id": "Fault:匝间短路",
    "name": "匝间短路",
    "type": "Fault",
-   "degree": 11,
-   "n_docs": 14
+   "degree": 10,
+   "n_docs": 13
   },
   {
    "id": "Fault:铁心多点接地",
    "name": "铁心多点接地",
    "type": "Fault",
-   "degree": 11,
+   "degree": 10,
    "n_docs": 15
   },
   {
    "id": "Standard:GB/T 7252",
    "name": "GB/T 7252",
    "type": "Standard",
-   "degree": 11,
+   "degree": 10,
    "n_docs": 5
   },
   {
    "id": "Fault:绝缘老化",
    "name": "绝缘老化",
    "type": "Fault",
-   "degree": 10,
+   "degree": 9,
+   "n_docs": 9
+  },
+  {
+   "id": "Fault:高能放电",
+   "name": "高能放电",
+   "type": "Fault",
+   "degree": 9,
    "n_docs": 10
   },
   {
-   "id": "Method:油色谱分析",
-   "name": "油色谱分析",
+   "id": "Method:三比值法",
+   "name": "三比值法",
    "type": "Method",
-   "degree": 10,
-   "n_docs": 11
+   "degree": 8,
+   "n_docs": 14
   },
   {
    "id": "Standard:DL/T 596",
    "name": "DL/T 596",
    "type": "Standard",
    "degree": 8,
-   "n_docs": 4
+   "n_docs": 5
   },
   {
    "id": "Fault:分接开关故障",
@@ -102,39 +109,11 @@
    "n_docs": 11
   },
   {
-   "id": "Method:三比值法",
-   "name": "三比值法",
-   "type": "Method",
-   "degree": 7,
-   "n_docs": 13
-  },
-  {
    "id": "Component:绕组",
    "name": "绕组",
    "type": "Component",
    "degree": 6,
    "n_docs": 20
-  },
-  {
-   "id": "Component:绝缘油",
-   "name": "绝缘油",
-   "type": "Component",
-   "degree": 6,
-   "n_docs": 12
-  },
-  {
-   "id": "Fault:高能放电",
-   "name": "高能放电",
-   "type": "Fault",
-   "degree": 6,
-   "n_docs": 8
-  },
-  {
-   "id": "Indicator:一氧化碳",
-   "name": "一氧化碳",
-   "type": "Indicator",
-   "degree": 6,
-   "n_docs": 2
   },
   {
    "id": "Method:在线监测",
@@ -151,39 +130,53 @@
    "n_docs": 13
   },
   {
+   "id": "Component:绝缘油",
+   "name": "绝缘油",
+   "type": "Component",
+   "degree": 5,
+   "n_docs": 11
+  },
+  {
    "id": "Fault:低能放电",
    "name": "低能放电",
    "type": "Fault",
    "degree": 5,
-   "n_docs": 7
+   "n_docs": 8
   },
   {
-   "id": "Fault:相间短路",
-   "name": "相间短路",
+   "id": "Fault:悬浮放电",
+   "name": "悬浮放电",
    "type": "Fault",
    "degree": 5,
-   "n_docs": 7
+   "n_docs": 6
   },
   {
    "id": "Fault:绕组变形",
    "name": "绕组变形",
    "type": "Fault",
    "degree": 5,
-   "n_docs": 7
+   "n_docs": 8
   },
   {
-   "id": "Fault:过负荷",
-   "name": "过负荷",
+   "id": "Fault:高温过热",
+   "name": "高温过热",
    "type": "Fault",
    "degree": 5,
-   "n_docs": 7
+   "n_docs": 4
   },
   {
-   "id": "Indicator:乙炔",
-   "name": "乙炔",
+   "id": "Indicator:一氧化碳",
+   "name": "一氧化碳",
    "type": "Indicator",
    "degree": 5,
-   "n_docs": 5
+   "n_docs": 2
+  },
+  {
+   "id": "Standard:DL/T 722",
+   "name": "DL/T 722",
+   "type": "Standard",
+   "degree": 5,
+   "n_docs": 4
   },
   {
    "id": "Action:停运",
@@ -204,35 +197,28 @@
    "name": "套管故障",
    "type": "Fault",
    "degree": 4,
-   "n_docs": 5
+   "n_docs": 6
   },
   {
-   "id": "Fault:悬浮放电",
-   "name": "悬浮放电",
+   "id": "Fault:相间短路",
+   "name": "相间短路",
+   "type": "Fault",
+   "degree": 4,
+   "n_docs": 7
+  },
+  {
+   "id": "Fault:过负荷",
+   "name": "过负荷",
    "type": "Fault",
    "degree": 4,
    "n_docs": 6
   },
   {
-   "id": "Fault:高温过热",
-   "name": "高温过热",
-   "type": "Fault",
-   "degree": 4,
-   "n_docs": 3
-  },
-  {
-   "id": "Indicator:总烃",
-   "name": "总烃",
+   "id": "Indicator:乙炔",
+   "name": "乙炔",
    "type": "Indicator",
    "degree": 4,
    "n_docs": 5
-  },
-  {
-   "id": "Standard:DL/T 911",
-   "name": "DL/T 911",
-   "type": "Standard",
-   "degree": 4,
-   "n_docs": 2
   },
   {
    "id": "Symptom:噪声异常",
@@ -284,23 +270,9 @@
    "n_docs": 4
   },
   {
-   "id": "Condition:长期运行",
-   "name": "长期运行",
-   "type": "Condition",
-   "degree": 3,
-   "n_docs": 3
-  },
-  {
    "id": "Condition:雷击",
    "name": "雷击",
    "type": "Condition",
-   "degree": 3,
-   "n_docs": 4
-  },
-  {
-   "id": "Fault:冷却系统故障",
-   "name": "冷却系统故障",
-   "type": "Fault",
    "degree": 3,
    "n_docs": 3
   },
@@ -309,18 +281,18 @@
    "name": "二氧化碳",
    "type": "Indicator",
    "degree": 3,
-   "n_docs": 1
+   "n_docs": 2
+  },
+  {
+   "id": "Indicator:总烃",
+   "name": "总烃",
+   "type": "Indicator",
+   "degree": 3,
+   "n_docs": 3
   },
   {
    "id": "Indicator:氢气",
    "name": "氢气",
-   "type": "Indicator",
-   "degree": 3,
-   "n_docs": 5
-  },
-  {
-   "id": "Indicator:直流电阻",
-   "name": "直流电阻",
    "type": "Indicator",
    "degree": 3,
    "n_docs": 4
@@ -375,11 +347,11 @@
    "n_docs": 3
   },
   {
-   "id": "Condition:操作过电压",
-   "name": "操作过电压",
+   "id": "Condition:油流带电",
+   "name": "油流带电",
    "type": "Condition",
    "degree": 2,
-   "n_docs": 2
+   "n_docs": 1
   },
   {
    "id": "Condition:突发短路",
@@ -396,32 +368,25 @@
    "n_docs": 4
   },
   {
+   "id": "Condition:长期运行",
+   "name": "长期运行",
+   "type": "Condition",
+   "degree": 2,
+   "n_docs": 2
+  },
+  {
+   "id": "Fault:冷却系统故障",
+   "name": "冷却系统故障",
+   "type": "Fault",
+   "degree": 2,
+   "n_docs": 2
+  },
+  {
    "id": "Fault:铁心过热",
    "name": "铁心过热",
    "type": "Fault",
    "degree": 2,
    "n_docs": 3
-  },
-  {
-   "id": "Indicator:乙烯",
-   "name": "乙烯",
-   "type": "Indicator",
-   "degree": 2,
-   "n_docs": 1
-  },
-  {
-   "id": "Indicator:乙烷",
-   "name": "乙烷",
-   "type": "Indicator",
-   "degree": 2,
-   "n_docs": 1
-  },
-  {
-   "id": "Indicator:产气速率",
-   "name": "产气速率",
-   "type": "Indicator",
-   "degree": 2,
-   "n_docs": 1
   },
   {
    "id": "Indicator:吸收比",
@@ -442,14 +407,14 @@
    "name": "甲烷",
    "type": "Indicator",
    "degree": 2,
-   "n_docs": 1
+   "n_docs": 2
   },
   {
-   "id": "Indicator:绝缘电阻",
-   "name": "绝缘电阻",
+   "id": "Indicator:直流电阻",
+   "name": "直流电阻",
    "type": "Indicator",
    "degree": 2,
-   "n_docs": 3
+   "n_docs": 4
   },
   {
    "id": "Method:局放测量",
@@ -459,30 +424,23 @@
    "n_docs": 3
   },
   {
-   "id": "Method:振动分析",
-   "name": "振动分析",
+   "id": "Method:支持向量机",
+   "name": "支持向量机",
    "type": "Method",
    "degree": 2,
-   "n_docs": 2
+   "n_docs": 1
   },
   {
    "id": "Method:红外测温",
    "name": "红外测温",
    "type": "Method",
    "degree": 2,
-   "n_docs": 3
+   "n_docs": 2
   },
   {
-   "id": "Method:频响法",
-   "name": "频响法",
-   "type": "Method",
-   "degree": 2,
-   "n_docs": 3
-  },
-  {
-   "id": "Symptom:喷油",
-   "name": "喷油",
-   "type": "Symptom",
+   "id": "Standard:IEC 60599",
+   "name": "IEC 60599",
+   "type": "Standard",
    "degree": 2,
    "n_docs": 2
   },
@@ -536,13 +494,6 @@
    "n_docs": 1
   },
   {
-   "id": "Condition:励磁涌流",
-   "name": "励磁涌流",
-   "type": "Condition",
-   "degree": 1,
-   "n_docs": 1
-  },
-  {
    "id": "Condition:安装不当",
    "name": "安装不当",
    "type": "Condition",
@@ -550,8 +501,8 @@
    "n_docs": 1
   },
   {
-   "id": "Condition:油流带电",
-   "name": "油流带电",
+   "id": "Condition:操作过电压",
+   "name": "操作过电压",
    "type": "Condition",
    "degree": 1,
    "n_docs": 1
@@ -571,6 +522,27 @@
    "n_docs": 1
   },
   {
+   "id": "Indicator:乙烯",
+   "name": "乙烯",
+   "type": "Indicator",
+   "degree": 1,
+   "n_docs": 1
+  },
+  {
+   "id": "Indicator:乙烷",
+   "name": "乙烷",
+   "type": "Indicator",
+   "degree": 1,
+   "n_docs": 1
+  },
+  {
+   "id": "Indicator:产气速率",
+   "name": "产气速率",
+   "type": "Indicator",
+   "degree": 1,
+   "n_docs": 1
+  },
+  {
    "id": "Indicator:介质损耗因数",
    "name": "介质损耗因数",
    "type": "Indicator",
@@ -578,29 +550,22 @@
    "n_docs": 1
   },
   {
-   "id": "Indicator:微水",
-   "name": "微水",
+   "id": "Indicator:绝缘电阻",
+   "name": "绝缘电阻",
    "type": "Indicator",
    "degree": 1,
-   "n_docs": 1
+   "n_docs": 2
   },
   {
-   "id": "Indicator:短路阻抗",
-   "name": "短路阻抗",
-   "type": "Indicator",
-   "degree": 1,
-   "n_docs": 1
-  },
-  {
-   "id": "Method:低电压短路阻抗法",
-   "name": "低电压短路阻抗法",
+   "id": "Method:大卫三角形",
+   "name": "大卫三角形",
    "type": "Method",
    "degree": 1,
    "n_docs": 1
   },
   {
-   "id": "Method:支持向量机",
-   "name": "支持向量机",
+   "id": "Method:振动分析",
+   "name": "振动分析",
    "type": "Method",
    "degree": 1,
    "n_docs": 1
@@ -627,11 +592,11 @@
    "n_docs": 1
   },
   {
-   "id": "Method:耐压试验",
-   "name": "耐压试验",
+   "id": "Method:频响法",
+   "name": "频响法",
    "type": "Method",
    "degree": 1,
-   "n_docs": 2
+   "n_docs": 1
   },
   {
    "id": "Standard:GB 1094",
@@ -641,8 +606,8 @@
    "n_docs": 1
   },
   {
-   "id": "Symptom:总烃超标",
-   "name": "总烃超标",
+   "id": "Symptom:喷油",
+   "name": "喷油",
    "type": "Symptom",
    "degree": 1,
    "n_docs": 1
@@ -725,6 +690,33 @@
    ]
   },
   {
+   "source": "Fault:铁心多点接地",
+   "target": "Fault:过热故障",
+   "relation": "CAUSES",
+   "support_count": 9,
+   "confidence": 0.6,
+   "extractors": [
+    "rule"
+   ],
+   "evidence": [
+    {
+     "sentence": "综上所述，我们进一步对该变压器故障进行了诊断，确定为多点接地所引起的过热性故障。",
+     "unit_id": "1c5fdc4435ca-0027",
+     "doc_id": "1c5fdc4435ca"
+    },
+    {
+     "sentence": "多点接地的异常现象主要有铁芯中产生涡流，从而使损耗增加，造成局部过热；",
+     "unit_id": "20861f5f1aba-0176",
+     "doc_id": "20861f5f1aba"
+    },
+    {
+     "sentence": "铁芯多点接地严重时，同时又较长时间未处理，变压器连续运行将导致油及绕组过热，使得油纸绝缘逐渐老化，从而引起铁芯叠片绝缘层老化而脱落，最终引起更大的铁芯过热而烧毁；",
+     "unit_id": "20861f5f1aba-0176",
+     "doc_id": "20861f5f1aba"
+    }
+   ]
+  },
+  {
    "source": "Fault:渗漏油",
    "target": "Action:补焊",
    "relation": "TREATED_BY",
@@ -748,33 +740,6 @@
      "sentence": "拐角处渗油常常会出现渗漏点查找不准和补焊后由于内应力的作用导致再次渗漏的问题，处理这样的渗点往往采用加用铁板进行补焊的方法；",
      "unit_id": "a6b1fa4fa8c3-0011",
      "doc_id": "a6b1fa4fa8c3"
-    }
-   ]
-  },
-  {
-   "source": "Fault:铁心多点接地",
-   "target": "Fault:过热故障",
-   "relation": "CAUSES",
-   "support_count": 8,
-   "confidence": 0.6,
-   "extractors": [
-    "rule"
-   ],
-   "evidence": [
-    {
-     "sentence": "综上所述，我们进一步对该变压器故障进行了诊断，确定为多点接地所引起的过热性故障。",
-     "unit_id": "1c5fdc4435ca-0027",
-     "doc_id": "1c5fdc4435ca"
-    },
-    {
-     "sentence": "多点接地的异常现象主要有铁芯中产生涡流，从而使损耗增加，造成局部过热；",
-     "unit_id": "20861f5f1aba-0176",
-     "doc_id": "20861f5f1aba"
-    },
-    {
-     "sentence": "铁芯多点接地严重时，同时又较长时间未处理，变压器连续运行将导致油及绕组过热，使得油纸绝缘逐渐老化，从而引起铁芯叠片绝缘层老化而脱落，最终引起更大的铁芯过热而烧毁；",
-     "unit_id": "20861f5f1aba-0176",
-     "doc_id": "20861f5f1aba"
     }
    ]
   },
@@ -856,6 +821,33 @@
      "sentence": "众所周知，局部放电的在线监测方法因受现场电磁场干扰的困扰，放电量的检测、放电源的确定等目前都尚未完全解决。",
      "unit_id": "a3e4f5c6fd30-0059",
      "doc_id": "a3e4f5c6fd30"
+    }
+   ]
+  },
+  {
+   "source": "Fault:过热故障",
+   "target": "Method:油色谱分析",
+   "relation": "DETECTED_BY",
+   "support_count": 5,
+   "confidence": 0.6,
+   "extractors": [
+    "rule"
+   ],
+   "evidence": [
+    {
+     "sentence": "通过色谱柱将样本气体分离，惰性气体作为载气与样本气体混合进入色谱柱，在惰性气体的稀释与冲刷下，使混合组分气体被分离，再通过热导池检测器得到色谱的检测波形，最后通过色谱分析得出[3]。",
+     "unit_id": "1a6cbb81b907-0095",
+     "doc_id": "1a6cbb81b907"
+    },
+    {
+     "sentence": "综合两组色谱分析数据的诊断结果，得到的结论“主变发生过热温度不断增大”的热故障，典型原因为“磁通集中引起的铁心局部过热”。",
+     "unit_id": "f08159e21a27-0479",
+     "doc_id": "f08159e21a27"
+    },
+    {
+     "sentence": "文献[21]提出了双形状图形方法诊断故障类型，根据DGA分析得出的乙炔百分比来区分不同的故障类型，其中正方形形状用于诊断低热故障，而五边形形状用于放电故障诊断。",
+     "unit_id": "f57de598f869-0089",
+     "doc_id": "f57de598f869"
     }
    ]
   },
@@ -968,6 +960,33 @@
    ]
   },
   {
+   "source": "Fault:接触不良",
+   "target": "Fault:过热故障",
+   "relation": "CAUSES",
+   "support_count": 4,
+   "confidence": 0.6,
+   "extractors": [
+    "rule"
+   ],
+   "evidence": [
+    {
+     "sentence": "组引线接头的螺纹紧密相连，如果两者连接不紧，发生接触不良现象，就会引起发热故障。",
+     "unit_id": "f2fe6d61f411-0016",
+     "doc_id": "f2fe6d61f411"
+    },
+    {
+     "sentence": "分接开关的接触不良导致局部严重过热，也会出现这种声音。",
+     "unit_id": "5dc6d83d61dc-0011",
+     "doc_id": "5dc6d83d61dc"
+    },
+    {
+     "sentence": "其一是外部热故障，这一故障部位常常暴露于设备之外，可以直接观察到，主要包含：因为外部接头接触不良产生的故障、绝缘层被损坏、老化等性能下降引发的故障、漏磁造成的涡流以及冷却系统问题等造成的热故障。",
+     "unit_id": "06e1db51e707-0028",
+     "doc_id": "06e1db51e707"
+    }
+   ]
+  },
+  {
    "source": "Fault:渗漏油",
    "target": "Fault:绝缘受潮",
    "relation": "CAUSES",
@@ -1018,33 +1037,6 @@
      "sentence": "绕组受潮，绝缘膨胀堵塞油道，引起局部过热；",
      "unit_id": "65907d32dd3b-0043",
      "doc_id": "65907d32dd3b"
-    }
-   ]
-  },
-  {
-   "source": "Fault:局部放电",
-   "target": "Method:油色谱分析",
-   "relation": "DETECTED_BY",
-   "support_count": 4,
-   "confidence": 0.6,
-   "extractors": [
-    "rule"
-   ],
-   "evidence": [
-    {
-     "sentence": "变压器故障诊断是一项复杂的工程 需要借助多种方法才可以进行综合判断 目前 可以在进行常规试验的基础上 运用油中溶解气体色谱分析 局部放电试验等综合检测手段对电力变压器进行故障诊断及处理 。",
-     "unit_id": "5f74e965e39e-0005",
-     "doc_id": "5f74e965e39e"
-    },
-    {
-     "sentence": "- 4 3 运用油中溶解气体色谱分析和局部放电试验 以确定是否存在故障 故障大小及进行位置定位 （ 下 转 第 7 1 0 页 ）",
-     "unit_id": "5f74e965e39e-0033",
-     "doc_id": "5f74e965e39e"
-    },
-    {
-     "sentence": "目前，我国对变压器状态在线监测的研究主要集中在三个方面，即变压器局部放电、变压器油氢气浓度、变压器油色谱在线监测。",
-     "unit_id": "a3e4f5c6fd30-0064",
-     "doc_id": "a3e4f5c6fd30"
     }
    ]
   },
@@ -1157,33 +1149,6 @@
    ]
   },
   {
-   "source": "Method:三比值法",
-   "target": "Standard:DL/T 722",
-   "relation": "SPECIFIED_IN",
-   "support_count": 4,
-   "confidence": 0.6,
-   "extractors": [
-    "rule"
-   ],
-   "evidence": [
-    {
-     "sentence": "结合现场情况及试验数据，依据标准《变压器油中溶解气体分析和判断导则》（GB/T 7252）的相关规定，可计算出1#主变A相三比值法编码为101，初步判断故障类型为电弧放电。",
-     "unit_id": "afd389a5518b-0030",
-     "doc_id": "afd389a5518b"
-    },
-    {
-     "sentence": "GB/T 7252-2001《变压器油中溶解气体分析和判断导则》规定：变压器色谱分析主要是对变压器本体、套管以及有载调压开关中的绝缘油中溶解气体进行分析，并根据产气速率、单一气体含量、总烃和三比值法判断变压器的运行状态。",
-     "unit_id": "49172d8ae09a-0269",
-     "doc_id": "49172d8ae09a"
-    },
-    {
-     "sentence": "当“三比值”法无法对变压器故障类型做出正确诊断时，DL/T722-2000推荐使用标准附录中“溶解气体解释表”[32]（表2-7）和“溶解气体分析解释简表”[34]（表2-8）来进行进一步的修正和更准确的故障诊断。",
-     "unit_id": "03528ddc2e22-0159",
-     "doc_id": "03528ddc2e22"
-    }
-   ]
-  },
-  {
    "source": "Fault:渗漏油",
    "target": "Action:停运",
    "relation": "TREATED_BY",
@@ -1234,33 +1199,6 @@
      "sentence": "- (3) 变压器的制造工艺不良、压制不紧密，机械强度无法承受短路冲击致使绕组变形、绝缘损坏。",
      "unit_id": "7b7a6e25150f-0038",
      "doc_id": "7b7a6e25150f"
-    }
-   ]
-  },
-  {
-   "source": "Fault:接触不良",
-   "target": "Fault:过热故障",
-   "relation": "CAUSES",
-   "support_count": 3,
-   "confidence": 0.6,
-   "extractors": [
-    "rule"
-   ],
-   "evidence": [
-    {
-     "sentence": "组引线接头的螺纹紧密相连，如果两者连接不紧，发生接触不良现象，就会引起发热故障。",
-     "unit_id": "f2fe6d61f411-0016",
-     "doc_id": "f2fe6d61f411"
-    },
-    {
-     "sentence": "分接开关的接触不良导致局部严重过热，也会出现这种声音。",
-     "unit_id": "5dc6d83d61dc-0011",
-     "doc_id": "5dc6d83d61dc"
-    },
-    {
-     "sentence": "其一是外部热故障，这一故障部位常常暴露于设备之外，可以直接观察到，主要包含：因为外部接头接触不良产生的故障、绝缘层被损坏、老化等性能下降引发的故障、漏磁造成的涡流以及冷却系统问题等造成的热故障。",
-     "unit_id": "06e1db51e707-0028",
-     "doc_id": "06e1db51e707"
     }
    ]
   },
@@ -1319,9 +1257,9 @@
    ]
   },
   {
-   "source": "Fault:绝缘受潮",
-   "target": "Fault:放电故障",
-   "relation": "CAUSES",
+   "source": "Fault:局部放电",
+   "target": "Method:油色谱分析",
+   "relation": "DETECTED_BY",
    "support_count": 3,
    "confidence": 0.6,
    "extractors": [
@@ -1329,19 +1267,19 @@
    ],
    "evidence": [
     {
-     "sentence": "变压器油受潮或受热氧化 ，就会变质，绝缘性能下降，很容易发生故障 另外其它故障引起的放电造成变压器油分解，也会使油变质",
-     "unit_id": "9473a501d67f-0012",
-     "doc_id": "9473a501d67f"
+     "sentence": "变压器故障诊断是一项复杂的工程 需要借助多种方法才可以进行综合判断 目前 可以在进行常规试验的基础上 运用油中溶解气体色谱分析 局部放电试验等综合检测手段对电力变压器进行故障诊断及处理 。",
+     "unit_id": "5f74e965e39e-0005",
+     "doc_id": "5f74e965e39e"
     },
     {
-     "sentence": "- b. 变压器本体密封不好而受潮、固体绝缘件在加工过程产生水分，或对变压器进行真空注油过程中造成变压器进水，当变压器中的游离水转变成悬浮水进入绝缘通道，并被吸附在场强集中的地方，在被吸附的悬浮水达到一定量时即发生击穿放电。",
-     "unit_id": "65907d32dd3b-0046",
-     "doc_id": "65907d32dd3b"
+     "sentence": "- 4 3 运用油中溶解气体色谱分析和局部放电试验 以确定是否存在故障 故障大小及进行位置定位 （ 下 转 第 7 1 0 页 ）",
+     "unit_id": "5f74e965e39e-0033",
+     "doc_id": "5f74e965e39e"
     },
     {
-     "sentence": "设备受潮或遗留海绵等残杂物 ，都有可能导致放电故障出现。",
-     "unit_id": "766385260f1c-0033",
-     "doc_id": "766385260f1c"
+     "sentence": "随着近年来电子、计算机、传感器以及信息处理技术的发展，大型电力变压器的检测手段得到了迅速发展，如油中溶解气体分析[8,9]（Dissolved Gas Analysis, DGA）、局部放电监测[10-12](Partial Discharge, PD)、智能故障诊断技术[13-16]等。",
+     "unit_id": "20861f5f1aba-0085",
+     "doc_id": "20861f5f1aba"
     }
    ]
   },
@@ -1400,33 +1338,6 @@
    ]
   },
   {
-   "source": "Fault:过热故障",
-   "target": "Method:油色谱分析",
-   "relation": "DETECTED_BY",
-   "support_count": 3,
-   "confidence": 0.6,
-   "extractors": [
-    "rule"
-   ],
-   "evidence": [
-    {
-     "sentence": "通过色谱柱将样本气体分离，惰性气体作为载气与样本气体混合进入色谱柱，在惰性气体的稀释与冲刷下，使混合组分气体被分离，再通过热导池检测器得到色谱的检测波形，最后通过色谱分析得出[3]。",
-     "unit_id": "1a6cbb81b907-0095",
-     "doc_id": "1a6cbb81b907"
-    },
-    {
-     "sentence": "综合两组色谱分析数据的诊断结果，得到的结论“主变发生过热温度不断增大”的热故障，典型原因为“磁通集中引起的铁心局部过热”。",
-     "unit_id": "f08159e21a27-0479",
-     "doc_id": "f08159e21a27"
-    },
-    {
-     "sentence": "在这种情况下，对套管内变压器油进行色谱试验分析时会发现套管内也存在过热性故障。",
-     "unit_id": "0ed5604bbddf-0043",
-     "doc_id": "0ed5604bbddf"
-    }
-   ]
-  },
-  {
    "source": "Fault:绝缘受潮",
    "target": "Component:套管",
    "relation": "LOCATED_IN",
@@ -1481,60 +1392,6 @@
    ]
   },
   {
-   "source": "Indicator:总烃",
-   "target": "Standard:DL/T 722",
-   "relation": "SPECIFIED_IN",
-   "support_count": 3,
-   "confidence": 0.6,
-   "extractors": [
-    "rule"
-   ],
-   "evidence": [
-    {
-     "sentence": "按《变压器油中溶解气体分析和判断导则》（GB7252-2001）中，运行中220kV及以下变压器油中溶解气体含量超过下列任一项值时应引起注意：1）总烃含量 ${ > } 1 5 0 \\times 1 0 ^ { - 6 }$；",
-     "unit_id": "282d138937e0-0016",
-     "doc_id": "282d138937e0"
-    },
-    {
-     "sentence": "GB/T 7252-2001《变压器油中溶解气体分析和判断导则》规定：变压器色谱分析主要是对变压器本体、套管以及有载调压开关中的绝缘油中溶解气体进行分析，并根据产气速率、单一气体含量、总烃和三比值法判断变压器的运行状态。",
-     "unit_id": "49172d8ae09a-0269",
-     "doc_id": "49172d8ae09a"
-    },
-    {
-     "sentence": "在该主变的实际运行过程中，2006年12月，氢气含量和总烃含量的增长开始加快，2010年7月，氢气含量明显，总烃含量已超过DL/T722-2000《变压器油中溶解气体分析和判断导则》中对氢气和总烃含量的要求极限值（ $150mL/L$），2013年10月对该主变实施滤油处理，从上图数据中可明显看出氢气含量和总烃含量大幅降低，基本接近运行初期水平，滤油后，增加对该主变检测频率（每半月一次抽样检测）。",
-     "unit_id": "03528ddc2e22-0453",
-     "doc_id": "03528ddc2e22"
-    }
-   ]
-  },
-  {
-   "source": "Indicator:氢气",
-   "target": "Standard:DL/T 722",
-   "relation": "SPECIFIED_IN",
-   "support_count": 3,
-   "confidence": 0.6,
-   "extractors": [
-    "rule"
-   ],
-   "evidence": [
-    {
-     "sentence": "系统由于采用了氢气做载气，单 FID 做检测器，因此对于进样气体中的氢气不能直接用 FID 测量，需要设计单独的氢气检测电路，本文按国标GB/T7252-2001《变压器油中溶解气体分析和判断导则》对氢气浓度的检测灵敏度的要求，选用合适氢气浓度传感器设计氢气浓度检测电路。",
-     "unit_id": "a3e4f5c6fd30-0090",
-     "doc_id": "a3e4f5c6fd30"
-    },
-    {
-     "sentence": "在该主变的实际运行过程中，2006年12月，氢气含量和总烃含量的增长开始加快，2010年7月，氢气含量明显，总烃含量已超过DL/T722-2000《变压器油中溶解气体分析和判断导则》中对氢气和总烃含量的要求极限值（ $150mL/L$），2013年10月对该主变实施滤油处理，从上图数据中可明显看出氢气含量和总烃含量大幅降低，基本接近运行初期水平，滤油后，增加对该主变检测频率（每半月一次抽样检测）。",
-     "unit_id": "03528ddc2e22-0453",
-     "doc_id": "03528ddc2e22"
-    },
-    {
-     "sentence": "氢气 49.05 微升/升，一氧化碳 33.71 微升/升，甲烷 48.43 微升/升，二氧化碳 1588.80 微升/升，乙烯 352.30 微升/升，乙烷 61.07 微升/升，乙炔 1.04 微升/升，根据 GB/T7252-2001<<变压器油中溶解气体分析和判断导则>>分析，变压器故障类型属于高温过热故障。",
-     "unit_id": "8cefcb310284-0336",
-     "doc_id": "8cefcb310284"
-    }
-   ]
-  },
-  {
    "source": "Indicator:直流电阻",
    "target": "Standard:DL/T 596",
    "relation": "SPECIFIED_IN",
@@ -1577,9 +1434,9 @@
      "doc_id": "afd389a5518b"
     },
     {
-     "sentence": "GB/T 7252-2001《变压器油中溶解气体分析和判断导则》规定：变压器色谱分析主要是对变压器本体、套管以及有载调压开关中的绝缘油中溶解气体进行分析，并根据产气速率、单一气体含量、总烃和三比值法判断变压器的运行状态。",
-     "unit_id": "49172d8ae09a-0269",
-     "doc_id": "49172d8ae09a"
+     "sentence": "表6和表7是我国GB/T7252-2001《导则》推荐的改良三比值法(类似于IEC推荐的改良三比值法)的编码规则和故障类别判断方法。",
+     "unit_id": "a3e4f5c6fd30-0154",
+     "doc_id": "a3e4f5c6fd30"
     },
     {
      "sentence": "1987 年我国颁布的 GB/T7252-1987 国标中推广应用的是IEC 推荐的三比值法。",
@@ -1704,8 +1561,8 @@
    ]
   },
   {
-   "source": "Condition:雷击",
-   "target": "Fault:放电故障",
+   "source": "Fault:低能放电",
+   "target": "Fault:局部放电",
    "relation": "CAUSES",
    "support_count": 2,
    "confidence": 0.6,
@@ -1714,14 +1571,58 @@
    ],
    "evidence": [
     {
-     "sentence": "雷电过电压由于波头陡, 引起纵绝缘 (匝间、并间、绝缘) 上电压分布很不均匀, 可能在绝缘上留下放电痕迹, 从而使固体绝缘受到破坏。",
-     "unit_id": "e37dd48176c9-0038",
-     "doc_id": "e37dd48176c9"
+     "sentence": "一般来说，火花放电不致很快引起绝缘击穿，主要反映在油色谱分析异常、局部放电量增加或轻瓦斯动作，比较容易被发现和处理，但对其发展程度应引起足够的认识和注意。",
+     "unit_id": "8cefcb310284-0114",
+     "doc_id": "8cefcb310284"
     },
     {
-     "sentence": "- g. 当大气过电压侵入绕组后，首尾端电位差较大，超出了绕组首尾端绝缘耐受水平，致使绕组首尾端放电击穿。",
-     "unit_id": "65907d32dd3b-0047",
-     "doc_id": "65907d32dd3b"
+     "sentence": "不同类型的放电故障具有的特征不同，如火花放电故障，虽然会对绝缘造成损坏，但是不会在短期内造成重大损伤，其主要体现在局部放电量增加或者是轻瓦斯动作，主要是由悬浮电位引起火花放电和油中杂质火花放电两种原因，整体来说比较容易处理。",
+     "unit_id": "a5b7a91c5e0e-0013",
+     "doc_id": "a5b7a91c5e0e"
+    }
+   ]
+  },
+  {
+   "source": "Fault:分接开关故障",
+   "target": "Fault:高能放电",
+   "relation": "CAUSES",
+   "support_count": 2,
+   "confidence": 0.6,
+   "extractors": [
+    "rule"
+   ],
+   "evidence": [
+    {
+     "sentence": "可判断该变压器故障为分接开关故障引起的高能放电，实际吊芯检查结果也为分接开关飞弧。",
+     "unit_id": "a3e4f5c6fd30-0253",
+     "doc_id": "a3e4f5c6fd30"
+    },
+    {
+     "sentence": "实验通过AE-PD-4局部放电测试仪进行局部放电定位，发现分接开关在负荷增加到60MVA时，显示电弧放电脉冲，最后判定是由A相分接开关接触不良引起的电弧放电故障。",
+     "unit_id": "5883526a65e5-0358",
+     "doc_id": "5883526a65e5"
+    }
+   ]
+  },
+  {
+   "source": "Fault:套管故障",
+   "target": "Fault:绕组变形",
+   "relation": "CAUSES",
+   "support_count": 2,
+   "confidence": 0.6,
+   "extractors": [
+    "rule"
+   ],
+   "evidence": [
+    {
+     "sentence": "外部故障为变压器油箱外部绝缘套管及其引出线上发生的各种故障，其主要类型有：绝缘套管闪络或破碎而发生的接地（通过外壳)短路，引出线之间发生相间故障等而引起变压器内部故障或绕组变形等。",
+     "unit_id": "8cefcb310284-0081",
+     "doc_id": "8cefcb310284"
+    },
+    {
+     "sentence": "其主要类型有：各相绕组之间发生的相间短路，绕组的线匝之间发生的匝间短路，绕组或引出线通过外壳发生的接地故障等，外部故障为变压器油箱外部绝缘套管及其引出线上发生的各种故障，其主要类型有：绝缘套管闪络或破碎而发生的接地短路，引出线之间发生相间故障等或引起变压器内部故障或绕组变形等。",
+     "unit_id": "6f12eab09318-0022",
+     "doc_id": "6f12eab09318"
     }
    ]
   },
@@ -1788,50 +1689,6 @@
      "sentence": "制作绕组时，导线表面有毛刺或尖棱，绝缘扭伤，接头焊接不良，造成绕组匝间短路；",
      "unit_id": "fafecda551f5-0010",
      "doc_id": "fafecda551f5"
-    }
-   ]
-  },
-  {
-   "source": "Fault:绝缘受潮",
-   "target": "Fault:铁心多点接地",
-   "relation": "CAUSES",
-   "support_count": 2,
-   "confidence": 0.6,
-   "extractors": [
-    "rule"
-   ],
-   "evidence": [
-    {
-     "sentence": "多点接地的原因主要有硅钢片保管不当，长期受潮，使表面锈蚀严重，漆膜或氧化膜脱落，造成多点接地；",
-     "unit_id": "20861f5f1aba-0177",
-     "doc_id": "20861f5f1aba"
-    },
-    {
-     "sentence": "- （7） 变压器运行时间较长而未及时检修时，由于垫脚绝缘板受潮，绝缘不良，锈蚀而引起的铁芯与接地体之间形成多点接地。",
-     "unit_id": "8863af4b3659-0033",
-     "doc_id": "8863af4b3659"
-    }
-   ]
-  },
-  {
-   "source": "Fault:绝缘老化",
-   "target": "Fault:过热故障",
-   "relation": "CAUSES",
-   "support_count": 2,
-   "confidence": 0.6,
-   "extractors": [
-    "rule"
-   ],
-   "evidence": [
-    {
-     "sentence": "硅钢片表面的绝缘漆由于运行年久，绝缘老化或绝缘破损，将使涡流增大，造成铁芯过热，使绕组温升增加，加速绝缘的老化过程，造成电力变压器内部闪络击穿。",
-     "unit_id": "702796b70767-0015",
-     "doc_id": "702796b70767"
-    },
-    {
-     "sentence": "铁芯是有绝缘的硅钢片叠加成的，变压器运行中由于外力损伤或绝缘老化以及穿芯螺丝绝缘老化，绝缘损坏使硅钢片间绝缘损坏，涡流增大，造成局部发热，严重是时使铁芯局部过热，油温上升，空载损耗增加，绝缘下降。",
-     "unit_id": "6f12eab09318-0020",
-     "doc_id": "6f12eab09318"
     }
    ]
   },
@@ -1920,28 +1777,6 @@
      "sentence": "由于铁芯局部短路过热以及多点接地引发的放电而引起的故障约占所有热性故障的五分之一；",
      "unit_id": "03528ddc2e22-0119",
      "doc_id": "03528ddc2e22"
-    }
-   ]
-  },
-  {
-   "source": "Fault:局部放电",
-   "target": "Method:红外测温",
-   "relation": "DETECTED_BY",
-   "support_count": 2,
-   "confidence": 0.6,
-   "extractors": [
-    "rule"
-   ],
-   "evidence": [
-    {
-     "sentence": "积极开展变压器带电检测工作，适当缩短周期对运行年限较长的变压器开展超声波局部放电、油色谱成分分析、红外测温、铁芯接地电流等带电检测，确保设备运行状态能够被有效监测。",
-     "unit_id": "afd389a5518b-0039",
-     "doc_id": "afd389a5518b"
-    },
-    {
-     "sentence": "- 4)在分析故障的同时，应广泛采用新的测试技术，例如电气或超声波法的局部放电的测量和定位、红外成像技术检测、油及固体绝缘材料中的微量水分测定，以及油中金属微粒的测定等，以利于寻找故障的线索，分析故障原因，并进行准确诊断。",
-     "unit_id": "8cefcb310284-0323",
-     "doc_id": "8cefcb310284"
     }
    ]
   },
@@ -2367,28 +2202,6 @@
    ]
   },
   {
-   "source": "Indicator:总烃",
-   "target": "Standard:GB/T 7252",
-   "relation": "SPECIFIED_IN",
-   "support_count": 2,
-   "confidence": 0.6,
-   "extractors": [
-    "rule"
-   ],
-   "evidence": [
-    {
-     "sentence": "按《变压器油中溶解气体分析和判断导则》（GB7252-2001）中，运行中220kV及以下变压器油中溶解气体含量超过下列任一项值时应引起注意：1）总烃含量 ${ > } 1 5 0 \\times 1 0 ^ { - 6 }$；",
-     "unit_id": "282d138937e0-0016",
-     "doc_id": "282d138937e0"
-    },
-    {
-     "sentence": "GB/T 7252-2001《变压器油中溶解气体分析和判断导则》规定：变压器色谱分析主要是对变压器本体、套管以及有载调压开关中的绝缘油中溶解气体进行分析，并根据产气速率、单一气体含量、总烃和三比值法判断变压器的运行状态。",
-     "unit_id": "49172d8ae09a-0269",
-     "doc_id": "49172d8ae09a"
-    }
-   ]
-  },
-  {
    "source": "Indicator:极化指数",
    "target": "Standard:DL/T 596",
    "relation": "SPECIFIED_IN",
@@ -2406,28 +2219,6 @@
     {
      "sentence": "根据 DL/T596-1996 电力设备预防性试验规程规定的试验项目及试验顺序，主要包括油中气体的色谱分析、直流电阻检测、绝缘电阻及吸收比、极化指数检测、绝缘介质损失角正切检测、油质检测、局部放电检测及绝缘耐压试验等。",
      "unit_id": "8cefcb310284-0146",
-     "doc_id": "8cefcb310284"
-    }
-   ]
-  },
-  {
-   "source": "Indicator:氢气",
-   "target": "Standard:GB/T 7252",
-   "relation": "SPECIFIED_IN",
-   "support_count": 2,
-   "confidence": 0.6,
-   "extractors": [
-    "rule"
-   ],
-   "evidence": [
-    {
-     "sentence": "按 GB/T7252-2001《导则》的要求，对氢气浓度的检测灵敏度要达到$1 0 \\mathrm { p p m ( m l / L ) }$，同时考虑到系统气路系统的结构，氢气浓度传感器就需要满足精度高、体积小、安装方便的要求。",
-     "unit_id": "a3e4f5c6fd30-0297",
-     "doc_id": "a3e4f5c6fd30"
-    },
-    {
-     "sentence": "氢气 49.05 微升/升，一氧化碳 33.71 微升/升，甲烷 48.43 微升/升，二氧化碳 1588.80 微升/升，乙烯 352.30 微升/升，乙烷 61.07 微升/升，乙炔 1.04 微升/升，根据 GB/T7252-2001<<变压器油中溶解气体分析和判断导则>>分析，变压器故障类型属于高温过热故障。",
-     "unit_id": "8cefcb310284-0336",
      "doc_id": "8cefcb310284"
     }
    ]
@@ -2455,6 +2246,55 @@
    ]
   },
   {
+   "source": "Method:三比值法",
+   "target": "Standard:DL/T 722",
+   "relation": "SPECIFIED_IN",
+   "support_count": 2,
+   "confidence": 0.6,
+   "extractors": [
+    "rule"
+   ],
+   "evidence": [
+    {
+     "sentence": "当“三比值”法无法对变压器故障类型做出正确诊断时，DL/T722-2000推荐使用标准附录中“溶解气体解释表”[32]（表2-7）和“溶解气体分析解释简表”[34]（表2-8）来进行进一步的修正和更准确的故障诊断。",
+     "unit_id": "03528ddc2e22-0159",
+     "doc_id": "03528ddc2e22"
+    },
+    {
+     "sentence": "DL/T722-2000（变压器油中溶解气体分析和判断导则）推荐改良三比值法为变压器设备内部故障诊断的主要方法。",
+     "unit_id": "73d72992e876-0118",
+     "doc_id": "73d72992e876"
+    },
+    {
+     "sentence": "同时，DL/T722-2000 还提出了应用改良三比值法的三项原则，即：",
+     "unit_id": "73d72992e876-0123",
+     "doc_id": "73d72992e876"
+    }
+   ]
+  },
+  {
+   "source": "Method:油色谱分析",
+   "target": "Standard:IEC 60599",
+   "relation": "SPECIFIED_IN",
+   "support_count": 2,
+   "confidence": 0.6,
+   "extractors": [
+    "rule"
+   ],
+   "evidence": [
+    {
+     "sentence": "IEC60599和IEEEEC57.104为解释DGA技术的指导手册，其中提出了几种检测故障的方法，包括关键气体法（key gas method,KGA）、杜瓦尔三角法则（Duval Triangle）、杜瓦尔五边形法则（Duval Pentagon）和气体比率方法（Doernenburg、Rogers和IEC）等。",
+     "unit_id": "f57de598f869-0089",
+     "doc_id": "f57de598f869"
+    },
+    {
+     "sentence": "但 IEC599 所提供的编码是不完全的，实际应用中有相当一部分 DGA结果落在所提出的编码之外，以至于对某些情况无法进行诊断。",
+     "unit_id": "73d72992e876-0117",
+     "doc_id": "73d72992e876"
+    }
+   ]
+  },
+  {
    "source": "Method:油色谱分析",
    "target": "Standard:DL/T 596",
    "relation": "SPECIFIED_IN",
@@ -2473,55 +2313,6 @@
      "sentence": "根据 DL/T596-1996 电力设备预防性试验规程规定的试验项目及试验顺序，主要包括油中气体的色谱分析、直流电阻检测、绝缘电阻及吸收比、极化指数检测、绝缘介质损失角正切检测、油质检测、局部放电检测及绝缘耐压试验等。",
      "unit_id": "8cefcb310284-0146",
      "doc_id": "8cefcb310284"
-    }
-   ]
-  },
-  {
-   "source": "Method:耐压试验",
-   "target": "Standard:DL/T 596",
-   "relation": "SPECIFIED_IN",
-   "support_count": 2,
-   "confidence": 0.6,
-   "extractors": [
-    "rule"
-   ],
-   "evidence": [
-    {
-     "sentence": "根据 DL /T596-1996 电力设备预防性试验规程规定的试验项目，变压器故障的检测主要包括油中气体的色谱分析、 绕组直流电阻、 绕组绝缘电阻、 吸收比或极化指数检测、 绝缘介质损失角正切检测、 油质检测、 局部放电检测及绝缘耐压试验等［2］。",
-     "unit_id": "7d4bea532f86-0008",
-     "doc_id": "7d4bea532f86"
-    },
-    {
-     "sentence": "根据 DL/T596-1996 电力设备预防性试验规程规定的试验项目及试验顺序，主要包括油中气体的色谱分析、直流电阻检测、绝缘电阻及吸收比、极化指数检测、绝缘介质损失角正切检测、油质检测、局部放电检测及绝缘耐压试验等。",
-     "unit_id": "8cefcb310284-0146",
-     "doc_id": "8cefcb310284"
-    }
-   ]
-  },
-  {
-   "source": "Method:频响法",
-   "target": "Standard:DL/T 911",
-   "relation": "SPECIFIED_IN",
-   "support_count": 2,
-   "confidence": 0.6,
-   "extractors": [
-    "rule"
-   ],
-   "evidence": [
-    {
-     "sentence": "目前，变压器绕组检测方法应用较多的主要有低压脉冲分析法、短路阻抗法、频率响应分析法和振动检测法。",
-     "unit_id": "52f05b1efea4-0094",
-     "doc_id": "52f05b1efea4"
-    },
-    {
-     "sentence": "频率响应分析法克服了以上两种方法的缺陷，测量的精度和准确度也在数字信号处理技术的发展过程中得到了很大提高，具有灵敏度高，抗干扰能力强，对现场环境因素的要求不高，测量重复性好的特点。",
-     "unit_id": "52f05b1efea4-0097",
-     "doc_id": "52f05b1efea4"
-    },
-    {
-     "sentence": "但是由于频率特性受干扰因素较多，诊断存在较为明显的不确定性，频率响应分析法没有形成简明、可量化的判据，使用方法不当则会使结果严重失真，因此对现场操作人员的专业水平要求较高。",
-     "unit_id": "52f05b1efea4-0097",
-     "doc_id": "52f05b1efea4"
     }
    ]
   },
@@ -2587,23 +2378,6 @@
    ]
   },
   {
-   "source": "Condition:励磁涌流",
-   "target": "Fault:过负荷",
-   "relation": "CAUSES",
-   "support_count": 1,
-   "confidence": 0.6,
-   "extractors": [
-    "rule"
-   ],
-   "evidence": [
-    {
-     "sentence": "- 1 变压器空载合闸时，由于产生很大的励磁涌流，会在短时间内引起较大的“嗡嗡”声\n- 2 若变压器声音连续均匀，但比平时增大，而且变压器上层油温也有所上升，一般是变压器过负荷所至\n- 3 变压器检修后，如果铁心夹紧螺栓未拧紧，“嗡嗡”声比检修前会明显增大；",
-     "unit_id": "fe0e9d58297b-0008",
-     "doc_id": "fe0e9d58297b"
-    }
-   ]
-  },
-  {
    "source": "Condition:安装不当",
    "target": "Fault:接触不良",
    "relation": "CAUSES",
@@ -2638,23 +2412,6 @@
    ]
   },
   {
-   "source": "Condition:操作过电压",
-   "target": "Fault:绝缘受潮",
-   "relation": "CAUSES",
-   "support_count": 1,
-   "confidence": 0.6,
-   "extractors": [
-    "rule"
-   ],
-   "evidence": [
-    {
-     "sentence": "雷电产生的过电压导致绝缘击穿，大电流引起绕圈短路故障，强大的电动力会使绕组发生不同程度的变形，而雨水会使设备因受潮降低绝缘性能，甚至发生闪络现象。",
-     "unit_id": "65907d32dd3b-0035",
-     "doc_id": "65907d32dd3b"
-    }
-   ]
-  },
-  {
    "source": "Condition:油流带电",
    "target": "Fault:过热故障",
    "relation": "CAUSES",
@@ -2666,6 +2423,23 @@
    "evidence": [
     {
      "sentence": "油流故障主要是指油流带电和油流受阻导致过热故障。",
+     "unit_id": "73d72992e876-0109",
+     "doc_id": "73d72992e876"
+    }
+   ]
+  },
+  {
+   "source": "Condition:油流带电",
+   "target": "Fault:局部放电",
+   "relation": "CAUSES",
+   "support_count": 1,
+   "confidence": 0.6,
+   "extractors": [
+    "rule"
+   ],
+   "evidence": [
+    {
+     "sentence": "油流带电会导致 $\\mathrm { C } _ { 2 } \\mathrm { H } _ { 2 }$气体增长，色谱分析异常，局部放电量增大等故障特征。",
      "unit_id": "73d72992e876-0109",
      "doc_id": "73d72992e876"
     }
@@ -2719,23 +2493,6 @@
      "sentence": "变压器密封不良主要是由于连接处理不好，如焊接质量控制不好 大罩变形 砂眼以及密封圈失效导致了密封故障，会出现漏油 漏气等严重后果 一旦产生故障，影响范围会很大［2］",
      "unit_id": "4367d05bd8a9-0037",
      "doc_id": "4367d05bd8a9"
-    }
-   ]
-  },
-  {
-   "source": "Condition:长期运行",
-   "target": "Fault:绝缘受潮",
-   "relation": "CAUSES",
-   "support_count": 1,
-   "confidence": 0.6,
-   "extractors": [
-    "rule"
-   ],
-   "evidence": [
-    {
-     "sentence": "配电变压器经过长期运行“呼吸”，空气中的水蒸气就会滞留在油内，油箱密封等处老化，致使潮气侵入，绝缘下降，绕组受潮，绝缘膨胀堵塞油道，引起局部过热雷击，使电力变压器绕组发生对地击穿等故障、匝间短路，最终导致配电变压器绕组烧毁。",
-     "unit_id": "8973cd69e97b-0009",
-     "doc_id": "8973cd69e97b"
     }
    ]
   },
@@ -2808,8 +2565,8 @@
    ]
   },
   {
-   "source": "Fault:低能放电",
-   "target": "Fault:局部放电",
+   "source": "Condition:雷击",
+   "target": "Fault:放电故障",
    "relation": "CAUSES",
    "support_count": 1,
    "confidence": 0.6,
@@ -2818,9 +2575,9 @@
    ],
    "evidence": [
     {
-     "sentence": "一般来说，火花放电不致很快引起绝缘击穿，主要反映在油色谱分析异常、局部放电量增加或轻瓦斯动作，比较容易被发现和处理，但对其发展程度应引起足够的认识和注意。",
-     "unit_id": "8cefcb310284-0114",
-     "doc_id": "8cefcb310284"
+     "sentence": "雷电过电压由于波头陡, 引起纵绝缘 (匝间、并间、绝缘) 上电压分布很不均匀, 可能在绝缘上留下放电痕迹, 从而使固体绝缘受到破坏。",
+     "unit_id": "e37dd48176c9-0038",
+     "doc_id": "e37dd48176c9"
     }
    ]
   },
@@ -2838,23 +2595,6 @@
      "sentence": "例如：2021 年 7 月 14 日西部电站一台变压器由于冷却系统故障导致油温异常，当时的故障现象是：日常巡检发现变压器上层油温已经超过$8 5 ~ \\mathrm { { ^ \\circ C } }$，检查变压器并未过载，检查冷却系统时，发现两组风扇只有一组正常工作。",
      "unit_id": "fcfce7986f44-0026",
      "doc_id": "fcfce7986f44"
-    }
-   ]
-  },
-  {
-   "source": "Fault:冷却系统故障",
-   "target": "Symptom:喷油",
-   "relation": "CAUSES",
-   "support_count": 1,
-   "confidence": 0.6,
-   "extractors": [
-    "rule"
-   ],
-   "evidence": [
-    {
-     "sentence": "正常情况下，变 压 器 的 上 层 油 温 应 该 在 $8 5 \\mathrm { { ^ \\circ C } }$以下 ， 过负荷运行、内部短路放电、冷却系统故障等都可引起变压器油温过高，此时变压器油膨胀 ， 保护装置动作， 严重时出现喷油现象。",
-     "unit_id": "9473a501d67f-0016",
-     "doc_id": "9473a501d67f"
     }
    ]
   },
@@ -2877,23 +2617,6 @@
   },
   {
    "source": "Fault:分接开关故障",
-   "target": "Fault:高能放电",
-   "relation": "CAUSES",
-   "support_count": 1,
-   "confidence": 0.6,
-   "extractors": [
-    "rule"
-   ],
-   "evidence": [
-    {
-     "sentence": "可判断该变压器故障为分接开关故障引起的高能放电，实际吊芯检查结果也为分接开关飞弧。",
-     "unit_id": "a3e4f5c6fd30-0253",
-     "doc_id": "a3e4f5c6fd30"
-    }
-   ]
-  },
-  {
-   "source": "Fault:分接开关故障",
    "target": "Fault:高温过热",
    "relation": "CAUSES",
    "support_count": 1,
@@ -2911,23 +2634,6 @@
   },
   {
    "source": "Fault:分接开关故障",
-   "target": "Fault:匝间短路",
-   "relation": "CAUSES",
-   "support_count": 1,
-   "confidence": 0.6,
-   "extractors": [
-    "rule"
-   ],
-   "evidence": [
-    {
-     "sentence": "- 1 分接开关接触不良，会使接触电阻增加，损耗增大，产生局部发热\n- 2 相邻几个线匝之间绝缘损坏，使匝间产生金属性接触而形成短路环流，同时使该相绕组的匝数减少，短路环路内的短路电流会使绕组局部产生高温，严重时，可能烧坏变压器 当有匝间短路时一般发热厉害，油温上升，轻瓦斯保护可能动作，用听针可听到像油沸腾一样的“咕噜”声响\n- 3 由于外力损伤或检修插片时不小心，可能使硅钢片之间的绝缘",
-     "unit_id": "fe0e9d58297b-0010",
-     "doc_id": "fe0e9d58297b"
-    }
-   ]
-  },
-  {
-   "source": "Fault:分接开关故障",
    "target": "Fault:过热故障",
    "relation": "CAUSES",
    "support_count": 1,
@@ -2940,6 +2646,23 @@
      "sentence": "铁心多点接地、分接开关动静触头接触不良、绕组因绝缘膨胀而堵塞油道等都可以造成过热性故障，引起油色谱试验数据异常。",
      "unit_id": "0ed5604bbddf-0010",
      "doc_id": "0ed5604bbddf"
+    }
+   ]
+  },
+  {
+   "source": "Fault:分接开关故障",
+   "target": "Fault:悬浮放电",
+   "relation": "CAUSES",
+   "support_count": 1,
+   "confidence": 0.6,
+   "extractors": [
+    "rule"
+   ],
+   "evidence": [
+    {
+     "sentence": "充油变压器无载分接开关常见的故障有:当上分接头的相间绝缘距离不足且绝缘材料上堆积油泥时，若油泥受潮，在过电压下将发生相间短路故障;若触头接触不良或因锈使电阻增大，绝缘支架上的紧固金属螺栓接地断裂造成悬浮放电等故障。",
+     "unit_id": "73d72992e876-0105",
+     "doc_id": "73d72992e876"
     }
    ]
   },
@@ -2991,23 +2714,6 @@
      "sentence": "再进一步区分套管故障原因，有1例为绝缘自然劣化导致的套管过热性故障。",
      "unit_id": "84ed6c1fb6ed-0042",
      "doc_id": "84ed6c1fb6ed"
-    }
-   ]
-  },
-  {
-   "source": "Fault:套管故障",
-   "target": "Fault:绕组变形",
-   "relation": "CAUSES",
-   "support_count": 1,
-   "confidence": 0.6,
-   "extractors": [
-    "rule"
-   ],
-   "evidence": [
-    {
-     "sentence": "外部故障为变压器油箱外部绝缘套管及其引出线上发生的各种故障，其主要类型有：绝缘套管闪络或破碎而发生的接地（通过外壳)短路，引出线之间发生相间故障等而引起变压器内部故障或绕组变形等。",
-     "unit_id": "8cefcb310284-0081",
-     "doc_id": "8cefcb310284"
     }
    ]
   },
@@ -3154,23 +2860,6 @@
   },
   {
    "source": "Fault:渗漏油",
-   "target": "Fault:相间短路",
-   "relation": "CAUSES",
-   "support_count": 1,
-   "confidence": 0.6,
-   "extractors": [
-    "rule"
-   ],
-   "evidence": [
-    {
-     "sentence": "对于轻度性故障也不可掉以轻心，若不及时处理故障将会扩大，如变压器渗漏，长期下去，一旦变压器缺油，绕组漏出油面，将会导致相间短路，甚至变压器烧毁；",
-     "unit_id": "f08159e21a27-0126",
-     "doc_id": "f08159e21a27"
-    }
-   ]
-  },
-  {
-   "source": "Fault:渗漏油",
    "target": "Fault:放电故障",
    "relation": "CAUSES",
    "support_count": 1,
@@ -3256,6 +2945,23 @@
   },
   {
    "source": "Fault:绝缘受潮",
+   "target": "Fault:铁心多点接地",
+   "relation": "CAUSES",
+   "support_count": 1,
+   "confidence": 0.6,
+   "extractors": [
+    "rule"
+   ],
+   "evidence": [
+    {
+     "sentence": "- （7） 变压器运行时间较长而未及时检修时，由于垫脚绝缘板受潮，绝缘不良，锈蚀而引起的铁芯与接地体之间形成多点接地。",
+     "unit_id": "8863af4b3659-0033",
+     "doc_id": "8863af4b3659"
+    }
+   ]
+  },
+  {
+   "source": "Fault:绝缘受潮",
    "target": "Fault:匝间短路",
    "relation": "CAUSES",
    "support_count": 1,
@@ -3268,6 +2974,23 @@
      "sentence": "(2)变压器未经很好的干燥处理，或运行中受潮，从而产生匝间短路。",
      "unit_id": "fd946c28b473-0024",
      "doc_id": "fd946c28b473"
+    }
+   ]
+  },
+  {
+   "source": "Fault:绝缘受潮",
+   "target": "Fault:放电故障",
+   "relation": "CAUSES",
+   "support_count": 1,
+   "confidence": 0.6,
+   "extractors": [
+    "rule"
+   ],
+   "evidence": [
+    {
+     "sentence": "设备受潮或遗留海绵等残杂物 ，都有可能导致放电故障出现。",
+     "unit_id": "766385260f1c-0033",
+     "doc_id": "766385260f1c"
     }
    ]
   },
@@ -3289,8 +3012,8 @@
    ]
   },
   {
-   "source": "Fault:过热故障",
-   "target": "Symptom:总烃超标",
+   "source": "Fault:绝缘老化",
+   "target": "Fault:过热故障",
    "relation": "CAUSES",
    "support_count": 1,
    "confidence": 0.6,
@@ -3299,9 +3022,9 @@
    ],
    "evidence": [
     {
-     "sentence": "- （1）铁心局部过热，损耗增加\n- （2）过热造成的温升使变压器油分解，产生的气体溶解于油中，引起变压器油性能下降，油中总烃超标。",
-     "unit_id": "1c5fdc4435ca-0008",
-     "doc_id": "1c5fdc4435ca"
+     "sentence": "硅钢片表面的绝缘漆由于运行年久，绝缘老化或绝缘破损，将使涡流增大，造成铁芯过热，使绕组温升增加，加速绝缘的老化过程，造成电力变压器内部闪络击穿。",
+     "unit_id": "702796b70767-0015",
+     "doc_id": "702796b70767"
     }
    ]
   },
@@ -3438,6 +3161,40 @@
      "sentence": "变压器发生绕组匝间短路故障、 差动保护动作时，最有效的检测手段是测量绕组变比、绕组直流电阻、 油色谱分析。",
      "unit_id": "7d4bea532f86-0008",
      "doc_id": "7d4bea532f86"
+    }
+   ]
+  },
+  {
+   "source": "Fault:局部放电",
+   "target": "Method:支持向量机",
+   "relation": "DETECTED_BY",
+   "support_count": 1,
+   "confidence": 0.6,
+   "extractors": [
+    "rule"
+   ],
+   "evidence": [
+    {
+     "sentence": "综合上位机故障诊断系统与超声波局部放电测试仪诊断结果对比表明：该公司故障油浸式电力变压器通过改良三比值法、气体图形法、PCA-SVM法均诊断为电弧放电故障，与超声波局部放电测试仪诊断结果一致，上位机系统设计准确有效。",
+     "unit_id": "5883526a65e5-0372",
+     "doc_id": "5883526a65e5"
+    }
+   ]
+  },
+  {
+   "source": "Fault:局部放电",
+   "target": "Method:红外测温",
+   "relation": "DETECTED_BY",
+   "support_count": 1,
+   "confidence": 0.6,
+   "extractors": [
+    "rule"
+   ],
+   "evidence": [
+    {
+     "sentence": "- 4)在分析故障的同时，应广泛采用新的测试技术，例如电气或超声波法的局部放电的测量和定位、红外成像技术检测、油及固体绝缘材料中的微量水分测定，以及油中金属微粒的测定等，以利于寻找故障的线索，分析故障原因，并进行准确诊断。",
+     "unit_id": "8cefcb310284-0323",
+     "doc_id": "8cefcb310284"
     }
    ]
   },
@@ -3661,6 +3418,23 @@
    ]
   },
   {
+   "source": "Fault:高温过热",
+   "target": "Method:油色谱分析",
+   "relation": "DETECTED_BY",
+   "support_count": 1,
+   "confidence": 0.6,
+   "extractors": [
+    "rule"
+   ],
+   "evidence": [
+    {
+     "sentence": "该主变在实际运行过程中，本章节抽取了5次现实中发生故障（真实的诊断结果均为高温过热故障）的具体实例，其DGA数据以及当时具体诊断情况见表5-3。",
+     "unit_id": "03528ddc2e22-0454",
+     "doc_id": "03528ddc2e22"
+    }
+   ]
+  },
+  {
    "source": "Fault:高能放电",
    "target": "Method:吊罩检查",
    "relation": "DETECTED_BY",
@@ -3690,6 +3464,11 @@
     {
      "sentence": "最终通过 PCA-SVM 算法确定上述故障电力变压器的诊断结果为电弧放电故障。",
      "unit_id": "5883526a65e5-0371",
+     "doc_id": "5883526a65e5"
+    },
+    {
+     "sentence": "综合上位机故障诊断系统与超声波局部放电测试仪诊断结果对比表明：该公司故障油浸式电力变压器通过改良三比值法、气体图形法、PCA-SVM法均诊断为电弧放电故障，与超声波局部放电测试仪诊断结果一致，上位机系统设计准确有效。",
+     "unit_id": "5883526a65e5-0372",
      "doc_id": "5883526a65e5"
     }
    ]
@@ -3726,11 +3505,6 @@
     "rule"
    ],
    "evidence": [
-    {
-     "sentence": "结合现场发生的案例，通过变压器差动保护动作情况、 油色谱分析、绕组直流电阻、 绝缘电阻、 绕组变比及绕组变形测试，判断变压器故障状况，以便于确定变压器修复计划措施的安排。",
-     "unit_id": "7d4bea532f86-0008",
-     "doc_id": "7d4bea532f86"
-    },
     {
      "sentence": "另外，绕组直流电阻、 绕组变比和绕组变形试验均未发现异常，通过气油色谱分析和差动保护动作波形来确定故障点的位置。",
      "unit_id": "7d4bea532f86-0042",
@@ -3773,6 +3547,23 @@
    ]
   },
   {
+   "source": "Indicator:二氧化碳",
+   "target": "Fault:高能放电",
+   "relation": "INDICATES",
+   "support_count": 1,
+   "confidence": 0.6,
+   "extractors": [
+    "rule"
+   ],
+   "evidence": [
+    {
+     "sentence": "甲烷、 乙烯迅速增加，特别是一氧化碳瓦斯气油中溶解理论值远远高于油中实测值，而二氧化碳含量未明显增加，说明电弧放电涉及到固体绝缘。",
+     "unit_id": "7d4bea532f86-0017",
+     "doc_id": "7d4bea532f86"
+    }
+   ]
+  },
+  {
    "source": "Indicator:介质损耗因数",
    "target": "Fault:绝缘受潮",
    "relation": "INDICATES",
@@ -3807,23 +3598,6 @@
    ]
   },
   {
-   "source": "Indicator:微水",
-   "target": "Fault:绝缘老化",
-   "relation": "INDICATES",
-   "support_count": 1,
-   "confidence": 0.6,
-   "extractors": [
-    "rule"
-   ],
-   "evidence": [
-    {
-     "sentence": "随着运行时间的延长，变压器油与空气、水分等接触的机会大大增加，故障可能性也增大，当出现以下情况时应引起注意：油色变暗，说明变压器油绝缘老化；",
-     "unit_id": "5dc6d83d61dc-0018",
-     "doc_id": "5dc6d83d61dc"
-    }
-   ]
-  },
-  {
    "source": "Indicator:总烃",
    "target": "Fault:过热故障",
    "relation": "INDICATES",
@@ -3854,23 +3628,6 @@
      "sentence": "绕组直流电阻测量能有效的考核绕组纵绝缘和电流回路连接状况，能够够反映绕组匝间短路、绕组断股、分接开关以及导线接头接触不良等故障。",
      "unit_id": "282d138937e0-0011",
      "doc_id": "282d138937e0"
-    }
-   ]
-  },
-  {
-   "source": "Indicator:绝缘电阻",
-   "target": "Fault:铁心多点接地",
-   "relation": "INDICATES",
-   "support_count": 1,
-   "confidence": 0.6,
-   "extractors": [
-    "rule"
-   ],
-   "evidence": [
-    {
-     "sentence": "铁心的绝缘电阻和绝缘电流反映铁心与地电位的金属件之间的绝缘情况，包括铁心与油箱，穿心螺栓、上下夹件、绑扎绷带、钢压板、磁屏蔽等之间的绝缘，从而判断铁心与这些部件之间的绝缘是否劣化或短路，反映出铁心是否存在多点接地现象。",
-     "unit_id": "73d72992e876-0134",
-     "doc_id": "73d72992e876"
     }
    ]
   },
@@ -4072,23 +3829,6 @@
    ]
   },
   {
-   "source": "Fault:渗漏油",
-   "target": "Component:绝缘油",
-   "relation": "LOCATED_IN",
-   "support_count": 1,
-   "confidence": 0.6,
-   "extractors": [
-    "rule"
-   ],
-   "evidence": [
-    {
-     "sentence": "变压器运行中渗漏油现象比较普遍 油位在规定范围内运行过程中要定期安排计划检修 但是变压器油渗漏严重或连续从破损处不断外溢 以至于油位计测不到油位 此时应立即将变压器停止运行查找原因并及时补漏加油",
-     "unit_id": "ed48daa19fd7-0030",
-     "doc_id": "ed48daa19fd7"
-    }
-   ]
-  },
-  {
    "source": "Fault:绝缘受潮",
    "target": "Component:压板",
    "relation": "LOCATED_IN",
@@ -4191,40 +3931,6 @@
    ]
   },
   {
-   "source": "Fault:放电故障",
-   "target": "Indicator:总烃",
-   "relation": "PRODUCES",
-   "support_count": 1,
-   "confidence": 0.6,
-   "extractors": [
-    "rule"
-   ],
-   "evidence": [
-    {
-     "sentence": "该部位直接与变压器油接触，高温放电引起变压器油裂解产生烃类气体，放电后形成一定间隙，暂时平稳，但集结电荷达到一定程度，还会再次放电引起油裂解，导致总烃和乙炔数值超标。",
-     "unit_id": "c4aef5d17d4e-0031",
-     "doc_id": "c4aef5d17d4e"
-    }
-   ]
-  },
-  {
-   "source": "Fault:放电故障",
-   "target": "Indicator:一氧化碳",
-   "relation": "PRODUCES",
-   "support_count": 1,
-   "confidence": 0.6,
-   "extractors": [
-    "rule"
-   ],
-   "evidence": [
-    {
-     "sentence": "无论何种放电形式，除了产生氢烃类气体外，与过热故障一样，只要有固体绝缘介入，都会产生 CO 和 $\\mathrm { C O } _ { 2 }$。",
-     "unit_id": "8cefcb310284-0166",
-     "doc_id": "8cefcb310284"
-    }
-   ]
-  },
-  {
    "source": "Fault:绝缘老化",
    "target": "Indicator:一氧化碳",
    "relation": "PRODUCES",
@@ -4281,6 +3987,40 @@
    ]
   },
   {
+   "source": "Fault:高能放电",
+   "target": "Indicator:甲烷",
+   "relation": "PRODUCES",
+   "support_count": 1,
+   "confidence": 0.6,
+   "extractors": [
+    "rule"
+   ],
+   "evidence": [
+    {
+     "sentence": "当发生高能量的电弧放电时，会产生相当多的甲烷与乙烯，而局部放电由于能量低，特征气体主要是氢气，其次是甲烷，只有少量的乙炔产生，因而总烃值不高；",
+     "unit_id": "f08159e21a27-0162",
+     "doc_id": "f08159e21a27"
+    }
+   ]
+  },
+  {
+   "source": "Fault:高能放电",
+   "target": "Indicator:一氧化碳",
+   "relation": "PRODUCES",
+   "support_count": 1,
+   "confidence": 0.6,
+   "extractors": [
+    "rule"
+   ],
+   "evidence": [
+    {
+     "sentence": "固体绝缘材料在高能量电弧放电时产生较多的CO、 $\\mathrm { C O } _ { 2 }$。",
+     "unit_id": "8cefcb310284-0174",
+     "doc_id": "8cefcb310284"
+    }
+   ]
+  },
+  {
    "source": "Indicator:一氧化碳",
    "target": "Standard:DL/T 596",
    "relation": "SPECIFIED_IN",
@@ -4311,50 +4051,152 @@
      "sentence": "《变压器油中溶解气体分析和判断导则》中也只对 CO 含量正常值提出了参考意见。",
      "unit_id": "8cefcb310284-0167",
      "doc_id": "8cefcb310284"
+    }
+   ]
+  },
+  {
+   "source": "Indicator:乙炔",
+   "target": "Standard:GB/T 7252",
+   "relation": "SPECIFIED_IN",
+   "support_count": 1,
+   "confidence": 0.6,
+   "extractors": [
+    "rule"
+   ],
+   "evidence": [
+    {
+     "sentence": "氢气 49.05 微升/升，一氧化碳 33.71 微升/升，甲烷 48.43 微升/升，二氧化碳 1588.80 微升/升，乙烯 352.30 微升/升，乙烷 61.07 微升/升，乙炔 1.04 微升/升，根据 GB/T7252-2001<<变压器油中溶解气体分析和判断导则>>分析，变压器故障类型属于高温过热故障。",
+     "unit_id": "8cefcb310284-0336",
+     "doc_id": "8cefcb310284"
+    }
+   ]
+  },
+  {
+   "source": "Indicator:乙烯",
+   "target": "Standard:GB/T 7252",
+   "relation": "SPECIFIED_IN",
+   "support_count": 1,
+   "confidence": 0.6,
+   "extractors": [
+    "rule"
+   ],
+   "evidence": [
+    {
+     "sentence": "氢气 49.05 微升/升，一氧化碳 33.71 微升/升，甲烷 48.43 微升/升，二氧化碳 1588.80 微升/升，乙烯 352.30 微升/升，乙烷 61.07 微升/升，乙炔 1.04 微升/升，根据 GB/T7252-2001<<变压器油中溶解气体分析和判断导则>>分析，变压器故障类型属于高温过热故障。",
+     "unit_id": "8cefcb310284-0336",
+     "doc_id": "8cefcb310284"
+    }
+   ]
+  },
+  {
+   "source": "Indicator:乙烷",
+   "target": "Standard:GB/T 7252",
+   "relation": "SPECIFIED_IN",
+   "support_count": 1,
+   "confidence": 0.6,
+   "extractors": [
+    "rule"
+   ],
+   "evidence": [
+    {
+     "sentence": "氢气 49.05 微升/升，一氧化碳 33.71 微升/升，甲烷 48.43 微升/升，二氧化碳 1588.80 微升/升，乙烯 352.30 微升/升，乙烷 61.07 微升/升，乙炔 1.04 微升/升，根据 GB/T7252-2001<<变压器油中溶解气体分析和判断导则>>分析，变压器故障类型属于高温过热故障。",
+     "unit_id": "8cefcb310284-0336",
+     "doc_id": "8cefcb310284"
+    }
+   ]
+  },
+  {
+   "source": "Indicator:二氧化碳",
+   "target": "Standard:GB/T 7252",
+   "relation": "SPECIFIED_IN",
+   "support_count": 1,
+   "confidence": 0.6,
+   "extractors": [
+    "rule"
+   ],
+   "evidence": [
+    {
+     "sentence": "氢气 49.05 微升/升，一氧化碳 33.71 微升/升，甲烷 48.43 微升/升，二氧化碳 1588.80 微升/升，乙烯 352.30 微升/升，乙烷 61.07 微升/升，乙炔 1.04 微升/升，根据 GB/T7252-2001<<变压器油中溶解气体分析和判断导则>>分析，变压器故障类型属于高温过热故障。",
+     "unit_id": "8cefcb310284-0336",
+     "doc_id": "8cefcb310284"
+    }
+   ]
+  },
+  {
+   "source": "Indicator:产气速率",
+   "target": "Standard:GB/T 7252",
+   "relation": "SPECIFIED_IN",
+   "support_count": 1,
+   "confidence": 0.6,
+   "extractors": [
+    "rule"
+   ],
+   "evidence": [
+    {
+     "sentence": "GB/T 7252-2001《变压器油中溶解气体分析和判断导则》规定：变压器色谱分析主要是对变压器本体、套管以及有载调压开关中的绝缘油中溶解气体进行分析，并根据产气速率、单一气体含量、总烃和三比值法判断变压器的运行状态。",
+     "unit_id": "49172d8ae09a-0269",
+     "doc_id": "49172d8ae09a"
+    }
+   ]
+  },
+  {
+   "source": "Indicator:总烃",
+   "target": "Standard:GB/T 7252",
+   "relation": "SPECIFIED_IN",
+   "support_count": 1,
+   "confidence": 0.6,
+   "extractors": [
+    "rule"
+   ],
+   "evidence": [
+    {
+     "sentence": "按《变压器油中溶解气体分析和判断导则》（GB7252-2001）中，运行中220kV及以下变压器油中溶解气体含量超过下列任一项值时应引起注意：1）总烃含量 ${ > } 1 5 0 \\times 1 0 ^ { - 6 }$；",
+     "unit_id": "282d138937e0-0016",
+     "doc_id": "282d138937e0"
+    }
+   ]
+  },
+  {
+   "source": "Indicator:总烃",
+   "target": "Standard:DL/T 722",
+   "relation": "SPECIFIED_IN",
+   "support_count": 1,
+   "confidence": 0.6,
+   "extractors": [
+    "rule"
+   ],
+   "evidence": [
+    {
+     "sentence": "在该主变的实际运行过程中，2006年12月，氢气含量和总烃含量的增长开始加快，2010年7月，氢气含量明显，总烃含量已超过DL/T722-2000《变压器油中溶解气体分析和判断导则》中对氢气和总烃含量的要求极限值（ $150mL/L$），2013年10月对该主变实施滤油处理，从上图数据中可明显看出氢气含量和总烃含量大幅降低，基本接近运行初期水平，滤油后，增加对该主变检测频率（每半月一次抽样检测）。",
+     "unit_id": "03528ddc2e22-0453",
+     "doc_id": "03528ddc2e22"
+    }
+   ]
+  },
+  {
+   "source": "Indicator:氢气",
+   "target": "Standard:GB/T 7252",
+   "relation": "SPECIFIED_IN",
+   "support_count": 1,
+   "confidence": 0.6,
+   "extractors": [
+    "rule"
+   ],
+   "evidence": [
+    {
+     "sentence": "系统由于采用了氢气做载气，单 FID 做检测器，因此对于进样气体中的氢气不能直接用 FID 测量，需要设计单独的氢气检测电路，本文按国标GB/T7252-2001《变压器油中溶解气体分析和判断导则》对氢气浓度的检测灵敏度的要求，选用合适氢气浓度传感器设计氢气浓度检测电路。",
+     "unit_id": "a3e4f5c6fd30-0090",
+     "doc_id": "a3e4f5c6fd30"
     },
     {
-     "sentence": "氢气 49.05 微升/升，一氧化碳 33.71 微升/升，甲烷 48.43 微升/升，二氧化碳 1588.80 微升/升，乙烯 352.30 微升/升，乙烷 61.07 微升/升，乙炔 1.04 微升/升，根据 GB/T7252-2001<<变压器油中溶解气体分析和判断导则>>分析，变压器故障类型属于高温过热故障。",
-     "unit_id": "8cefcb310284-0336",
-     "doc_id": "8cefcb310284"
+     "sentence": "按 GB/T7252-2001《导则》的要求，对氢气浓度的检测灵敏度要达到$1 0 \\mathrm { p p m ( m l / L ) }$，同时考虑到系统气路系统的结构，氢气浓度传感器就需要满足精度高、体积小、安装方便的要求。",
+     "unit_id": "a3e4f5c6fd30-0297",
+     "doc_id": "a3e4f5c6fd30"
     }
    ]
   },
   {
-   "source": "Indicator:一氧化碳",
-   "target": "Standard:GB/T 7252",
-   "relation": "SPECIFIED_IN",
-   "support_count": 1,
-   "confidence": 0.6,
-   "extractors": [
-    "rule"
-   ],
-   "evidence": [
-    {
-     "sentence": "氢气 49.05 微升/升，一氧化碳 33.71 微升/升，甲烷 48.43 微升/升，二氧化碳 1588.80 微升/升，乙烯 352.30 微升/升，乙烷 61.07 微升/升，乙炔 1.04 微升/升，根据 GB/T7252-2001<<变压器油中溶解气体分析和判断导则>>分析，变压器故障类型属于高温过热故障。",
-     "unit_id": "8cefcb310284-0336",
-     "doc_id": "8cefcb310284"
-    }
-   ]
-  },
-  {
-   "source": "Indicator:乙炔",
-   "target": "Standard:GB/T 7252",
-   "relation": "SPECIFIED_IN",
-   "support_count": 1,
-   "confidence": 0.6,
-   "extractors": [
-    "rule"
-   ],
-   "evidence": [
-    {
-     "sentence": "氢气 49.05 微升/升，一氧化碳 33.71 微升/升，甲烷 48.43 微升/升，二氧化碳 1588.80 微升/升，乙烯 352.30 微升/升，乙烷 61.07 微升/升，乙炔 1.04 微升/升，根据 GB/T7252-2001<<变压器油中溶解气体分析和判断导则>>分析，变压器故障类型属于高温过热故障。",
-     "unit_id": "8cefcb310284-0336",
-     "doc_id": "8cefcb310284"
-    }
-   ]
-  },
-  {
-   "source": "Indicator:乙炔",
+   "source": "Indicator:氢气",
    "target": "Standard:DL/T 722",
    "relation": "SPECIFIED_IN",
    "support_count": 1,
@@ -4364,145 +4206,9 @@
    ],
    "evidence": [
     {
-     "sentence": "氢气 49.05 微升/升，一氧化碳 33.71 微升/升，甲烷 48.43 微升/升，二氧化碳 1588.80 微升/升，乙烯 352.30 微升/升，乙烷 61.07 微升/升，乙炔 1.04 微升/升，根据 GB/T7252-2001<<变压器油中溶解气体分析和判断导则>>分析，变压器故障类型属于高温过热故障。",
-     "unit_id": "8cefcb310284-0336",
-     "doc_id": "8cefcb310284"
-    }
-   ]
-  },
-  {
-   "source": "Indicator:乙烯",
-   "target": "Standard:GB/T 7252",
-   "relation": "SPECIFIED_IN",
-   "support_count": 1,
-   "confidence": 0.6,
-   "extractors": [
-    "rule"
-   ],
-   "evidence": [
-    {
-     "sentence": "氢气 49.05 微升/升，一氧化碳 33.71 微升/升，甲烷 48.43 微升/升，二氧化碳 1588.80 微升/升，乙烯 352.30 微升/升，乙烷 61.07 微升/升，乙炔 1.04 微升/升，根据 GB/T7252-2001<<变压器油中溶解气体分析和判断导则>>分析，变压器故障类型属于高温过热故障。",
-     "unit_id": "8cefcb310284-0336",
-     "doc_id": "8cefcb310284"
-    }
-   ]
-  },
-  {
-   "source": "Indicator:乙烯",
-   "target": "Standard:DL/T 722",
-   "relation": "SPECIFIED_IN",
-   "support_count": 1,
-   "confidence": 0.6,
-   "extractors": [
-    "rule"
-   ],
-   "evidence": [
-    {
-     "sentence": "氢气 49.05 微升/升，一氧化碳 33.71 微升/升，甲烷 48.43 微升/升，二氧化碳 1588.80 微升/升，乙烯 352.30 微升/升，乙烷 61.07 微升/升，乙炔 1.04 微升/升，根据 GB/T7252-2001<<变压器油中溶解气体分析和判断导则>>分析，变压器故障类型属于高温过热故障。",
-     "unit_id": "8cefcb310284-0336",
-     "doc_id": "8cefcb310284"
-    }
-   ]
-  },
-  {
-   "source": "Indicator:乙烷",
-   "target": "Standard:GB/T 7252",
-   "relation": "SPECIFIED_IN",
-   "support_count": 1,
-   "confidence": 0.6,
-   "extractors": [
-    "rule"
-   ],
-   "evidence": [
-    {
-     "sentence": "氢气 49.05 微升/升，一氧化碳 33.71 微升/升，甲烷 48.43 微升/升，二氧化碳 1588.80 微升/升，乙烯 352.30 微升/升，乙烷 61.07 微升/升，乙炔 1.04 微升/升，根据 GB/T7252-2001<<变压器油中溶解气体分析和判断导则>>分析，变压器故障类型属于高温过热故障。",
-     "unit_id": "8cefcb310284-0336",
-     "doc_id": "8cefcb310284"
-    }
-   ]
-  },
-  {
-   "source": "Indicator:乙烷",
-   "target": "Standard:DL/T 722",
-   "relation": "SPECIFIED_IN",
-   "support_count": 1,
-   "confidence": 0.6,
-   "extractors": [
-    "rule"
-   ],
-   "evidence": [
-    {
-     "sentence": "氢气 49.05 微升/升，一氧化碳 33.71 微升/升，甲烷 48.43 微升/升，二氧化碳 1588.80 微升/升，乙烯 352.30 微升/升，乙烷 61.07 微升/升，乙炔 1.04 微升/升，根据 GB/T7252-2001<<变压器油中溶解气体分析和判断导则>>分析，变压器故障类型属于高温过热故障。",
-     "unit_id": "8cefcb310284-0336",
-     "doc_id": "8cefcb310284"
-    }
-   ]
-  },
-  {
-   "source": "Indicator:二氧化碳",
-   "target": "Standard:GB/T 7252",
-   "relation": "SPECIFIED_IN",
-   "support_count": 1,
-   "confidence": 0.6,
-   "extractors": [
-    "rule"
-   ],
-   "evidence": [
-    {
-     "sentence": "氢气 49.05 微升/升，一氧化碳 33.71 微升/升，甲烷 48.43 微升/升，二氧化碳 1588.80 微升/升，乙烯 352.30 微升/升，乙烷 61.07 微升/升，乙炔 1.04 微升/升，根据 GB/T7252-2001<<变压器油中溶解气体分析和判断导则>>分析，变压器故障类型属于高温过热故障。",
-     "unit_id": "8cefcb310284-0336",
-     "doc_id": "8cefcb310284"
-    }
-   ]
-  },
-  {
-   "source": "Indicator:二氧化碳",
-   "target": "Standard:DL/T 722",
-   "relation": "SPECIFIED_IN",
-   "support_count": 1,
-   "confidence": 0.6,
-   "extractors": [
-    "rule"
-   ],
-   "evidence": [
-    {
-     "sentence": "氢气 49.05 微升/升，一氧化碳 33.71 微升/升，甲烷 48.43 微升/升，二氧化碳 1588.80 微升/升，乙烯 352.30 微升/升，乙烷 61.07 微升/升，乙炔 1.04 微升/升，根据 GB/T7252-2001<<变压器油中溶解气体分析和判断导则>>分析，变压器故障类型属于高温过热故障。",
-     "unit_id": "8cefcb310284-0336",
-     "doc_id": "8cefcb310284"
-    }
-   ]
-  },
-  {
-   "source": "Indicator:产气速率",
-   "target": "Standard:GB/T 7252",
-   "relation": "SPECIFIED_IN",
-   "support_count": 1,
-   "confidence": 0.6,
-   "extractors": [
-    "rule"
-   ],
-   "evidence": [
-    {
-     "sentence": "GB/T 7252-2001《变压器油中溶解气体分析和判断导则》规定：变压器色谱分析主要是对变压器本体、套管以及有载调压开关中的绝缘油中溶解气体进行分析，并根据产气速率、单一气体含量、总烃和三比值法判断变压器的运行状态。",
-     "unit_id": "49172d8ae09a-0269",
-     "doc_id": "49172d8ae09a"
-    }
-   ]
-  },
-  {
-   "source": "Indicator:产气速率",
-   "target": "Standard:DL/T 722",
-   "relation": "SPECIFIED_IN",
-   "support_count": 1,
-   "confidence": 0.6,
-   "extractors": [
-    "rule"
-   ],
-   "evidence": [
-    {
-     "sentence": "GB/T 7252-2001《变压器油中溶解气体分析和判断导则》规定：变压器色谱分析主要是对变压器本体、套管以及有载调压开关中的绝缘油中溶解气体进行分析，并根据产气速率、单一气体含量、总烃和三比值法判断变压器的运行状态。",
-     "unit_id": "49172d8ae09a-0269",
-     "doc_id": "49172d8ae09a"
+     "sentence": "在该主变的实际运行过程中，2006年12月，氢气含量和总烃含量的增长开始加快，2010年7月，氢气含量明显，总烃含量已超过DL/T722-2000《变压器油中溶解气体分析和判断导则》中对氢气和总烃含量的要求极限值（ $150mL/L$），2013年10月对该主变实施滤油处理，从上图数据中可明显看出氢气含量和总烃含量大幅降低，基本接近运行初期水平，滤油后，增加对该主变检测频率（每半月一次抽样检测）。",
+     "unit_id": "03528ddc2e22-0453",
+     "doc_id": "03528ddc2e22"
     }
    ]
   },
@@ -4524,8 +4230,8 @@
    ]
   },
   {
-   "source": "Indicator:甲烷",
-   "target": "Standard:DL/T 722",
+   "source": "Method:三比值法",
+   "target": "Standard:DL/T 596",
    "relation": "SPECIFIED_IN",
    "support_count": 1,
    "confidence": 0.6,
@@ -4534,15 +4240,15 @@
    ],
    "evidence": [
     {
-     "sentence": "氢气 49.05 微升/升，一氧化碳 33.71 微升/升，甲烷 48.43 微升/升，二氧化碳 1588.80 微升/升，乙烯 352.30 微升/升，乙烷 61.07 微升/升，乙炔 1.04 微升/升，根据 GB/T7252-2001<<变压器油中溶解气体分析和判断导则>>分析，变压器故障类型属于高温过热故障。",
-     "unit_id": "8cefcb310284-0336",
-     "doc_id": "8cefcb310284"
+     "sentence": "通过光学检测可以定量分析油中溶解的气体，有助于提早发现设备中潜在的潜在隐患，保证设备的正常运行，经过多年的经验总结，1996年修订DL/T596-1996《电力设备预防性试验》将三比值法作为变压器故障判断的主要方法，2014年又一次进行修订，将改进的三比值法与图示法作为主要的判断准则。",
+     "unit_id": "1a6cbb81b907-0514",
+     "doc_id": "1a6cbb81b907"
     }
    ]
   },
   {
-   "source": "Indicator:直流电阻",
-   "target": "Standard:DL/T 722",
+   "source": "Method:大卫三角形",
+   "target": "Standard:IEC 60599",
    "relation": "SPECIFIED_IN",
    "support_count": 1,
    "confidence": 0.6,
@@ -4551,43 +4257,9 @@
    ],
    "evidence": [
     {
-     "sentence": "- ［2］王亚楠.一起变压器绕组直流电阻测试案例分析［J］.科技创新与应用，2012（26）：64-65.\n- ［3］顾林春，金腾.变压器直流电阻试验不平衡率超标原因分析及处理［J］.电子世界，2018（12）：84，86.\n- ［4］王健一，李金忠，佘振球，等.DL/T722—2014 变压器油中溶解气体分析和判断导则［S］.北京：中国电力出版社，2014.",
-     "unit_id": "388f61f8f576-0052",
-     "doc_id": "388f61f8f576"
-    }
-   ]
-  },
-  {
-   "source": "Indicator:短路阻抗",
-   "target": "Standard:DL/T 911",
-   "relation": "SPECIFIED_IN",
-   "support_count": 1,
-   "confidence": 0.6,
-   "extractors": [
-    "rule"
-   ],
-   "evidence": [
-    {
-     "sentence": "基于这些特性，短路电抗法、频率响应分析法(FRA)、低压脉冲(LVI)法等几种常用的绕组变形故障监测方法先后被国内外学者提出来。",
-     "unit_id": "9df9c5a60e2d-0097",
-     "doc_id": "9df9c5a60e2d"
-    }
-   ]
-  },
-  {
-   "source": "Method:低电压短路阻抗法",
-   "target": "Standard:DL/T 911",
-   "relation": "SPECIFIED_IN",
-   "support_count": 1,
-   "confidence": 0.6,
-   "extractors": [
-    "rule"
-   ],
-   "evidence": [
-    {
-     "sentence": "目前，变压器绕组检测方法应用较多的主要有低压脉冲分析法、短路阻抗法、频率响应分析法和振动检测法。",
-     "unit_id": "52f05b1efea4-0094",
-     "doc_id": "52f05b1efea4"
+     "sentence": "IEC60599和IEEEEC57.104为解释DGA技术的指导手册，其中提出了几种检测故障的方法，包括关键气体法（key gas method,KGA）、杜瓦尔三角法则（Duval Triangle）、杜瓦尔五边形法则（Duval Pentagon）和气体比率方法（Doernenburg、Rogers和IEC）等。",
+     "unit_id": "f57de598f869-0089",
+     "doc_id": "f57de598f869"
     }
    ]
   },
@@ -4605,23 +4277,6 @@
      "sentence": "- [1] GB 50150-2006. 电气装置安装工程电气设备交接试验标准[S]. 2006.\n- [2] GB 1094.3-2003.电力变压器[S].2003.\n- [3]GB7354-2003.局部放电测量[S].2003.\n- [4] 李继胜，李军浩，罗勇芬，等. 用于电力变压器局部放电定位的超声波相控阵传感器的研制[J]. 西安交通大学学报, 2011, 45(4):93-99.",
      "unit_id": "161dcbfa821e-0063",
      "doc_id": "161dcbfa821e"
-    }
-   ]
-  },
-  {
-   "source": "Method:振动分析",
-   "target": "Standard:DL/T 911",
-   "relation": "SPECIFIED_IN",
-   "support_count": 1,
-   "confidence": 0.6,
-   "extractors": [
-    "rule"
-   ],
-   "evidence": [
-    {
-     "sentence": "目前，变压器绕组检测方法应用较多的主要有低压脉冲分析法、短路阻抗法、频率响应分析法和振动检测法。",
-     "unit_id": "52f05b1efea4-0094",
-     "doc_id": "52f05b1efea4"
     }
    ]
   },
@@ -4645,23 +4300,6 @@
   {
    "source": "Method:油色谱分析",
    "target": "Standard:GB/T 7252",
-   "relation": "SPECIFIED_IN",
-   "support_count": 1,
-   "confidence": 0.6,
-   "extractors": [
-    "rule"
-   ],
-   "evidence": [
-    {
-     "sentence": "GB/T 7252-2001《变压器油中溶解气体分析和判断导则》规定：变压器色谱分析主要是对变压器本体、套管以及有载调压开关中的绝缘油中溶解气体进行分析，并根据产气速率、单一气体含量、总烃和三比值法判断变压器的运行状态。",
-     "unit_id": "49172d8ae09a-0269",
-     "doc_id": "49172d8ae09a"
-    }
-   ]
-  },
-  {
-   "source": "Method:油色谱分析",
-   "target": "Standard:DL/T 722",
    "relation": "SPECIFIED_IN",
    "support_count": 1,
    "confidence": 0.6,

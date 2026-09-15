@@ -26,6 +26,10 @@ class AgentState:
     # exec_success / business_success / error_code / latency_ms 等），供造数与评测使用
     trajectory: List[Dict[str, Any]] = field(default_factory=list)
 
+    # ── Reflection 输出（P3，可选节点）──────────────────────────────
+    # 每轮反思日志：scorer / rounds / kept / dropped / rewrite / latency_ms
+    reflection_log: List[Dict[str, Any]] = field(default_factory=list)
+
     # ── Generator 输出 ──────────────────────────────────────────────
     draft_answer: Optional[str] = None
 

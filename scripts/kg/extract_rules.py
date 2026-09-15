@@ -78,8 +78,10 @@ def find_entities(sent: str, lex: List[Tuple[str, str, str]]) -> List[Dict[str, 
             if i < 0:
                 break
             j = i + len(surface)
-            # 英文缩写要求边界
-            if surface.isascii() and ((i > 0 and sent[i - 1].isalnum()) or (j < len(sent) and sent[j].isalnum())):
+            # 英文缩写要求边界（仅 ASCII 字母数字视为粘连；汉字 isalnum() 为 True，需排除）
+            def _ascii_alnum(ch: str) -> bool:
+                return ch.isascii() and ch.isalnum()
+            if surface.isascii() and ((i > 0 and _ascii_alnum(sent[i - 1])) or (j < len(sent) and _ascii_alnum(sent[j]))):
                 start = j
                 continue
             if not any(occupied[i:j]):
@@ -109,6 +111,37 @@ def _is_hypernym_pair(a: str, b: str) -> bool:
     return (a, b) in _HYPERNYM or (b, a) in _HYPERNYM
 
 
+_CLAUSE_SEP = "，；,;。：:"
+
+
+def _clause_bound(sent: str, pos: int, backward: bool, max_clauses: int = 3, max_chars: int = 80) -> int:
+    """
+    从触发词位置向前/向后扫描，最多跨 max_clauses 个分句、max_chars 个字符，返回边界下标。
+    解决「A…，B，说明 C」中把远处的 A 当作头实体的问题。
+    """
+    if backward:
+        i, seen = pos - 1, 0
+        while i >= 0 and pos - i <= max_chars:
+            if sent[i] in _CLAUSE_SEP:
+                seen += 1
+                if seen >= max_clauses:
+                    return i + 1
+            i -= 1
+        return max(0, i + 1) if i >= 0 else 0
+    i, seen = pos, 0
+    while i < len(sent) and i - pos <= max_chars:
+        if sent[i] in _CLAUSE_SEP:
+            seen += 1
+            if seen >= max_clauses:
+                return i
+        i += 1
+    return min(len(sent), i)
+
+
+# LOCATED_IN 黑名单：这些「故障-部位」组合是表面紧邻造成的伪关系（如「变压器油渗漏」）
+_LOCATED_IN_BLOCK = {("渗漏油", "绝缘油"), ("油位异常", "绝缘油")}
+
+
 def extract_from_sentence(sent: str, ents: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     out: List[Dict[str, Any]] = []
     if len(ents) < 2:
@@ -123,10 +156,8 @@ def extract_from_sentence(sent: str, ents: List[Dict[str, Any]]) -> List[Dict[st
         if not m:
             continue
         ht, tt = ALLOWED[rel]
-        left = sent.rfind("，", 0, m.start())
-        left_bound = left + 1 if left >= 0 and m.start() - left > 40 else 0
-        right = sent.find("，", m.end())
-        right_bound = right if right >= 0 and right - m.end() > 40 else len(sent)
+        left_bound = _clause_bound(sent, m.start(), backward=True)
+        right_bound = _clause_bound(sent, m.end(), backward=False)
         heads = [e for e in ents if e["type"] in ht and left_bound <= e["start"] and e["end"] <= m.start()]
         tails = [e for e in ents if e["type"] in tt and m.end() <= e["start"] and e["end"] <= right_bound]
         if not heads or not tails:
@@ -153,33 +184,56 @@ def extract_from_sentence(sent: str, ents: List[Dict[str, Any]]) -> List[Dict[st
                     out.append({"head": f["canon"], "head_type": "Fault", "relation": "TREATED_BY",
                                 "tail": a["canon"], "tail_type": "Action"})
 
-    # DETECTED_BY：Method 附近（≤15 字）出现检测动词，且与 Fault|Symptom 距离 ≤ 40
+    # DETECTED_BY：Method 附近（≤15 字）出现检测动词，且与 Fault|Symptom 距离 ≤ 40；
+    # 句中方法 ≥3 个（检测手段枚举）时，每个 Fault 只配最近的一个 Method
     if not is_enum:
-        for m_ in [e for e in ents if e["type"] == "Method"]:
-            window = sent[max(0, m_["start"] - 15): m_["end"] + 15]
-            if not re.search(TRIGGERS["DETECT_VERB"], window):
-                continue
-            for f in [e for e in ents if e["type"] in ("Fault", "Symptom")]:
+        methods = [e for e in ents if e["type"] == "Method"]
+        method_enum = len(methods) >= 3
+        for f in [e for e in ents if e["type"] in ("Fault", "Symptom")]:
+            cands = []
+            for m_ in methods:
+                window = sent[max(0, m_["start"] - 15): m_["end"] + 15]
+                if not re.search(TRIGGERS["DETECT_VERB"], window):
+                    continue
                 dist = max(f["start"], m_["start"]) - min(f["end"], m_["end"])
-                if dist <= 40:
-                    out.append({"head": f["canon"], "head_type": f["type"], "relation": "DETECTED_BY",
-                                "tail": m_["canon"], "tail_type": "Method"})
+                if dist > 40:
+                    continue
+                between = sent[min(f["end"], m_["end"]):max(f["start"], m_["start"])]
+                # 「超声波局部放电、油色谱分析、红外测温」这类并列项之间只有顿号，不是检测关系
+                if "、" in between and not re.search(TRIGGERS["DETECT_VERB"], between):
+                    continue
+                cands.append((dist, m_))
+            if not cands:
+                continue
+            cands.sort(key=lambda x: x[0])
+            for _, m_ in (cands[:1] if method_enum else cands):
+                out.append({"head": f["canon"], "head_type": f["type"], "relation": "DETECTED_BY",
+                            "tail": m_["canon"], "tail_type": "Method"})
 
     # LOCATED_IN：Component 紧邻 Fault（≤3 字符间隔，如 "铁心的多点接地"、"绕组匝间短路"）
     for c in [e for e in ents if e["type"] == "Component"]:
         for f in faults:
+            if (f["canon"], c["canon"]) in _LOCATED_IN_BLOCK:
+                continue
             gap = sent[c["end"]:f["start"]]
             if 0 <= f["start"] - c["end"] <= 3 and re.fullmatch(r"(的|内部|中|上|处)?", gap):
                 out.append({"head": f["canon"], "head_type": "Fault", "relation": "LOCATED_IN",
                             "tail": c["canon"], "tail_type": "Component"})
 
-    # SPECIFIED_IN
+    # SPECIFIED_IN：
+    #  - 句中若出现带编号的标准（如 GB/T 7252），则只认编号匹配的标准，忽略仅靠标准名称匹配到的其他标准
+    #    （GB/T 7252 与 DL/T 722 同名《变压器油中溶解气体分析和判断导则》，否则会串）
+    #  - Indicator|Method 与标准距离 ≤ 80；规程条目天然是枚举句，故不受 is_enum 限制
     stds = [e for e in ents if e["type"] == "Standard"]
     if stds:
-        for s in stds:
+        coded = [s for s in stds if any(ch.isdigit() for ch in s["surface"])]
+        use_stds = coded if coded else stds
+        for s in use_stds:
             for x in [e for e in ents if e["type"] in ("Indicator", "Method")]:
-                out.append({"head": x["canon"], "head_type": x["type"], "relation": "SPECIFIED_IN",
-                            "tail": s["canon"], "tail_type": "Standard"})
+                dist = max(s["start"], x["start"]) - min(s["end"], x["end"])
+                if dist <= 80:
+                    out.append({"head": x["canon"], "head_type": x["type"], "relation": "SPECIFIED_IN",
+                                "tail": s["canon"], "tail_type": "Standard"})
     # 去重
     uniq = {}
     for t in out:
