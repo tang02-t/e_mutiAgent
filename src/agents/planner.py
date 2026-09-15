@@ -31,15 +31,20 @@ class PlannerAgent:
       避免「模型没看到的数据却被要求填对参数」。
     """
 
-    def __init__(self, config: Dict[str, Any], planner_mode: Optional[str] = None) -> None:
+    def __init__(self, config: Dict[str, Any], planner_mode: Optional[str] = None,
+                 allowed_tools: Optional[List[str]] = None) -> None:
         """
         planner_mode（P5-5 / P6 对比开关）：
           baseline   使用 llms.planner（或 default）配置的通用模型
           finetuned  使用 llms.planner_finetuned 配置的微调 Planner（百炼部署的 LoRA 模型或本地服务）；
                      若该节点不存在则回退 baseline 并记录 warning
         取值优先级：构造参数 > config["workflow"]["planner_mode"] > "baseline"
+
+        allowed_tools（P6 五级模式）：None 表示全部工具可用；否则只向模型暴露名单内的工具，
+        模型仍调用名单外工具时标记 validation.errors code=tool_disabled，由 Retriever 拒绝执行。
         """
         self.config = config
+        self.allowed_tools: Optional[List[str]] = list(allowed_tools) if allowed_tools is not None else None
         mode = planner_mode or (config.get("workflow", {}) or {}).get("planner_mode") or "baseline"
         if mode not in ("baseline", "finetuned"):
             raise ValueError(f"planner_mode 只能是 baseline|finetuned，得到 {mode!r}")
@@ -112,7 +117,7 @@ class PlannerAgent:
           ]
         }
         """
-        system_msg = PLANNER_SYSTEM_PROMPT()
+        system_msg = PLANNER_SYSTEM_PROMPT(self.allowed_tools)
         user_msg = render_planner_user(query=query, context=self._render_context(context))
 
         messages: List[Dict[str, str]] = [
@@ -122,8 +127,8 @@ class PlannerAgent:
 
         # ① 优先尝试原生 Function Calling
         try:
-            tools = to_openai_tools()
-            choice = self.llm.chat(messages, tools=tools)
+            tools = to_openai_tools(self.allowed_tools)
+            choice = self.llm.chat(messages, tools=tools) if tools else self.llm.chat(messages)
         except Exception:
             # 个别网关不支持 tools 参数时，退回无 tools 调用
             choice = self.llm.chat(messages)
@@ -168,13 +173,14 @@ class PlannerAgent:
             "plan_status": "parse_failed",
         }, content
 
-    @staticmethod
-    def _validate_steps(steps: List[Dict[str, Any]]) -> None:
+    def _validate_steps(self, steps: List[Dict[str, Any]]) -> None:
         """
         对 steps 中带 tool 的步骤做严格校验（原地补充 validation 字段，不修改 arguments）。
-        未知工具同样保留原始 tool 名，只标记 validation.valid=False。
+        未知工具同样保留原始 tool 名，只标记 validation.valid=False；
+        allowed_tools 名单外的工具标记 code=tool_disabled（P6 五级模式下的“越权调用”统计口径）。
         """
         valid_tools = set(get_tool_names())
+        allowed = set(self.allowed_tools) if self.allowed_tools is not None else None
         for step in steps:
             if not isinstance(step, dict):
                 continue
@@ -194,6 +200,13 @@ class PlannerAgent:
                     "valid": False,
                     "errors": [{"field": None, "code": "unknown_tool",
                                 "message": f"未知工具：{tool}"}],
+                }
+                continue
+            if allowed is not None and tool not in allowed:
+                step["validation"] = {
+                    "valid": False,
+                    "errors": [{"field": None, "code": "tool_disabled",
+                                "message": f"工具 {tool} 在当前系统模式下不可用"}],
                 }
                 continue
             step["validation"] = validate_arguments_strict(tool, raw_args)
@@ -271,6 +284,8 @@ class PlannerAgent:
         plan_json["raw_content"] = raw_content
         plan_json["planner_experiment_mode"] = self.planner_mode
         plan_json["planner_model"] = self.model_name
+        if self.allowed_tools is not None:
+            plan_json["allowed_tools"] = list(self.allowed_tools)
         state.plan_status = plan_json["plan_status"]
         state.reasoning_trace.append({
             "agent": "planner",

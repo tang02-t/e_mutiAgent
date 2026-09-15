@@ -226,12 +226,15 @@ def get_tool_spec(name: str) -> Dict[str, Any] | None:
     return _SPEC_BY_NAME.get(name)
 
 
-def to_openai_tools() -> List[Dict[str, Any]]:
+def to_openai_tools(names: List[str] | None = None) -> List[Dict[str, Any]]:
     """
     转换为 OpenAI Chat Completions 的 `tools` 参数格式，可直接传给 LLMClient.chat(tools=...)。
+    names 非 None 时只导出名单内的工具（P6 五级模式按需屏蔽 rag_search / kg_search）。
     """
     tools: List[Dict[str, Any]] = []
     for spec in TOOL_SPECS:
+        if names is not None and spec["name"] not in names:
+            continue
         tools.append(
             {
                 "type": "function",
@@ -245,12 +248,14 @@ def to_openai_tools() -> List[Dict[str, Any]]:
     return tools
 
 
-def render_tools_for_prompt() -> str:
+def render_tools_for_prompt(names: List[str] | None = None) -> str:
     """
     渲染成给 Planner 系统提示词嵌入的工具清单文本（人类/模型友好）。
+    names 非 None 时只渲染名单内的工具。
     """
     lines: List[str] = []
-    for i, spec in enumerate(TOOL_SPECS, start=1):
+    specs = [s for s in TOOL_SPECS if names is None or s["name"] in names]
+    for i, spec in enumerate(specs, start=1):
         lines.append(f"{i}. {spec['name']}")
         lines.append(f"   - 用途：{spec['description']}")
         if spec.get("when_to_use"):

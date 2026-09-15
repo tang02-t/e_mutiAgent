@@ -8,7 +8,7 @@
 """
 
 import warnings
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 # ─── 默认提示词（模板文件不存在时的回退值）─────────────────────────
 _PLANNER_SYSTEM = """你是一名选冶领域生产过程专家，擅长故障诊断与控制策略规划。
@@ -109,19 +109,34 @@ class _LazyTemplateLoader:
 _loader = _LazyTemplateLoader()
 
 
-def PLANNER_SYSTEM_PROMPT() -> str:
+def PLANNER_SYSTEM_PROMPT(allowed_tools: Optional[list] = None) -> str:
     """
     返回 Planner 系统提示词，并将模板中的 {{tools}} 占位符替换为工具注册表的清单文本。
 
     工具清单来自 src.tools.tool_registry（单一数据源），新增工具无需改动本提示词。
+    allowed_tools 非 None 时只渲染名单内的工具（P6 五级模式）。
     """
     template = _loader.get_system("planner")
     if "{{tools}}" in template:
         try:
             from src.tools.tool_registry import render_tools_for_prompt
-            template = template.replace("{{tools}}", render_tools_for_prompt())
+            template = template.replace("{{tools}}", render_tools_for_prompt(allowed_tools))
         except Exception:
             template = template.replace("{{tools}}", "（工具清单加载失败）")
+    if allowed_tools is not None:
+        # 模板「工具选择原则」中形如「… → rag_search」的规则行，若指向被屏蔽的工具则整行删除
+        try:
+            from src.tools.tool_registry import get_tool_names
+            disabled = [t for t in get_tool_names() if t not in set(allowed_tools)]
+        except Exception:
+            disabled = []
+        if disabled:
+            kept = []
+            for line in template.splitlines():
+                if any(("→ " + t) in line or ("→" + t) in line for t in disabled):
+                    continue
+                kept.append(line)
+            template = "\n".join(kept)
     return template
 
 

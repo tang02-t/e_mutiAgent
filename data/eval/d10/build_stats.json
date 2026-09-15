@@ -1,0 +1,42 @@
+{
+  "n": 196,
+  "seed": 20260915,
+  "by_scenario": {
+    "ask_user": 17,
+    "single_tool_fact": 40,
+    "kg_reasoning": 30,
+    "context_contrast": 8,
+    "error_recovery": 16,
+    "multi_tool": 30,
+    "single_tool_numeric": 40,
+    "no_tool": 15
+  },
+  "by_sub_type": {
+    "ask_user/ask_missing_params": 17,
+    "single_tool_fact/C_definition": 10,
+    "kg_reasoning/kg_1hop_alias": 10,
+    "single_tool_fact/A_title": 16,
+    "single_tool_fact/B_caption": 14,
+    "context_contrast/dga_from_context": 8,
+    "error_recovery/kg_colloquial_to_std": 9,
+    "multi_tool/composite_2step": 15,
+    "single_tool_numeric/dga_attribution": 20,
+    "kg_reasoning/kg_1hop_canonical": 10,
+    "single_tool_numeric/timeseries_anomaly": 10,
+    "no_tool/common_sense": 8,
+    "single_tool_numeric/ett_forecast": 10,
+    "multi_tool/dga_kg": 5,
+    "multi_tool/dga_rag": 5,
+    "error_recovery/ett_bad_dataset": 5,
+    "no_tool/greeting": 2,
+    "kg_reasoning/kg_2hop": 10,
+    "multi_tool/ett_anomaly": 5,
+    "no_tool/meta": 2,
+    "no_tool/capability": 2,
+    "error_recovery/ett_bad_range": 2,
+    "no_tool/out_of_scope": 1
+  },
+  "shortage": {},
+  "n_unique_group_key": 71,
+  "source_splits": "task_seeds.test + multi_turn_seeds.test"
+}

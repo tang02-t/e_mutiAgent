@@ -110,8 +110,12 @@ def timeseries_anomaly_tool(signal=None) -> Dict[str, Any]:
     }
 
 
-def build_mcp(kb_mode: str, user_dga: Dict[str, Any] | None) -> MCPClient:
-    """构造 MCP 客户端并注册工具。kb_mode: local_kb | milvus | mock"""
+def build_mcp(kb_mode: str, user_dga: Dict[str, Any] | None, rag_mode: str | None = "two_way") -> MCPClient:
+    """
+    构造 MCP 客户端并注册工具。
+    kb_mode: local_kb | milvus | mock；rag_mode：local_kb 的检索方式 naive | two_way | two_way_rerank，
+    None 表示当前系统模式不开放文献检索（注册空桩，越权调用得到 empty_result）。
+    """
     mcp = MCPClient()
 
     # fault_attribution：用闭包注入前端填写的 DGA（当 plan 未带 dga_data 时生效）
@@ -130,6 +134,10 @@ def build_mcp(kb_mode: str, user_dga: Dict[str, Any] | None) -> MCPClient:
         mcp.register_tool("kg_search", kg_search)
     except Exception as exc:  # noqa: BLE001
         st.warning(f"图谱工具初始化失败：{exc}")
+
+    if rag_mode is None:
+        mcp.register_tool("rag_search", lambda query, **_: [])
+        return mcp
 
     if kb_mode == "milvus":
         try:
@@ -151,7 +159,8 @@ def build_mcp(kb_mode: str, user_dga: Dict[str, Any] | None) -> MCPClient:
     if kb_mode == "local_kb":
         try:
             from src.tools.local_kb import local_kb_search
-            mcp.register_tool("rag_search", local_kb_search)
+            _mode = rag_mode or "two_way"
+            mcp.register_tool("rag_search", lambda query, top_k=5, **_: local_kb_search(query, top_k=top_k, mode=_mode))
         except Exception as exc:  # noqa: BLE001
             st.warning(f"本地文献库初始化失败，已回退到合成案例 mock：{exc}")
             kb_mode = "mock"
@@ -171,6 +180,7 @@ def run_workflow(
     mcp: MCPClient,
     reflection_mode: str = "off",
     planner_mode: str = "baseline",
+    allowed_tools: List[str] | None = None,
 ) -> tuple[AgentState | None, float, str | None]:
     """执行完整诊断工作流，返回 (final_state, elapsed, error)。"""
     from src.agents.planner import PlannerAgent
@@ -184,8 +194,8 @@ def run_workflow(
         max_iterations=config.get("workflow", {}).get("max_iterations", 3),
     )
 
-    planner = PlannerAgent(config, planner_mode=planner_mode)
-    retriever = RetrieverAgent(config, mcp)
+    planner = PlannerAgent(config, planner_mode=planner_mode, allowed_tools=allowed_tools)
+    retriever = RetrieverAgent(config, mcp, allowed_tools=allowed_tools)
     generator = GeneratorAgent(config)
     validator = ValidatorAgent(config)
     reflector = None
@@ -237,6 +247,13 @@ def render_overview(state: AgentState, elapsed: float) -> None:
     c4.metric("耗时", f"{elapsed:.1f}s")
 
     badges = []
+    sm = st.session_state.get("system_mode")
+    if sm:
+        badges.append(f"系统模式：{sm.get('label')}")
+    plan_content = next((it.get("content") for it in state.reasoning_trace
+                         if it.get("agent") == "planner" and it.get("type") == "llm_plan"), None) or {}
+    if plan_content.get("planner_model"):
+        badges.append(f"Planner：{plan_content.get('planner_experiment_mode')}（{plan_content.get('planner_model')}）")
     badges.append(f"计划状态：{state.plan_status}")
     try:
         from src.tools.fault_attribution import get_engine
@@ -354,8 +371,126 @@ def _render_rag(result: Any) -> None:
         title = meta.get("title") or meta.get("doc_name") or f"片段 {i}"
         score = item.get("score")
         score_txt = f"（score={score:.3f}）" if isinstance(score, (int, float)) else ""
-        st.markdown(f"**{i}. {title}** {score_txt}")
+        sec = meta.get("section_path")
+        sec_txt = f"　·　{' > '.join(sec)}" if isinstance(sec, list) and sec else ""
+        tags = []
+        if item.get("reflection_score") is not None:
+            tags.append(f"反思评分 {item['reflection_score']}/3")
+        if item.get("expanded_from"):
+            tags.append("邻块补召回")
+        if item.get("from_rewrite"):
+            tags.append("改写重检索")
+        ch = item.get("channels")
+        if isinstance(ch, dict) and ch:
+            tags.append("命中通道 " + "/".join(sorted(ch)))
+        tag_txt = f"　`{'` `'.join(tags)}`" if tags else ""
+        st.markdown(f"**{i}. {title}** {score_txt}{sec_txt}{tag_txt}")
         st.caption(item.get("text", ""))
+
+
+def _render_kg(state: AgentState) -> None:
+    """图谱链路可视化：把 kg_search 返回的 paths 画成 Graphviz 有向图，并列出每条边的原文证据。"""
+    calls = [c for c in (state.tool_calls or []) if c.get("tool") == "kg_search" and c.get("success")]
+    if not calls:
+        disabled = any(c.get("tool") == "kg_search" and c.get("error_code") == "tool_disabled" for c in (state.tool_calls or []))
+        st.info("当前模式未开放图谱工具（Planner 越权调用已被拦截）。" if disabled else "本次未调用图谱工具。")
+        return
+    REL_CN = {"CAUSES": "导致", "PRODUCES": "产生", "INDICATES": "指示", "LOCATED_IN": "位于",
+              "DETECTED_BY": "检测", "TREATED_BY": "处理", "SPECIFIED_IN": "依据"}
+    for call in calls:
+        res = call.get("result") or {}
+        st.markdown(f"**查询：** `{(call.get('raw_arguments') or {}).get('query', '')}`　匹配实体："
+                    + "、".join(f"{e.get('name')}({e.get('type')})" for e in res.get("matched_entities", [])[:3]))
+        paths = res.get("paths") or []
+        if not paths:
+            st.warning(res.get("message") or "无关系路径。")
+            continue
+        lines = ["digraph G {", "rankdir=LR; node [shape=box, style=rounded, fontname=\"PingFang SC\"];",
+                 "edge [fontname=\"PingFang SC\", fontsize=10];"]
+        seen = set()
+        for p in paths[:20]:
+            path = p.get("path") or []
+            for i in range(0, len(path) - 2, 2):
+                s, r, t = path[i], path[i + 1], path[i + 2]
+                key = (s, r, t)
+                if key in seen:
+                    continue
+                seen.add(key)
+                sn, tn = s.split(":", 1)[-1], t.split(":", 1)[-1]
+                lines.append(f'"{sn}" -> "{tn}" [label="{REL_CN.get(r, r)}（{p.get("support_count", 0)}篇）"];')
+        lines.append("}")
+        try:
+            st.graphviz_chart("\n".join(lines))
+        except Exception:  # noqa: BLE001
+            st.code("\n".join(lines))
+        with st.expander("每条关系的文献证据", expanded=False):
+            for p in paths[:20]:
+                path = p.get("path") or []
+                chain = " → ".join(x.split(":", 1)[-1] if i % 2 == 0 else REL_CN.get(x, x) for i, x in enumerate(path))
+                st.markdown(f"- **{chain}**（支持 {p.get('support_count', 0)} 篇，置信 {p.get('confidence', 0)}）")
+                if p.get("evidence"):
+                    st.caption(p["evidence"])
+
+
+def _render_reflection(state: AgentState) -> None:
+    """反思评分展示：每轮评分明细、丢弃/保留、补召回与改写决策。"""
+    logs = getattr(state, "reflection_log", None) or []
+    if not logs:
+        st.info("当前模式未启用反思模块。")
+        return
+    for log in logs:
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("决策", str(log.get("decision")))
+        c2.metric("输入块", log.get("input_count", 0))
+        c3.metric("输出块", log.get("output_count", 0))
+        c4.metric("耗时", f"{log.get('latency_ms', 0):.0f} ms")
+        st.caption(f"评分器：{log.get('scorer')}　|　改写重检索：{'是' if log.get('rewrite_triggered') else '否'}"
+                   + (f"　|　改写后的查询：{log['rewritten_query']}" if log.get("rewritten_query") else ""))
+        for rnd in log.get("rounds") or []:
+            title = (f"第 {rnd.get('round')} 轮：评分 {rnd.get('scored')} 块，保留 {rnd.get('kept')}，丢弃 {rnd.get('dropped')}"
+                     + (f"，补召回 {rnd['expanded']} 块" if rnd.get("expanded") else "")
+                     + (f"，重检索新增 {rnd['research_added']} 块" if rnd.get("research_added") is not None else ""))
+            with st.expander(title, expanded=(rnd.get("round") == 1)):
+                scores = rnd.get("scores") or []
+                cids = rnd.get("chunk_ids") or [None] * len(scores)
+                titles = rnd.get("titles") or [""] * len(scores)
+                rows = [{"块": cid or f"#{i + 1}", "文献": t, "评分(0-3)": s}
+                        for i, (cid, t, s) in enumerate(zip(cids, titles, scores))]
+                if rows:
+                    st.dataframe(rows, use_container_width=True, hide_index=True)
+                else:
+                    st.json(rnd)
+        kept_items = [it for it in (state.retrieved_knowledge or []) if it.get("reflection_score") is not None]
+        if kept_items:
+            st.markdown("**最终保留块（按反思评分排序）**")
+            st.dataframe([{"块": it.get("chunk_id"), "评分": it.get("reflection_score"),
+                           "来源": "邻块补召回" if it.get("expanded_from") else ("改写重检索" if it.get("from_rewrite") else "首轮检索"),
+                           "文献": (it.get("metadata") or {}).get("title", "")} for it in kept_items],
+                         use_container_width=True, hide_index=True)
+
+
+def _render_trajectory(state: AgentState) -> None:
+    """工具调用轨迹表：顺序、工具、关键参数、校验、结果状态、耗时。"""
+    traj = getattr(state, "trajectory", None) or []
+    if not traj:
+        st.info("无工具调用轨迹。")
+        return
+    rows = []
+    for t in traj:
+        args = t.get("raw_arguments") or {}
+        brief = json.dumps({k: (v if not isinstance(v, list) or len(v) <= 3 else f"[{len(v)} 项]") for k, v in args.items()},
+                           ensure_ascii=False)
+        rows.append({
+            "#": t.get("call_index"),
+            "工具": t.get("tool"),
+            "参数": brief[:80] + ("…" if len(brief) > 80 else ""),
+            "校验": "✅" if (t.get("validation") or {}).get("valid", True) else "❌",
+            "执行": "✅" if t.get("exec_success") else "❌",
+            "业务": "✅" if t.get("business_success") else "❌",
+            "错误码": t.get("error_code") or "",
+            "耗时(ms)": t.get("latency_ms"),
+        })
+    st.dataframe(rows, use_container_width=True, hide_index=True)
 
 
 TRACE_ICON = {
@@ -409,42 +544,51 @@ st.caption("Planner → Retriever → Generator → Validator　|　基于 LangG
 with st.sidebar:
     st.header("⚙️ 运行配置")
     config = load_config()
+    from src.graph.system_modes import SYSTEM_MODES, MODE_ORDER, resolve_mode
 
     enable_llm = st.toggle(
         "启用 LLM",
         value=True,
         help="关闭后各智能体将使用模板/规则降级，可离线演示流程连通性。",
     )
-    kb_mode = st.radio(
-        "知识库来源",
-        options=["local_kb", "milvus", "mock"],
-        index=0,
-        format_func=lambda x: {"local_kb": "本地文献库（182 篇，BM25+锚点）",
-                               "milvus": "Milvus 向量库（需 embedding 接口）",
-                               "mock": "合成案例 mock（仅演示）"}[x],
-        help="local_kb 由 data/kb 离线构建，不依赖网络；mock 为程序合成案例，不得用于评测。",
-    )
-    max_iter = st.slider("最大迭代轮次", 1, 5, value=config.get("workflow", {}).get("max_iterations", 3))
-    reflection_mode = st.radio(
-        "反思模块（检索后评分过滤）",
-        options=["off", "lexical"],
-        index=0,
-        format_func=lambda x: {"off": "关闭（Retriever → Generator）",
-                               "lexical": "开启（离线词法评分，丢弃<2分，同章节补召回）"}[x],
-        help="对应论文反思模块：0-3 分评估检索块，低分丢弃、全丢时改写重检索。LLM 评分需接口，当前仅提供离线基线。",
-    )
     _ft_ready = isinstance(config.get("llms", {}).get("planner_finetuned"), dict)
-    _default_pm = (config.get("workflow", {}) or {}).get("planner_mode", "baseline")
-    planner_mode = st.radio(
-        "Planner 模型（P6 对比）",
-        options=["baseline", "finetuned"],
-        index=1 if (_default_pm == "finetuned" and _ft_ready) else 0,
-        format_func=lambda x: {
-            "baseline": "基线：通用大模型（llms.planner）",
-            "finetuned": "微调：LoRA Planner（llms.planner_finetuned）" + ("" if _ft_ready else "　⚠ 未配置，将回退基线"),
-        }[x],
-        help="finetuned 需在 config.yaml 的 llms.planner_finetuned 配置微调模型的 OpenAI 兼容接口；未配置时自动回退 baseline。",
+    system_mode_key = st.selectbox(
+        "系统模式（P6 五级对比）",
+        options=MODE_ORDER,
+        index=len(MODE_ORDER) - 1,
+        format_func=lambda k: SYSTEM_MODES[k].label,
+        help="每级只在上一级基础上打开一个能力：无RAG → 朴素RAG → +规划微调 → +图谱 → +反思。",
     )
+    _spec = SYSTEM_MODES[system_mode_key]
+    st.caption(_spec.description)
+    st.caption("可用工具：" + "、".join(_spec.allowed_tools)
+               + f"　|　检索：{_spec.rag_mode or '关闭'}　|　Planner：{_spec.planner_mode}"
+               + ("（未配置微调模型，回退基线）" if _spec.planner_mode == "finetuned" and not _ft_ready else "")
+               + f"　|　反思：{_spec.reflection}")
+
+    with st.expander("高级：覆盖模式子开关", expanded=False):
+        kb_mode = st.radio(
+            "知识库来源",
+            options=["local_kb", "milvus", "mock"],
+            index=0,
+            format_func=lambda x: {"local_kb": "本地文献库（182 篇，多层索引）",
+                                   "milvus": "Milvus 向量库（需 embedding 接口）",
+                                   "mock": "合成案例 mock（仅演示）"}[x],
+            help="local_kb 由 data/kb 离线构建，不依赖网络；mock 为程序合成案例，不得用于评测。",
+        )
+        max_iter = st.slider("最大迭代轮次", 1, 5, value=config.get("workflow", {}).get("max_iterations", 3))
+        _pm_opts = ["（按模式）", "baseline", "finetuned"]
+        _pm_pick = st.selectbox("Planner 模型覆盖", _pm_opts, index=0,
+                                help="finetuned 需在 config.yaml 的 llms.planner_finetuned 配置微调模型接口；未配置时自动回退 baseline。")
+        _rf_pick = st.selectbox("反思模块覆盖", ["（按模式）", "off", "lexical"], index=0,
+                                help="lexical 为离线词法评分器（阈值 3 分）；LLM 评分需接口。")
+    _spec = resolve_mode(system_mode_key,
+                         planner_mode=None if _pm_pick == "（按模式）" else _pm_pick,
+                         reflection=None if _rf_pick == "（按模式）" else _rf_pick)
+    planner_mode = _spec.planner_mode
+    reflection_mode = _spec.reflection if _spec.reflection in ("off", "lexical") else "lexical"
+    allowed_tools = list(_spec.allowed_tools)
+    rag_mode = _spec.rag_mode
 
     st.divider()
     st.subheader("🧪 DGA 油色谱（可选）")
@@ -472,9 +616,11 @@ with st.sidebar:
 # ── 主输入区 ──────────────────────────────────────────────────────────────────
 EXAMPLES = {
     "—（手动输入）—": "",
-    "过载过热（DGA）": "220kV主变（SFSZ-240000/220，运行6年）油色谱检测：H2=105.0, CH4=160.3, C2H2=1.7, C2H4=374.9 μL/L，请诊断故障类型并给出处理建议。",
-    "高能放电（含安全要求）": "110kV主变油色谱异常：C2H2=45, H2=680, C2H4=230 μL/L，并伴随轻瓦斯报警，请判断故障性质并给出现场处理与安全措施。",
-    "油温趋势预测": "请基于 ETTh1 数据集预测该变压器未来 24 小时的油温走势，并判断是否存在过热风险。",
+    "案例1 过载过热（DGA 归因 + 规程）": "220kV主变（SFSZ-240000/220，运行6年）油色谱检测：H2=105.0, CH4=160.3, C2H2=1.7, C2H4=374.9 μL/L，请诊断故障类型并结合规程给出处理建议。",
+    "案例2 高能放电（含安全要求）": "110kV主变油色谱异常：C2H2=45, H2=680, C2H4=230 μL/L，并伴随轻瓦斯报警，请判断故障性质并给出现场处理与安全措施。",
+    "案例3 图谱多跳推理（部位 + 处理）": "铁心多点接地会导致什么后果？一般发生在哪个部件、如何检测和处理？",
+    "案例4 油温趋势预测": "请基于 ETTh1 数据集预测该变压器未来 24 小时的油温走势，并判断是否存在过热风险。",
+    "案例5 信息不足需追问": "帮我看看这台变压器有没有问题。",
 }
 
 example = st.selectbox("示例问题", list(EXAMPLES.keys()))
@@ -508,11 +654,12 @@ if run_clicked:
     if use_dga and dga:
         # 显式进入 Planner 输入：模型必须能看到前端填写的数据，才能被要求填对 dga_data
         context["dga"] = dict(dga)
-    mcp = build_mcp(kb_mode=kb_mode, user_dga=dga if use_dga else None)
+    mcp = build_mcp(kb_mode=kb_mode, user_dga=dga if use_dga else None, rag_mode=rag_mode)
 
-    with st.spinner("多智能体协同诊断中…（Planner → Retriever → Generator → Validator）"):
+    with st.spinner(f"多智能体协同诊断中…（{_spec.label}）"):
         final, elapsed, err = run_workflow(user_query, context, run_cfg, mcp,
-                                           reflection_mode=reflection_mode, planner_mode=planner_mode)
+                                           reflection_mode=reflection_mode, planner_mode=planner_mode,
+                                           allowed_tools=allowed_tools)
 
     if err:
         st.error("工作流执行失败：")
@@ -521,6 +668,7 @@ if run_clicked:
 
     st.session_state["final"] = final
     st.session_state["elapsed"] = elapsed
+    st.session_state["system_mode"] = _spec.to_dict()
 
 
 # ── 结果展示 ──────────────────────────────────────────────────────────────────
@@ -536,6 +684,8 @@ if final is not None:
         "🧭 规划计划",
         "🔧 工具调用",
         "📚 检索知识",
+        "🕸️ 图谱链路",
+        "🪞 反思评分",
         "🧩 推理轨迹",
         "🐞 错误",
     ])
@@ -571,15 +721,23 @@ if final is not None:
         st.markdown(f"```\n{final.plan or '（LLM 未启用或未生成计划）'}\n```")
 
     with tabs[3]:
+        _render_trajectory(final)
+        st.divider()
         render_tool_calls(final)
 
     with tabs[4]:
         _render_rag(final.retrieved_knowledge)
 
     with tabs[5]:
-        render_trace(final)
+        _render_kg(final)
 
     with tabs[6]:
+        _render_reflection(final)
+
+    with tabs[7]:
+        render_trace(final)
+
+    with tabs[8]:
         if final.errors:
             for e in final.errors:
                 st.error(f"[{e.get('agent', '?')}{('/' + e['tool']) if e.get('tool') else ''}] {e.get('error', '')}")

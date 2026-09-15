@@ -60,9 +60,12 @@ def _judge_business_result(tool: str, result: Any) -> Tuple[bool, Optional[str],
 
 
 class RetrieverAgent:
-    def __init__(self, config: Dict[str, Any], mcp_client: MCPClient) -> None:
+    def __init__(self, config: Dict[str, Any], mcp_client: MCPClient,
+                 allowed_tools: Optional[List[str]] = None) -> None:
         self.config = config
         self.mcp = mcp_client
+        # P6 五级模式：名单外工具即使 Planner 规划了也不执行，记录 error_code=tool_disabled
+        self.allowed_tools: Optional[set] = set(allowed_tools) if allowed_tools is not None else None
         workflow_cfg = config.get("workflow", {}) if isinstance(config, dict) else {}
         self.max_parallel_tools = int(
             workflow_cfg.get("parallel_tools", _DEFAULT_MAX_PARALLEL_TOOLS)
@@ -281,6 +284,20 @@ class RetrieverAgent:
                 else:
                     validation = {"valid": False, "errors": [
                         {"field": None, "code": "unknown_tool", "message": f"未知工具：{tool}"}]}
+
+            if self.allowed_tools is not None and tool not in self.allowed_tools:
+                rec = self._make_record(
+                    tool, raw_args if isinstance(raw_args, dict) else {"_raw": raw_args},
+                    validation={"valid": False, "errors": [
+                        {"field": None, "code": "tool_disabled",
+                         "message": f"工具 {tool} 在当前系统模式下不可用"}]},
+                    exec_success=False, business_success=False,
+                    error_code="tool_disabled", error=f"工具 {tool} 在当前系统模式下不可用",
+                    call_id=call_id, step_id=step_id,
+                )
+                tool_calls.append(rec)
+                logger.warning("Retriever 拒绝执行模式外工具 %s", tool)
+                continue
 
             if not validation.get("valid", False):
                 rec = self._make_record(

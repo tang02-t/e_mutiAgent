@@ -356,5 +356,82 @@ except Exception as exc:  # noqa: BLE001
     traceback.print_exc()
     check("反思模块用例", False, f"异常：{exc}")
 
+# ──────────────────────────────────────────────────────────────
+# P5-5 / P6：planner_mode 开关与五级系统模式
+# ──────────────────────────────────────────────────────────────
+print("\n[P5-5/P6] planner_mode 与五级系统模式")
+try:
+    from src.agents.planner import PlannerAgent
+    from src.tools.tool_registry import to_openai_tools, render_tools_for_prompt
+    from src.utils.prompts import PLANNER_SYSTEM_PROMPT
+    from src.graph.system_modes import SYSTEM_MODES, MODE_ORDER, resolve_mode, register_rag_for_mode
+
+    base_cfg = {"llms": {"planner": {"provider": "openai", "base_url": "http://x", "api_key": "",
+                                     "model_name": "m-base"}},
+                "workflow": {"planner_mode": "baseline"}}
+    p = PlannerAgent(base_cfg)
+    check("planner_mode 默认 baseline 且记录模型名", p.planner_mode == "baseline" and p.model_name == "m-base")
+    p = PlannerAgent(base_cfg, planner_mode="finetuned")
+    check("finetuned 缺配置时回退 baseline", p.planner_mode == "baseline")
+    cfg2 = {**base_cfg, "llms": {**base_cfg["llms"], "planner_finetuned": {"model_name": "m-lora", "api_key": "k"}}}
+    p = PlannerAgent(cfg2, planner_mode="finetuned")
+    check("finetuned 有配置时切换模型", p.planner_mode == "finetuned" and p.model_name == "m-lora")
+    try:
+        PlannerAgent(base_cfg, planner_mode="xxx")
+        check("非法 planner_mode 抛错", False)
+    except ValueError:
+        check("非法 planner_mode 抛错", True)
+
+    # 工具过滤
+    names = [t["function"]["name"] for t in to_openai_tools(["rag_search", "fault_attribution"])]
+    check("to_openai_tools 按名单过滤", names == ["rag_search", "fault_attribution"], str(names))
+    txt = render_tools_for_prompt(["fault_attribution"])
+    check("render_tools_for_prompt 只渲染名单内工具", "fault_attribution" in txt and "kg_search" not in txt)
+    sp = PLANNER_SYSTEM_PROMPT(["fault_attribution"])
+    check("系统提示词不出现被屏蔽工具", "kg_search" not in sp and "rag_search" not in sp)
+
+    # Planner 校验：名单外工具标记 tool_disabled
+    p = PlannerAgent(base_cfg, allowed_tools=["fault_attribution"])
+    steps = [{"id": 1, "tool": "kg_search", "arguments": {"query": "x"}},
+             {"id": 2, "tool": "fault_attribution", "arguments": {"dga_data": {"H2": 1.0}}}]
+    p._validate_steps(steps)
+    check("Planner 名单外工具 code=tool_disabled",
+          steps[0]["validation"]["errors"][0]["code"] == "tool_disabled" and steps[1]["validation"]["valid"])
+
+    # Retriever 守卫：名单外工具不执行
+    CALLS.clear()
+    mcp = MCPClient()
+    mcp.register_tool("rag_search", stub_rag)
+    mcp.register_tool("fault_attribution", stub_fa)
+    st = AgentState(user_query="q")
+    st.reasoning_trace.append({"agent": "planner", "type": "llm_plan", "content": {"steps": [
+        {"id": 1, "tool": "rag_search", "arguments": {"query": "a"}, "validation": {"valid": True, "errors": []}},
+        {"id": 2, "tool": "fault_attribution", "arguments": {"dga_data": {"H2": 1.0}},
+         "validation": {"valid": True, "errors": []}},
+    ]}})
+    st = RetrieverAgent({}, mcp, allowed_tools=["fault_attribution"]).run(st)
+    codes = {c["tool"]: c["error_code"] for c in st.tool_calls}
+    check("Retriever 拒绝名单外工具且不实际调用",
+          codes.get("rag_search") == "tool_disabled" and all(c[0] != "rag_search" for c in CALLS)
+          and codes.get("fault_attribution") is None, str(codes))
+    check("拒绝记录进入 trajectory", any(t["error_code"] == "tool_disabled" for t in st.trajectory))
+
+    # 五级模式定义单调递增
+    check("五级模式能力单调递增",
+          all(set(SYSTEM_MODES[a].allowed_tools) <= set(SYSTEM_MODES[b].allowed_tools)
+              for a, b in zip(MODE_ORDER, MODE_ORDER[1:]))
+          and SYSTEM_MODES["mode1"].rag_mode is None and SYSTEM_MODES["mode2"].rag_mode == "naive"
+          and "kg_search" not in SYSTEM_MODES["mode3"].allowed_tools and "kg_search" in SYSTEM_MODES["mode4"].allowed_tools
+          and SYSTEM_MODES["mode5"].reflection != "off")
+    spec = resolve_mode("4", planner_mode="baseline", reflection="llm")
+    check("resolve_mode 支持别名与覆盖", spec.key == "mode4" and spec.planner_mode == "baseline" and spec.reflection == "llm")
+    m = MCPClient()
+    check("mode1 的 rag_search 桩返回空", register_rag_for_mode(m, SYSTEM_MODES["mode1"]) == "disabled"
+          and m.call_tool("rag_search", "x") == [])
+except Exception as exc:  # noqa: BLE001
+    import traceback
+    traceback.print_exc()
+    check("P5-5/P6 用例", False, f"异常：{exc}")
+
 print(f"\n结果：{PASSED} passed, {FAILED} failed")
 sys.exit(1 if FAILED else 0)

@@ -36,6 +36,50 @@ class LLMConfig:
     max_retries: int = 2
 
 
+class UsageTracker:
+    """
+    进程级 Token 用量累加器（P6 五级模式的 Token 成本指标）。
+
+    每次 LLMClient.chat 成功返回后累加 prompt/completion tokens 与调用次数；
+    评测脚本在每条样本前 reset()，样本后 snapshot() 即得单条成本。线程安全。
+    """
+
+    def __init__(self) -> None:
+        import threading
+        self._lock = threading.Lock()
+        self.reset()
+
+    def reset(self) -> None:
+        with self._lock:
+            self.calls = 0
+            self.prompt_tokens = 0
+            self.completion_tokens = 0
+            self.by_model: Dict[str, Dict[str, int]] = {}
+
+    def add(self, model: str, prompt: int, completion: int) -> None:
+        with self._lock:
+            self.calls += 1
+            self.prompt_tokens += int(prompt or 0)
+            self.completion_tokens += int(completion or 0)
+            m = self.by_model.setdefault(model, {"calls": 0, "prompt_tokens": 0, "completion_tokens": 0})
+            m["calls"] += 1
+            m["prompt_tokens"] += int(prompt or 0)
+            m["completion_tokens"] += int(completion or 0)
+
+    def snapshot(self) -> Dict[str, Any]:
+        with self._lock:
+            return {
+                "calls": self.calls,
+                "prompt_tokens": self.prompt_tokens,
+                "completion_tokens": self.completion_tokens,
+                "total_tokens": self.prompt_tokens + self.completion_tokens,
+                "by_model": {k: dict(v) for k, v in self.by_model.items()},
+            }
+
+
+USAGE = UsageTracker()
+
+
 class LLMClient:
     """
     统一封装大模型调用接口，当前示例以 OpenAI 风格为主：
@@ -122,6 +166,13 @@ class LLMClient:
                 try:
                     resp = self._client.chat.completions.create(**create_kwargs)  # type: ignore[attr-defined]
                     msg = resp.choices[0].message
+                    usage = getattr(resp, "usage", None)
+                    if usage is not None:
+                        USAGE.add(
+                            self.cfg.model_name,
+                            getattr(usage, "prompt_tokens", 0) or 0,
+                            getattr(usage, "completion_tokens", 0) or 0,
+                        )
                     return self._normalize_message(msg)
                 except Exception as exc:  # noqa: BLE001 - 网络/限流等异常统一重试
                     last_exc = exc

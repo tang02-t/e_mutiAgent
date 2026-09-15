@@ -264,7 +264,9 @@ class ReflectionModule:
             kept = [it for it in items if it.get("reflection_score", 0) >= self.min_keep_score]
             dropped = len(items) - len(kept)
             rnd_log = {"round": rnd, "scorer": scorer_name, "scored": len(items), "kept": len(kept),
-                       "dropped": dropped, "scores": scores}
+                       "dropped": dropped, "scores": scores,
+                       "chunk_ids": [it.get("chunk_id") for it in items],
+                       "titles": [((it.get("metadata") or {}).get("title") or "") for it in items]}
 
             # 全部丢弃 → 改写重检索（仅第一轮触发一次）
             if not kept and rnd == 1 and self.research_fn is not None and not log["rewrite_triggered"]:
