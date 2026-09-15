@@ -113,11 +113,51 @@ def to_llama_factory(seed: Dict[str, Any], tools: List[Dict[str, Any]]) -> Dict[
             "tools": json.dumps([t["function"] for t in tools], ensure_ascii=False)}
 
 
+# ── 多轮 / 错误恢复轨迹（build_multi_turn.py 产物）──
+MULTI = ROOT / "data/planner/seeds/multi_turn_seeds.jsonl"
+
+
+def _finish_content(step: Dict[str, Any]) -> str:
+    """finish 决策的 assistant 文本：与线上 json_text 结构一致（intent + 空 steps），并带 ask_user 字段。"""
+    obj: Dict[str, Any] = {"intent_analysis": step.get("thought", ""), "steps": []}
+    if step.get("ask_user"):
+        obj["ask_user"] = step["ask_user"]
+    return json.dumps(obj, ensure_ascii=False)
+
+
+def multi_turn_samples(rec: Dict[str, Any], tools: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """每个 assistant 决策点展开为一条样本：messages 前缀 = system + user + 之前的 assistant/tool 消息。"""
+    base = _messages(rec)
+    out: List[Dict[str, Any]] = []
+    hist: List[Dict[str, Any]] = []
+    call_idx = 0
+    for k, step in enumerate(rec["trajectory"]):
+        if step["role"] == "tool":
+            hist.append({"role": "tool", "tool_call_id": f"call_{call_idx}", "name": step["tool"],
+                         "content": json.dumps(step["content"], ensure_ascii=False)})
+            continue
+        # assistant 决策点
+        if "tool_call" in step:
+            call_idx += 1
+            target = {"role": "assistant", "content": step.get("thought", ""),
+                      "tool_calls": [{"id": f"call_{call_idx}", "type": "function",
+                                      "function": {"name": step["tool_call"]["tool"],
+                                                   "arguments": json.dumps(step["tool_call"]["arguments"], ensure_ascii=False)}}]}
+        else:
+            target = {"role": "assistant", "content": _finish_content(step)}
+        out.append({"messages": base + hist + [target], "tools": tools,
+                    "meta": {"seed_id": rec["seed_id"], "category": rec["category"], "sub_type": rec["sub_type"],
+                             "split": rec["split"], "decision_index": len(out), "n_prior_calls": call_idx - (1 if "tool_call" in step else 0)}})
+        hist.append(target)
+    return out
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--seeds", default=str(SEEDS))
     ap.add_argument("--include-composite", action="store_true", default=True)
     ap.add_argument("--no-test", action="store_true", help="不导出 test（封存，训练前不查看）")
+    ap.add_argument("--no-multi-turn", action="store_true", help="不导出多轮/错误恢复样本")
     args = ap.parse_args()
 
     seeds = [json.loads(l) for l in open(args.seeds, encoding="utf-8") if l.strip()]
@@ -138,18 +178,40 @@ def main() -> None:
         json.dump(lf, open(OUT / f"lf_{sp}.json", "w", encoding="utf-8"), ensure_ascii=False, indent=1)
         print(f"{sp}: {len(rows)} 条 → swift_{sp}.jsonl / jsontext_{sp}.jsonl / lf_{sp}.json")
 
+    # 多轮 / 错误恢复（ms-swift messages 格式，含 tool 角色）
+    mt_stats = Counter()
+    if MULTI.exists() and not args.no_multi_turn:
+        recs = [json.loads(l) for l in open(MULTI, encoding="utf-8") if l.strip()]
+        for sp in splits:
+            n = 0
+            with open(OUT / f"swift_multiturn_{sp}.jsonl", "w", encoding="utf-8") as f:
+                for r in recs:
+                    if r["split"] != sp:
+                        continue
+                    for smp in multi_turn_samples(r, tools):
+                        f.write(json.dumps(smp, ensure_ascii=False) + "\n")
+                        n += 1
+                        mt_stats[(sp, r["category"], r["sub_type"])] += 1
+            print(f"{sp}: 多轮决策点样本 {n} 条 → swift_multiturn_{sp}.jsonl")
+
     # 数据卡片
     card = ["# Planner SFT 数据卡片（模板阶段，LLM 扩写前）\n",
-            f"- 来源：`{Path(args.seeds).relative_to(ROOT)}`（P4 任务种子，金标动作已参数校验 + 真实执行）",
+            f"- 来源：`{Path(args.seeds).relative_to(ROOT)}`（P4 任务种子，金标动作已参数校验 + 真实执行）"
+            + (f"；多轮/错误恢复：`{MULTI.relative_to(ROOT)}`（工具返回全部来自真实执行）" if mt_stats else ""),
             "- 系统提示：与线上 `PLANNER_SYSTEM_PROMPT()` 一致（含工具清单）；user 为 `render_planner_user` 渲染，context 走 `PlannerAgent._render_context`",
-            "- 格式：ms-swift messages+tools（`swift_*.jsonl`）、LLaMA-Factory function-calling（`lf_*.json`）、JSON 文本规划（`jsontext_*.jsonl`）",
+            "- 格式：ms-swift messages+tools（`swift_*.jsonl`）、LLaMA-Factory function-calling（`lf_*.json`）、JSON 文本规划（`jsontext_*.jsonl`）；"
+            "多轮为 ms-swift messages（含 `tool` 角色，`swift_multiturn_*.jsonl`），每个 assistant 决策点一条样本",
             "- 切分：按 `group_key` 分组，train/dev/test 互不共享来源；test 封存",
             "- 已知偏差：问法为模板生成，多样性不足（待 P4-2 LLM 口语化扩写）；数值类 DGA 记录来自 3 个公开数据集，标签分布不均（过载过热/正常偏多）；"
-            "图谱推理类受规则抽取图谱覆盖限制（90 节点/190 边）",
+            "图谱推理类受规则抽取图谱覆盖限制（90 节点/190 边）；多轮样本中 assistant 的 thought 为规则模板文本",
             "- 许可：文献数据仅用于内部研究；ETT 数据集 CC BY 4.0；DGA 数据集见 data/real/dga 来源说明",
-            "", "## 规模", "| split | category | n |", "|---|---|---|"]
+            "", "## 规模（单轮）", "| split | category | n |", "|---|---|---|"]
     for (sp, c), v in sorted(stats.items()):
         card.append(f"| {sp} | {c} | {v} |")
+    if mt_stats:
+        card += ["", "## 规模（多轮决策点样本）", "| split | category | sub_type | n |", "|---|---|---|---|"]
+        for (sp, c, st), v in sorted(mt_stats.items()):
+            card.append(f"| {sp} | {c} | {st} | {v} |")
     (OUT / "DATA_CARD.md").write_text("\n".join(card), encoding="utf-8")
     print(f"数据卡片 → {OUT / 'DATA_CARD.md'}")
 
