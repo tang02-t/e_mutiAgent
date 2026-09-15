@@ -228,11 +228,13 @@
 
 ### C-3 补证与重规划路由
 
-- [ ] `workflow.py` 路由新增：`unsupported` 且证据可补 → 回 Planner 并携带 `missing_evidence: [{claim_id, suggested_tool, suggested_query}]`；`contradict` → 回 Generator 修订；`ABSTAIN` → 结束。
-- [ ] Planner `active` 模板增加对 `missing_evidence` 的处理规则（优先调用建议工具，最多补证 1 轮）。
-- [ ] 每次路由记录到轨迹日志：触发原因、补证工具、额外 Token 与耗时。
+- [x] `workflow.py` 路由新增：`unsupported` 且证据可补 → 回 Planner 并携带 `missing_evidence: [{claim_id, suggested_tool, suggested_query}]`；`contradict` → 回 Generator 修订；`ABSTAIN` → 结束。（2026-09-15，实现为规则型 `supplement` 节点：Validator REVISION 且 `claim_check=route` 且 `missing_evidence` 有可用建议工具 且未超 `claim_supplement_rounds`（默认 1）→ `supplement` 构造合成补证计划（`decision_source=supplement`）→ Retriever 累积执行 → Generator 修订；无可补证据 / 矛盾 / DATA / SAFETY → Generator；ABSTAIN / PASS / FAIL → END。去重：跳过与已执行调用同工具同参数（`ett_forecast` 补默认值、`fault_attribution` 忽略 `query`）及计划内重复；`kg_search` 预检实体可定位性。LangGraph 图与串行降级路径同步；state 新增 `evidence_rounds` / `route_log`）
+- [x] Planner `active` 模板增加对 `missing_evidence` 的处理规则（优先调用建议工具，最多补证 1 轮）。（2026-09-15，[system_active.txt](/Users/ts/Desktop/thu/multi_Agent/templates/planner/system_active.txt) 新增「补证规则」段；`_render_context` 渲染 `context.missing_evidence`）
+- [x] 每次路由记录到轨迹日志：触发原因、补证工具、额外 Token 与耗时。（2026-09-15，`state.route_log`：`iteration / verdict / claim_check_verdict / unsupported_ratio / n_missing / target / reason`，补证轮另记 `round / tools / skipped / extra_tokens / extra_llm_calls / latency_ms`，Token 由 `USAGE.snapshot` 差分）
 
 验收标准：D10 抽 30 条，补证路由触发的调用中不出现重复调用同一工具同一参数。
+
+验收结果（2026-09-15，`scripts/eval/eval_route_c3.py --n 30`，报告 [route_acceptance.md](/Users/ts/Desktop/thu/multi_Agent/docs/route_acceptance.md)）：D10 分层 30 条，首轮草案注入 4 条无据声明（分别指向四个工具）；补证路由触发 28/30（2 条 multi_tool 场景注入占比未超 0.3 阈值直接 PASS），补证调用 95 次全部成功，与首轮调用重复 0、补证内部重复 0、全部调用重复 0；去重跳过 `duplicate_of_existing_call` 2、`no_entity_in_kg` 15；补证后 30 条全部 PASS，平均 Generator 轮次 1.93，补证轮平均耗时 29 ms，额外 Token 0（无 LLM）。对照 `claim_check=check`：无补证调用、证据来源仅 tool 78 / kb 21 / kg 16 / user 6，route 模式为 tool 228 / kb 87 / kg 42。单元测试 `tests/test_c3_route.py` 84 项通过；回归 p0 87 / b1 47 / b2 34 / b3 33 / b4 51 / b5 30 / c1 50 / c2 59 全绿。**验收通过。** 标注：本次验证的是规则补证路径；LLM 重规划路径（active 模板 `missing_evidence` 规则）的去重效果需启用 LLM 后在 C-5 一并评测。
 
 ### C-4 故障注入评测集（数据 D11）
 

@@ -97,9 +97,12 @@ workflow:
   #   claim_semantic_layer: 是否对 inference 声明做 LLM NLI 判定（LLM 不可用时自动跳过）
   #   claim_rel_tol / claim_abs_tol: 数值一致性容差；claim_unsupported_threshold: 无依据占比阈值；
   #   claim_abstain_after: 第 N 次评估仍不通过则 ABSTAIN（默认 3 = 两轮修订后）
+  #   claim_supplement_rounds: route 模式下最多补证轮数（C-3；每轮 supplement → Retriever → Generator 修订；
+  #                            补证计划跳过与已执行调用同工具同参数的步骤，路由记录见 state.route_log）
   claim_check: off
   claim_semantic_layer: true
   claim_rel_tol: 0.02
   claim_abs_tol: 0.05
   claim_unsupported_threshold: 0.3
   claim_abstain_after: 3
+  claim_supplement_rounds: 1

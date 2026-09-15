@@ -128,7 +128,13 @@ class PlannerAgent:
         unc = context.get("uncertainty")
         if isinstance(unc, dict) and unc:
             lines.append(PlannerAgent._render_uncertainty(unc))
-        skip = {"dga", "evidence", "unavailable_symptoms", "asked_symptoms", "uncertainty"}
+        missing = context.get("missing_evidence")
+        if isinstance(missing, list) and missing:
+            items = "; ".join(
+                f"{m.get('claim_id')}→{m.get('suggested_tool') or '无建议工具'}（{str(m.get('suggested_query') or '')[:40]}）"
+                for m in missing[:6] if isinstance(m, dict))
+            lines.append(f"- Validator 判定缺少证据的声明（missing_evidence，优先调用建议工具补证，最多补证 1 轮）：{items}")
+        skip = {"dga", "evidence", "unavailable_symptoms", "asked_symptoms", "uncertainty", "missing_evidence"}
         for k, v in context.items():
             if k in skip:
                 continue

@@ -137,7 +137,29 @@ flowchart LR
 - 配置：`workflow.generator_output_mode: text | claims`（默认 `text`），`GeneratorAgent(config, output_mode=...)` 可覆盖。
 - 状态：`AgentState.draft_claims`（声明列表）、`claims_source`（`llm | rule | ""`）、`claims_json_valid`（LLM JSON 或规则声明是否通过 schema 校验）。
 - 提示词：[system_claims.txt](/Users/ts/Desktop/thu/multi_Agent/templates/generator/system_claims.txt)，`GENERATOR_SYSTEM_PROMPT("claims")` 加载，缺失回退基础模板。
+- 核查与路由：`workflow.claim_check: off | check | route`；`route` 模式下 Validator 写 `state.missing_evidence`，工作流按 §6.1 状态机补证；`claim_supplement_rounds`（默认 1）限制补证轮数。
+
+### 6.1 C-3 补证与重规划路由状态机
+
+```mermaid
+stateDiagram-v2
+    [*] --> Generator
+    Generator --> Validator
+    Validator --> [*]: PASS / FAIL / ABSTAIN / 达 max_iterations
+    Validator --> Supplement: REVISION 且 missing_evidence 有可用建议工具 且 evidence_rounds < claim_supplement_rounds
+    Validator --> Generator: REVISION（contradict / DATA / SAFETY / 无可补证据 / 补证轮数耗尽）
+    Supplement --> Retriever: 去重后有可执行补证步骤
+    Supplement --> Generator: 去重后无步骤
+    Retriever --> Generator: 补证轮直达（不重跑 Reflection / 追问循环）
+```
+
+- `Supplement` 为规则节点（不调 LLM）：由 `missing_evidence[{claim_id, suggested_tool, suggested_query, reason}]` 构造合成计划（`decision_source=supplement`），Retriever 在既有 `tool_calls` / `retrieved_knowledge` 上累积执行，`call_index` 连续。
+- 去重签名 = 工具名 + 规范化参数（`ett_forecast` 补默认 `dataset/lookback/horizon`、`fault_attribution` 忽略 `query`、剔除 None、键排序）。跳过原因：`duplicate_of_existing_call` / `duplicate_in_plan` / `no_tool` / `tool_disabled` / `no_entity_in_kg`。
+- 轨迹：每次 Validator 路由写一条 `state.route_log`，含 `iteration / verdict / claim_check_verdict / unsupported_ratio / n_missing / target / reason`；补证轮另记 `round / tools / skipped / extra_tokens / extra_llm_calls / latency_ms`。`state.evidence_rounds` 为已补证轮数。
+- Planner `active` 模板含 `missing_evidence` 处理规则（`_render_context` 渲染 `context.missing_evidence`），供 LLM 重规划路径使用。
 
 ## 7. 验收（2026-09-15）
 
 见 [tests/test_c1_claims.py](/Users/ts/Desktop/thu/multi_Agent/tests/test_c1_claims.py) 与 `docs/claims_acceptance.md`：D10 分层抽 30 条，OraclePlanner + 真实工具 + Generator（LLM 未启用，走规则拼装路径），统计 JSON 合法率与每条 claim 的 evidence 覆盖。LLM 路径的合法率需在启用 LLM 后用 `--llm` 补跑并在报告中标注。
+
+C-3 路由验收见 [tests/test_c3_route.py](/Users/ts/Desktop/thu/multi_Agent/tests/test_c3_route.py) 与 `docs/route_acceptance.md`（`scripts/eval/eval_route_c3.py`）。

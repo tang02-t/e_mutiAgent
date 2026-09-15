@@ -32,14 +32,15 @@ LangGraph 工作流架构：
     ┌──────────────────────────────────────────────────────────────┐
     │                       Validator                              │
     │          PASS → 结束  |  REVISION → Generator（迭代）       │
-    │          FAIL → 结束  |  max_iter → 结束（带警告）          │
+    │          REVISION 且有可补证据 → Supplement → Retriever → Generator（C-3）│
+    │          FAIL / ABSTAIN → 结束  |  max_iter → 结束（带警告）│
     └──────────────────────────────────────────────────────────────┘
                                │
                                ▼
                               END
 """
 
-from typing import Literal, Callable, Dict, Any, Optional
+from typing import Literal, Callable, Dict, Any, Optional, List
 
 from src.graph.state import AgentState
 from src.utils.logging import get_logger
@@ -78,9 +79,237 @@ def _generator_node(state: AgentState, generator, revision_feedback: str = "") -
 
 
 def _validator_node(state: AgentState, validator) -> AgentState:
-    """Validator 节点：质量验证 + 路由决策。"""
+    """Validator 节点：质量验证 + 路由决策（C-3：REVISION 且有可补证据时改走 supplement）。"""
     logger.info("[bold cyan]LangGraph Node: validator[/bold cyan]")
-    return validator.run(state)
+    state = validator.run(state)
+    _finalize_supplement_cost(state)
+    _decide_supplement_route(state, validator)
+    return state
+
+
+# ─── C-3 补证与重规划路由 ────────────────────────────────────────────────────
+
+SUPPLEMENT_TOOLS = ("fault_attribution", "ett_forecast", "kg_search", "rag_search")
+_ETT_DEFAULTS = {"dataset": "ETTh1", "lookback": 96, "horizon": 24}
+
+
+def _canonical_args(tool: str, args: Dict[str, Any]) -> str:
+    """工具参数规范化（补默认值、去 None、键排序），用于「同工具同参数」去重。"""
+    import json
+    clean = {k: v for k, v in (args or {}).items() if v is not None}
+    if tool == "ett_forecast":
+        clean = {**_ETT_DEFAULTS, **clean}
+    if tool == "fault_attribution":
+        clean.pop("query", None)  # query 仅作上下文，不影响归因结果
+    return json.dumps(clean, ensure_ascii=False, sort_keys=True, default=str)
+
+
+def _called_signatures(state: AgentState) -> set:
+    sigs = set()
+    for c in state.tool_calls or []:
+        tool = c.get("tool")
+        if not tool:
+            continue
+        args = c.get("args") if isinstance(c.get("args"), dict) else c.get("raw_arguments")
+        if not isinstance(args, dict):
+            args = {}
+        sigs.add((tool, _canonical_args(tool, args)))
+    return sigs
+
+
+def _supplement_args(state: AgentState, tool: str, item: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """按待补证声明构造工具参数；返回 None 表示该工具对当前上下文必然无结果，应跳过。"""
+    ctx = state.context or {}
+    q = str(item.get("suggested_query") or "").strip() or state.user_query
+    if tool == "fault_attribution":
+        args: Dict[str, Any] = {"query": state.user_query}
+        dga = ctx.get("dga")
+        if isinstance(dga, dict):
+            clean = {k: v for k, v in dga.items() if v is not None}
+            if clean:
+                args["dga_data"] = clean
+        ev = ctx.get("evidence")
+        if isinstance(ev, dict) and ev:
+            args["evidence"] = {k: v for k, v in ev.items() if v is not None}
+        return args
+    if tool == "ett_forecast":
+        args = {}
+        for k in ("dataset", "lookback", "horizon"):
+            if ctx.get(k) is not None:
+                args[k] = ctx[k]
+        return args
+    if tool == "kg_search":
+        attr = _latest_attribution(state)
+        name = (attr or {}).get("primary_fault_name")
+        candidates = [c for c in (name, q, state.user_query) if c]
+        try:
+            from src.tools.kg_search import get_kg
+            kg = get_kg()
+            for c in candidates:
+                if kg.locate(c):
+                    return {"query": c, "hops": 1}
+            return None  # 图谱中无可定位实体：调用必然 no_match，跳过
+        except Exception:  # noqa: BLE001
+            return {"query": candidates[0] if candidates else q, "hops": 1}
+    return {"query": q}
+
+
+def _build_supplement_plan(state: AgentState, allowed_tools=None) -> Dict[str, Any]:
+    """
+    由 state.missing_evidence 构造合成补证计划（decision_source=supplement）。
+    去重规则：跳过与本轮已执行调用「同工具同参数」的步骤，以及计划内部重复的步骤；
+    跳过原因记入 skipped，供轨迹日志与验收统计。
+    """
+    from src.tools.tool_registry import validate_arguments_strict
+    called = _called_signatures(state)
+    steps: List[Dict[str, Any]] = []
+    skipped: List[Dict[str, Any]] = []
+    planned: set = set()
+    for item in state.missing_evidence or []:
+        tool = item.get("suggested_tool")
+        cid = item.get("claim_id")
+        if tool not in SUPPLEMENT_TOOLS:
+            skipped.append({"claim_id": cid, "tool": tool, "reason": "no_tool"})
+            continue
+        if allowed_tools is not None and tool not in allowed_tools:
+            skipped.append({"claim_id": cid, "tool": tool, "reason": "tool_disabled"})
+            continue
+        args = _supplement_args(state, tool, item)
+        if args is None:
+            skipped.append({"claim_id": cid, "tool": tool, "reason": "no_entity_in_kg"})
+            continue
+        sig = (tool, _canonical_args(tool, args))
+        if sig in called:
+            skipped.append({"claim_id": cid, "tool": tool, "reason": "duplicate_of_existing_call"})
+            continue
+        if sig in planned:
+            skipped.append({"claim_id": cid, "tool": tool, "reason": "duplicate_in_plan"})
+            continue
+        planned.add(sig)
+        steps.append({
+            "id": len(steps) + 1, "stage": "补证", "tool": tool, "arguments": args,
+            "description": f"为声明 {cid} 补充证据：{str(item.get('reason') or '')[:80]}",
+            "for_claims": [cid],
+            "validation": validate_arguments_strict(tool, args),
+        })
+    return {
+        "intent_analysis": "（Validator 判定存在无依据声明，按建议工具补证）",
+        "action": "call_tool" if steps else "conclude",
+        "decision_source": "supplement",
+        "rationale": f"第 {state.evidence_rounds + 1} 轮补证：{len(steps)} 步执行，{len(skipped)} 步去重/跳过",
+        "steps": steps, "skipped": skipped,
+        "plan_status": "ok" if steps else "empty", "planner_mode": "rule",
+    }
+
+
+def _decide_supplement_route(state: AgentState, validator) -> None:
+    """
+    C-3 路由决策（在 Validator 之后执行，写 state.next_node 与 state.route_log）：
+    - ABSTAIN / PASS / FAIL → END（Validator 已决定）
+    - REVISION 且 claim_check=route 且 missing_evidence 非空 且 未超补证轮数 → supplement
+    - 其余 REVISION（矛盾 / 数据错误 / 安全违反）→ generator 修订
+    """
+    verdict = state.validation_verdict
+    last_check = state.claim_check_log[-1] if state.claim_check_log else {}
+    target = state.next_node
+    reason = ""
+    max_rounds = int(getattr(validator, "supplement_rounds", 1) or 0)
+    route_mode = getattr(validator, "claim_check", "off") == "route"
+    if verdict == "REVISION" and target == "generator":
+        actionable = [m for m in (state.missing_evidence or []) if m.get("suggested_tool") in SUPPLEMENT_TOOLS]
+        if not route_mode:
+            reason = "revision:claim_check!=route"
+        elif not state.missing_evidence:
+            reason = "revision:contradict_or_constraint"  # 无可补证据：矛盾 / DATA / SAFETY / 整体评分
+        elif not actionable:
+            reason = "revision:no_actionable_evidence"  # 缺证声明均无可用建议工具 → 交 Generator 删改
+        elif state.evidence_rounds >= max_rounds:
+            reason = f"revision:supplement_rounds_exhausted({state.evidence_rounds}/{max_rounds})"
+        else:
+            target = "supplement"
+            reason = f"unsupported:{len(actionable)} claims need evidence"
+            state.next_node = "supplement"
+    elif verdict == "ABSTAIN":
+        reason = "abstain"
+    elif verdict == "PASS":
+        reason = "pass"
+    elif verdict == "FAIL":
+        reason = "fail"
+    else:
+        reason = f"{verdict.lower()}:{target}"
+    state.route_log.append({
+        "iteration": state.iteration, "verdict": verdict,
+        "claim_check_verdict": last_check.get("verdict"),
+        "unsupported_ratio": last_check.get("unsupported_ratio"),
+        "n_missing": len(state.missing_evidence or []),
+        "target": target, "reason": reason,
+    })
+    logger.info("Route decision: validator → %s (%s)", target, reason)
+
+
+def _finalize_supplement_cost(state: AgentState) -> None:
+    """补证轮结束（再次进入 Validator）时，回填该轮额外 Token / LLM 调用 / 耗时。"""
+    import time
+    from src.utils.llm import USAGE
+    for entry in reversed(state.route_log or []):
+        if entry.get("target") == "supplement" and "t_start" in entry and "latency_ms" not in entry:
+            snap = USAGE.snapshot()
+            entry["extra_tokens"] = snap["total_tokens"] - int(entry.pop("tokens_before", 0))
+            entry["extra_llm_calls"] = snap["calls"] - int(entry.pop("calls_before", 0))
+            entry["latency_ms"] = round((time.time() - entry.pop("t_start")) * 1000, 1)
+            break
+
+
+def _supplement_node(state: AgentState, allowed_tools=None) -> AgentState:
+    """
+    补证节点（规则型，不调 LLM）：把 missing_evidence 转成合成补证计划交给 Retriever；
+    若去重后无可执行步骤，直接回 Generator 修订。补证后清空 draft_claims，让 Generator 基于扩充后的证据目录重建声明。
+    """
+    import time
+    from src.utils.llm import USAGE
+    logger.info("[bold cyan]LangGraph Node: supplement[/bold cyan]")
+    plan = _build_supplement_plan(state, allowed_tools)
+    state.evidence_rounds += 1
+    snap = USAGE.snapshot()
+    entry = state.route_log[-1] if state.route_log and state.route_log[-1].get("target") == "supplement" else None
+    if entry is None:
+        entry = {"iteration": state.iteration, "verdict": state.validation_verdict, "target": "supplement",
+                 "reason": "supplement"}
+        state.route_log.append(entry)
+    entry.update({
+        "round": state.evidence_rounds,
+        "tools": [{"tool": s["tool"], "arguments": s["arguments"], "for_claims": s.get("for_claims")} for s in plan["steps"]],
+        "skipped": plan["skipped"],
+        "tokens_before": snap["total_tokens"], "calls_before": snap["calls"], "t_start": time.time(),
+    })
+    state.reasoning_trace.append({"agent": "planner", "type": "llm_plan", "content": plan})
+    state.context["missing_evidence"] = list(state.missing_evidence)
+    # 反馈给 Generator：说明补了哪些证据 / 哪些无法补
+    lines = [f"- 已为声明 {','.join(s.get('for_claims') or [])} 调用 {s['tool']} 补充证据" for s in plan["steps"]]
+    lines += [f"- 声明 {k.get('claim_id')} 无法补证（{k.get('reason')}），请删除该声明或改为有据的表述" for k in plan["skipped"]]
+    note = "【补证结果】\n" + "\n".join(lines) if lines else ""
+    if note:
+        state.revision_feedback = (state.revision_feedback or "") + ("\n\n" if state.revision_feedback else "") + note
+    state.draft_claims = []
+    state.missing_evidence = []
+    if plan["steps"]:
+        state.plan_status = "ok"
+        state.planner_action = "call_tool"
+        state.next_node = "retriever"
+    else:
+        logger.info("supplement: 去重后无可执行步骤，直接回 Generator 修订")
+        state.next_node = "generator"
+    return state
+
+
+def _route_after_supplement(state: AgentState) -> str:
+    nxt = "retriever" if state.next_node == "retriever" else "generator"
+    logger.info("Route: supplement → %s", nxt)
+    return nxt
+
+
+def _is_supplement_round(state: AgentState) -> bool:
+    return _latest_plan(state).get("decision_source") == "supplement"
 
 
 # ─── B-4 主动追问循环 ────────────────────────────────────────────────────────
@@ -289,6 +518,10 @@ def _retriever_node_active(state: AgentState, retriever) -> AgentState:
     logger.info("[bold cyan]LangGraph Node: retriever (active)[/bold cyan]")
     state = retriever.run(state)
     plan = _latest_plan(state)
+    if plan.get("decision_source") == "supplement":
+        # C-3 补证轮：不重开追问循环，直接回 Generator 修订
+        state.next_node = "generator"
+        return state
     tools = [s.get("tool") for s in plan.get("steps") or [] if isinstance(s, dict)]
     n_tool_rounds = sum(1 for e in state.inquiry_log if e.get("action") == "call_tool")
     did_attr = "fault_attribution" in tools and _latest_attribution(state) is not None
@@ -333,7 +566,12 @@ def _route_after_planner_active(state: AgentState) -> str:
 
 def _route_after_retriever_active(state: AgentState) -> str:
     """active 策略下 Retriever 之后的路由（只读）：由 _retriever_node_active 写入 next_node。"""
-    nxt = "planner" if state.next_node == "planner" else "generator"
+    if state.next_node == "planner":
+        nxt = "planner"
+    elif _is_supplement_round(state):
+        nxt = "generator_direct"  # C-3 补证轮：跳过 Reflection 直达 Generator
+    else:
+        nxt = "generator"
     logger.info("Route: retriever → %s", nxt)
     return nxt
 
@@ -343,7 +581,8 @@ def _route_after_retriever_active(state: AgentState) -> str:
 def _route_after_validator(state: AgentState) -> str:
     """
     Validator 之后的路由决策：
-    - PASS / FAIL → END
+    - PASS / FAIL / ABSTAIN → END
+    - REVISION 且有可补证据（claim_check=route，C-3）→ supplement（补证后回 Generator）
     - REVISION 且未达上限 → generator（迭代）
     - REVISION 但已达上限 → END
     """
@@ -357,6 +596,9 @@ def _route_after_validator(state: AgentState) -> str:
             "Route: validator → generator (verdict=%s, iteration=%d/%d)",
             verdict, state.iteration, state.max_iterations
         )
+    elif next_node == "supplement":
+        logger.info("Route: validator → supplement (verdict=%s, missing=%d, round=%d)",
+                    verdict, len(state.missing_evidence), state.evidence_rounds + 1)
     else:
         logger.warning("Route: validator → END (unknown next_node=%s)", next_node)
         next_node = "END"
@@ -431,7 +673,7 @@ def run_langgraph_workflow(
         )
         graph.add_conditional_edges(
             "retriever", _route_after_retriever_active,
-            {"planner": "planner", "generator": after_tools},
+            {"planner": "planner", "generator": after_tools, "generator_direct": "generator"},
         )
         graph.add_conditional_edges(
             "inquiry", lambda s: s.next_node,
@@ -439,16 +681,29 @@ def run_langgraph_workflow(
         )
     else:
         graph.add_edge("planner", "retriever")
-        graph.add_edge("retriever", after_tools)
+        # C-3 补证轮的 Retriever 直达 Generator（不重跑 Reflection）
+        graph.add_conditional_edges(
+            "retriever", lambda s: "generator" if _is_supplement_round(s) else "after_tools",
+            {"after_tools": after_tools, "generator": "generator"},
+        )
     graph.add_edge("generator", "validator")
 
-    # 条件路由：Validator → (generator | END)
+    # C-3 补证节点：Validator REVISION 且有可补证据 → supplement → retriever → generator
+    supplement_allowed = getattr(retriever, "allowed_tools", None)
+    graph.add_node("supplement", partial(_supplement_node, allowed_tools=supplement_allowed))
+    graph.add_conditional_edges(
+        "supplement", _route_after_supplement,
+        {"retriever": "retriever", "generator": "generator"},
+    )
+
+    # 条件路由：Validator → (generator | supplement | END)
     graph.add_conditional_edges(
         "validator",
         _route_after_validator,
         {
-            "generator": "generator",  # REVISION → 迭代重生成
-            "END": END,                 # PASS / FAIL / 达上限 → 结束
+            "generator": "generator",      # REVISION → 迭代重生成
+            "supplement": "supplement",    # REVISION 且可补证据 → 补证（C-3）
+            "END": END,                    # PASS / FAIL / ABSTAIN / 达上限 → 结束
         }
     )
 
@@ -490,7 +745,7 @@ def _run_sequential_workflow(
 ) -> AgentState:
     """
     简化版串行工作流（LangGraph 不可用时的降级方案）。
-    不支持 Validator 迭代优化；active 策略下仍执行追问循环（与图版同一套路由函数）。
+    支持 Validator REVISION 迭代与 C-3 补证路由；active 策略下仍执行追问循环（与图版同一套路由函数）。
     """
     logger.info("[bold cyan]Running sequential workflow (fallback mode)[/bold cyan]")
     active = getattr(planner, "strategy", "free") == "active"
@@ -514,10 +769,25 @@ def _run_sequential_workflow(
                 if state.next_node == "END":
                     return state  # 交互式中断
                 node = state.next_node if state.next_node in ("planner", "retriever") else "planner"
+    return _finish_generation(state, retriever, generator, validator, reflector)
+
+
+def _finish_generation(state: AgentState, retriever, generator, validator, reflector=None) -> AgentState:
+    """串行模式的收尾：Reflection → Generator → Validator，支持 REVISION 迭代与 C-3 补证路由（与图版同一套节点函数）。"""
     if reflector is not None:
         state = reflector.run(state)
     state = generator.run(state)
-    state = validator.run(state)
+    state = _validator_node(state, validator)
+    guard = 0
+    supplement_allowed = getattr(retriever, "allowed_tools", None)
+    while state.next_node in ("generator", "supplement") and guard < 2 * state.max_iterations + 4:
+        guard += 1
+        if state.next_node == "supplement":
+            state = _supplement_node(state, supplement_allowed)
+            if state.next_node == "retriever":
+                state = retriever.run(state)
+        state = generator.run(state)
+        state = _validator_node(state, validator)
 
     if state.final_answer is None:
         state.final_answer = state.draft_answer or "(无结果)"
@@ -539,13 +809,7 @@ def resume_after_answer(state: AgentState, symptom: str, answer: Optional[bool],
     if state.next_node == "retriever":
         state = _retriever_node_active(state, retriever)
         if state.next_node != "planner":
-            if reflector is not None:
-                state = reflector.run(state)
-            state = generator.run(state)
-            state = validator.run(state)
-            if state.final_answer is None:
-                state.final_answer = state.draft_answer or "(无结果)"
-            return state
+            return _finish_generation(state, retriever, generator, validator, reflector)
     return run_langgraph_workflow(state, planner, retriever, generator, validator, reflector, answer_fn=None)
 
 

@@ -1,0 +1,1811 @@
+{
+  "summary_route": {
+    "mode": "route",
+    "n": 30,
+    "n_errors": 0,
+    "triggered": 28,
+    "trigger_rate": 0.9333333333333333,
+    "n_sup_calls": 95,
+    "avg_sup_calls": 3.1666666666666665,
+    "sup_success": 95,
+    "sup_tool_counts": {
+      "ett_forecast": 28,
+      "kg_search": 13,
+      "rag_search": 28,
+      "fault_attribution": 26
+    },
+    "skipped_reasons": {
+      "duplicate_of_existing_call": 2,
+      "no_entity_in_kg": 15
+    },
+    "dup_with_first_total": 0,
+    "dup_within_sup_total": 0,
+    "dup_all_total": 0,
+    "verdicts": {
+      "PASS": 30
+    },
+    "first_claim_verdicts": {
+      "REVISION": 28,
+      "PASS": 2
+    },
+    "avg_iteration": 1.9333333333333333,
+    "avg_tool_calls": 4.066666666666666,
+    "extra_tokens": 0,
+    "extra_llm_calls": 0,
+    "avg_sup_latency_ms": 29.300000000000008,
+    "avg_elapsed": 0.040200000000000014,
+    "route_paths": {
+      "supplement>END": 28,
+      "END": 2
+    },
+    "final_sources": {
+      "tool": 228,
+      "kg": 42,
+      "kb": 87
+    },
+    "pass": true,
+    "elapsed_total": 1.63
+  },
+  "summary_check": {
+    "mode": "check",
+    "n": 30,
+    "n_errors": 0,
+    "triggered": 0,
+    "trigger_rate": 0.0,
+    "n_sup_calls": 0,
+    "avg_sup_calls": 0.0,
+    "sup_success": 0,
+    "sup_tool_counts": {},
+    "skipped_reasons": {},
+    "dup_with_first_total": 0,
+    "dup_within_sup_total": 0,
+    "dup_all_total": 0,
+    "verdicts": {
+      "PASS": 30
+    },
+    "first_claim_verdicts": {
+      "REVISION": 28,
+      "PASS": 2
+    },
+    "avg_iteration": 1.9333333333333333,
+    "avg_tool_calls": 0.9,
+    "extra_tokens": 0,
+    "extra_llm_calls": 0,
+    "avg_sup_latency_ms": 0.0,
+    "avg_elapsed": 0.006966666666666667,
+    "route_paths": {
+      "generator>END": 28,
+      "END": 2
+    },
+    "final_sources": {
+      "tool": 78,
+      "user": 6,
+      "kg": 16,
+      "kb": 21
+    },
+    "pass": false
+  },
+  "rows_route": [
+    {
+      "eval_id": "D10-0074",
+      "scenario": "context_contrast",
+      "error": null,
+      "elapsed": 0.294,
+      "verdict": "PASS",
+      "iteration": 2,
+      "evidence_rounds": 1,
+      "route_targets": [
+        "supplement",
+        "END"
+      ],
+      "route_reasons": [
+        "unsupported:4 claims need evidence",
+        "pass"
+      ],
+      "claim_verdicts": [
+        "REVISION",
+        "PASS"
+      ],
+      "first_tools": [
+        "fault_attribution"
+      ],
+      "sup_tools": [
+        "ett_forecast",
+        "kg_search",
+        "rag_search"
+      ],
+      "sup_args": [
+        {},
+        {
+          "query": "绝缘老化",
+          "hops": 1
+        },
+        {
+          "query": "建议依据检修规程安排复测与带电检测"
+        }
+      ],
+      "sup_success": 3,
+      "n_sup_calls": 3,
+      "skipped_reasons": {
+        "duplicate_of_existing_call": 1
+      },
+      "skipped_tools": {
+        "fault_attribution:duplicate_of_existing_call": 1
+      },
+      "dup_with_first": 0,
+      "dup_within_sup": 0,
+      "dup_all": 0,
+      "extra_tokens": 0,
+      "extra_llm_calls": 0,
+      "sup_latency_ms": 140.4,
+      "n_claims_final": 18,
+      "final_sources": {
+        "tool": 13,
+        "kg": 3,
+        "kb": 3
+      },
+      "n_tool_calls": 4
+    },
+    {
+      "eval_id": "D10-0107",
+      "scenario": "single_tool_numeric",
+      "error": null,
+      "elapsed": 0.031,
+      "verdict": "PASS",
+      "iteration": 2,
+      "evidence_rounds": 1,
+      "route_targets": [
+        "supplement",
+        "END"
+      ],
+      "route_reasons": [
+        "unsupported:4 claims need evidence",
+        "pass"
+      ],
+      "claim_verdicts": [
+        "REVISION",
+        "PASS"
+      ],
+      "first_tools": [
+        "fault_attribution"
+      ],
+      "sup_tools": [
+        "fault_attribution",
+        "ett_forecast",
+        "kg_search",
+        "rag_search"
+      ],
+      "sup_args": [
+        {
+          "query": "SSZ-31500/110 型主变最近一次油中溶解气体分析结果为 H2=14.2, CH4=17.2, C2H2=0.0, C2H4=0.83, C2H6=4.93（μL/L），判断一下可能是什么故障？"
+        },
+        {},
+        {
+          "query": "局部放电",
+          "hops": 1
+        },
+        {
+          "query": "建议依据检修规程安排复测与带电检测"
+        }
+      ],
+      "sup_success": 4,
+      "n_sup_calls": 4,
+      "skipped_reasons": {},
+      "skipped_tools": {},
+      "dup_with_first": 0,
+      "dup_within_sup": 0,
+      "dup_all": 0,
+      "extra_tokens": 0,
+      "extra_llm_calls": 0,
+      "sup_latency_ms": 24.5,
+      "n_claims_final": 13,
+      "final_sources": {
+        "tool": 7,
+        "kg": 3,
+        "kb": 3
+      },
+      "n_tool_calls": 5
+    },
+    {
+      "eval_id": "D10-0112",
+      "scenario": "no_tool",
+      "error": null,
+      "elapsed": 0.027,
+      "verdict": "PASS",
+      "iteration": 2,
+      "evidence_rounds": 1,
+      "route_targets": [
+        "supplement",
+        "END"
+      ],
+      "route_reasons": [
+        "unsupported:4 claims need evidence",
+        "pass"
+      ],
+      "claim_verdicts": [
+        "REVISION",
+        "PASS"
+      ],
+      "first_tools": [],
+      "sup_tools": [
+        "fault_attribution",
+        "ett_forecast",
+        "rag_search"
+      ],
+      "sup_args": [
+        {
+          "query": "快速问个问题：你好"
+        },
+        {},
+        {
+          "query": "建议依据检修规程安排复测与带电检测"
+        }
+      ],
+      "sup_success": 3,
+      "n_sup_calls": 3,
+      "skipped_reasons": {
+        "no_entity_in_kg": 1
+      },
+      "skipped_tools": {
+        "kg_search:no_entity_in_kg": 1
+      },
+      "dup_with_first": 0,
+      "dup_within_sup": 0,
+      "dup_all": 0,
+      "extra_tokens": 0,
+      "extra_llm_calls": 0,
+      "sup_latency_ms": 24.5,
+      "n_claims_final": 10,
+      "final_sources": {
+        "tool": 7,
+        "kb": 3
+      },
+      "n_tool_calls": 3
+    },
+    {
+      "eval_id": "D10-0192",
+      "scenario": "single_tool_numeric",
+      "error": null,
+      "elapsed": 0.027,
+      "verdict": "PASS",
+      "iteration": 2,
+      "evidence_rounds": 1,
+      "route_targets": [
+        "supplement",
+        "END"
+      ],
+      "route_reasons": [
+        "unsupported:4 claims need evidence",
+        "pass"
+      ],
+      "claim_verdicts": [
+        "REVISION",
+        "PASS"
+      ],
+      "first_tools": [
+        "timeseries_anomaly"
+      ],
+      "sup_tools": [
+        "fault_attribution",
+        "ett_forecast",
+        "rag_search"
+      ],
+      "sup_args": [
+        {
+          "query": "高压侧有功负载序列 [8.51, 8.24, 7.43, 9.18, 8.98, 10.05, 9.85, 11.65, 10.78, 12.19, 11.32, 12.26, 12.52, 13.66, 9.78, 4.82, 3.48, 6.23, 5.22, 5.63]，帮我做一次 3σ 异常筛查。"
+        },
+        {},
+        {
+          "query": "建议依据检修规程安排复测与带电检测"
+        }
+      ],
+      "sup_success": 3,
+      "n_sup_calls": 3,
+      "skipped_reasons": {
+        "no_entity_in_kg": 1
+      },
+      "skipped_tools": {
+        "kg_search:no_entity_in_kg": 1
+      },
+      "dup_with_first": 0,
+      "dup_within_sup": 0,
+      "dup_all": 0,
+      "extra_tokens": 0,
+      "extra_llm_calls": 0,
+      "sup_latency_ms": 24.7,
+      "n_claims_final": 11,
+      "final_sources": {
+        "tool": 8,
+        "kb": 3
+      },
+      "n_tool_calls": 4
+    },
+    {
+      "eval_id": "D10-0182",
+      "scenario": "no_tool",
+      "error": null,
+      "elapsed": 0.026,
+      "verdict": "PASS",
+      "iteration": 2,
+      "evidence_rounds": 1,
+      "route_targets": [
+        "supplement",
+        "END"
+      ],
+      "route_reasons": [
+        "unsupported:4 claims need evidence",
+        "pass"
+      ],
+      "claim_verdicts": [
+        "REVISION",
+        "PASS"
+      ],
+      "first_tools": [],
+      "sup_tools": [
+        "fault_attribution",
+        "ett_forecast",
+        "rag_search"
+      ],
+      "sup_args": [
+        {
+          "query": "变压器的基本工作原理是什么？"
+        },
+        {},
+        {
+          "query": "建议依据检修规程安排复测与带电检测"
+        }
+      ],
+      "sup_success": 3,
+      "n_sup_calls": 3,
+      "skipped_reasons": {
+        "no_entity_in_kg": 1
+      },
+      "skipped_tools": {
+        "kg_search:no_entity_in_kg": 1
+      },
+      "dup_with_first": 0,
+      "dup_within_sup": 0,
+      "dup_all": 0,
+      "extra_tokens": 0,
+      "extra_llm_calls": 0,
+      "sup_latency_ms": 24.1,
+      "n_claims_final": 10,
+      "final_sources": {
+        "tool": 7,
+        "kb": 3
+      },
+      "n_tool_calls": 3
+    },
+    {
+      "eval_id": "D10-0132",
+      "scenario": "no_tool",
+      "error": null,
+      "elapsed": 0.026,
+      "verdict": "PASS",
+      "iteration": 2,
+      "evidence_rounds": 1,
+      "route_targets": [
+        "supplement",
+        "END"
+      ],
+      "route_reasons": [
+        "unsupported:4 claims need evidence",
+        "pass"
+      ],
+      "claim_verdicts": [
+        "REVISION",
+        "PASS"
+      ],
+      "first_tools": [],
+      "sup_tools": [
+        "fault_attribution",
+        "ett_forecast",
+        "rag_search"
+      ],
+      "sup_args": [
+        {
+          "query": "麻烦问一下，你是谁？能做什么？急，在线等。"
+        },
+        {},
+        {
+          "query": "建议依据检修规程安排复测与带电检测"
+        }
+      ],
+      "sup_success": 3,
+      "n_sup_calls": 3,
+      "skipped_reasons": {
+        "no_entity_in_kg": 1
+      },
+      "skipped_tools": {
+        "kg_search:no_entity_in_kg": 1
+      },
+      "dup_with_first": 0,
+      "dup_within_sup": 0,
+      "dup_all": 0,
+      "extra_tokens": 0,
+      "extra_llm_calls": 0,
+      "sup_latency_ms": 24.4,
+      "n_claims_final": 10,
+      "final_sources": {
+        "tool": 7,
+        "kb": 3
+      },
+      "n_tool_calls": 3
+    },
+    {
+      "eval_id": "D10-0117",
+      "scenario": "ask_user",
+      "error": null,
+      "elapsed": 0.026,
+      "verdict": "PASS",
+      "iteration": 2,
+      "evidence_rounds": 1,
+      "route_targets": [
+        "supplement",
+        "END"
+      ],
+      "route_reasons": [
+        "unsupported:4 claims need evidence",
+        "pass"
+      ],
+      "claim_verdicts": [
+        "REVISION",
+        "PASS"
+      ],
+      "first_tools": [],
+      "sup_tools": [
+        "fault_attribution",
+        "ett_forecast",
+        "rag_search"
+      ],
+      "sup_args": [
+        {
+          "query": "师傅，帮我预测一下油温。"
+        },
+        {},
+        {
+          "query": "建议依据检修规程安排复测与带电检测"
+        }
+      ],
+      "sup_success": 3,
+      "n_sup_calls": 3,
+      "skipped_reasons": {
+        "no_entity_in_kg": 1
+      },
+      "skipped_tools": {
+        "kg_search:no_entity_in_kg": 1
+      },
+      "dup_with_first": 0,
+      "dup_within_sup": 0,
+      "dup_all": 0,
+      "extra_tokens": 0,
+      "extra_llm_calls": 0,
+      "sup_latency_ms": 24.0,
+      "n_claims_final": 10,
+      "final_sources": {
+        "tool": 7,
+        "kb": 3
+      },
+      "n_tool_calls": 3
+    },
+    {
+      "eval_id": "D10-0151",
+      "scenario": "error_recovery",
+      "error": null,
+      "elapsed": 0.073,
+      "verdict": "PASS",
+      "iteration": 2,
+      "evidence_rounds": 1,
+      "route_targets": [
+        "supplement",
+        "END"
+      ],
+      "route_reasons": [
+        "unsupported:4 claims need evidence",
+        "pass"
+      ],
+      "claim_verdicts": [
+        "REVISION",
+        "PASS"
+      ],
+      "first_tools": [
+        "ett_forecast"
+      ],
+      "sup_tools": [
+        "fault_attribution",
+        "ett_forecast",
+        "rag_search"
+      ],
+      "sup_args": [
+        {
+          "query": "基于 ETTm2（2016-08-19 至 2016-08-24）的数据，油温未来 6 小时会不会继续上升？"
+        },
+        {},
+        {
+          "query": "建议依据检修规程安排复测与带电检测"
+        }
+      ],
+      "sup_success": 3,
+      "n_sup_calls": 3,
+      "skipped_reasons": {
+        "no_entity_in_kg": 1
+      },
+      "skipped_tools": {
+        "kg_search:no_entity_in_kg": 1
+      },
+      "dup_with_first": 0,
+      "dup_within_sup": 0,
+      "dup_all": 0,
+      "extra_tokens": 0,
+      "extra_llm_calls": 0,
+      "sup_latency_ms": 24.3,
+      "n_claims_final": 10,
+      "final_sources": {
+        "tool": 7,
+        "kb": 3
+      },
+      "n_tool_calls": 4
+    },
+    {
+      "eval_id": "D10-0012",
+      "scenario": "single_tool_numeric",
+      "error": null,
+      "elapsed": 0.032,
+      "verdict": "PASS",
+      "iteration": 2,
+      "evidence_rounds": 1,
+      "route_targets": [
+        "supplement",
+        "END"
+      ],
+      "route_reasons": [
+        "unsupported:4 claims need evidence",
+        "pass"
+      ],
+      "claim_verdicts": [
+        "REVISION",
+        "PASS"
+      ],
+      "first_tools": [
+        "fault_attribution"
+      ],
+      "sup_tools": [
+        "fault_attribution",
+        "ett_forecast",
+        "kg_search",
+        "rag_search"
+      ],
+      "sup_args": [
+        {
+          "query": "35kV 站用变色谱：H2=1.57, CH4=12.38, C2H2=0.0, C2H4=1.38, C2H6=6.09。是否需要停运检查？"
+        },
+        {},
+        {
+          "query": "局部放电",
+          "hops": 1
+        },
+        {
+          "query": "建议依据检修规程安排复测与带电检测"
+        }
+      ],
+      "sup_success": 4,
+      "n_sup_calls": 4,
+      "skipped_reasons": {},
+      "skipped_tools": {},
+      "dup_with_first": 0,
+      "dup_within_sup": 0,
+      "dup_all": 0,
+      "extra_tokens": 0,
+      "extra_llm_calls": 0,
+      "sup_latency_ms": 24.8,
+      "n_claims_final": 13,
+      "final_sources": {
+        "tool": 7,
+        "kg": 3,
+        "kb": 3
+      },
+      "n_tool_calls": 5
+    },
+    {
+      "eval_id": "D10-0102",
+      "scenario": "multi_tool",
+      "error": null,
+      "elapsed": 0.039,
+      "verdict": "PASS",
+      "iteration": 2,
+      "evidence_rounds": 1,
+      "route_targets": [
+        "supplement",
+        "END"
+      ],
+      "route_reasons": [
+        "unsupported:4 claims need evidence",
+        "pass"
+      ],
+      "claim_verdicts": [
+        "REVISION",
+        "PASS"
+      ],
+      "first_tools": [
+        "ett_forecast"
+      ],
+      "sup_tools": [
+        "fault_attribution",
+        "ett_forecast",
+        "kg_search",
+        "rag_search"
+      ],
+      "sup_args": [
+        {
+          "query": "基于 ETTh2 数据集预测未来 12 小时油温，并检查历史油温中是否存在异常点。"
+        },
+        {},
+        {
+          "query": "基于 ETTh2 数据集预测未来 12 小时油温，并检查历史油温中是否存在异常点。",
+          "hops": 1
+        },
+        {
+          "query": "建议依据检修规程安排复测与带电检测"
+        }
+      ],
+      "sup_success": 4,
+      "n_sup_calls": 4,
+      "skipped_reasons": {},
+      "skipped_tools": {},
+      "dup_with_first": 0,
+      "dup_within_sup": 0,
+      "dup_all": 0,
+      "extra_tokens": 0,
+      "extra_llm_calls": 0,
+      "sup_latency_ms": 24.3,
+      "n_claims_final": 13,
+      "final_sources": {
+        "tool": 7,
+        "kg": 3,
+        "kb": 3
+      },
+      "n_tool_calls": 5
+    },
+    {
+      "eval_id": "D10-0122",
+      "scenario": "kg_reasoning",
+      "error": null,
+      "elapsed": 0.028,
+      "verdict": "PASS",
+      "iteration": 2,
+      "evidence_rounds": 1,
+      "route_targets": [
+        "supplement",
+        "END"
+      ],
+      "route_reasons": [
+        "unsupported:4 claims need evidence",
+        "pass"
+      ],
+      "claim_verdicts": [
+        "REVISION",
+        "PASS"
+      ],
+      "first_tools": [
+        "kg_search"
+      ],
+      "sup_tools": [
+        "fault_attribution",
+        "ett_forecast",
+        "kg_search",
+        "rag_search"
+      ],
+      "sup_args": [
+        {
+          "query": "局部放电时油中哪些气体会升高？"
+        },
+        {},
+        {
+          "query": "局部放电时油中哪些气体会升高？",
+          "hops": 1
+        },
+        {
+          "query": "建议依据检修规程安排复测与带电检测"
+        }
+      ],
+      "sup_success": 4,
+      "n_sup_calls": 4,
+      "skipped_reasons": {},
+      "skipped_tools": {},
+      "dup_with_first": 0,
+      "dup_within_sup": 0,
+      "dup_all": 0,
+      "extra_tokens": 0,
+      "extra_llm_calls": 0,
+      "sup_latency_ms": 26.0,
+      "n_claims_final": 13,
+      "final_sources": {
+        "tool": 7,
+        "kg": 3,
+        "kb": 3
+      },
+      "n_tool_calls": 5
+    },
+    {
+      "eval_id": "D10-0146",
+      "scenario": "single_tool_fact",
+      "error": null,
+      "elapsed": 0.044,
+      "verdict": "PASS",
+      "iteration": 2,
+      "evidence_rounds": 1,
+      "route_targets": [
+        "supplement",
+        "END"
+      ],
+      "route_reasons": [
+        "unsupported:4 claims need evidence",
+        "pass"
+      ],
+      "claim_verdicts": [
+        "REVISION",
+        "PASS"
+      ],
+      "first_tools": [
+        "rag_search"
+      ],
+      "sup_tools": [
+        "fault_attribution",
+        "ett_forecast",
+        "kg_search",
+        "rag_search"
+      ],
+      "sup_args": [
+        {
+          "query": "基于故障树变压器故障诊断专家系统方法. 23的相关规定和做法是什么？"
+        },
+        {},
+        {
+          "query": "基于故障树变压器故障诊断专家系统方法. 23的相关规定和做法是什么？",
+          "hops": 1
+        },
+        {
+          "query": "建议依据检修规程安排复测与带电检测"
+        }
+      ],
+      "sup_success": 4,
+      "n_sup_calls": 4,
+      "skipped_reasons": {},
+      "skipped_tools": {},
+      "dup_with_first": 0,
+      "dup_within_sup": 0,
+      "dup_all": 0,
+      "extra_tokens": 0,
+      "extra_llm_calls": 0,
+      "sup_latency_ms": 24.3,
+      "n_claims_final": 11,
+      "final_sources": {
+        "tool": 7,
+        "kg": 1,
+        "kb": 3
+      },
+      "n_tool_calls": 5
+    },
+    {
+      "eval_id": "D10-0125",
+      "scenario": "context_contrast",
+      "error": null,
+      "elapsed": 0.033,
+      "verdict": "PASS",
+      "iteration": 2,
+      "evidence_rounds": 1,
+      "route_targets": [
+        "supplement",
+        "END"
+      ],
+      "route_reasons": [
+        "unsupported:4 claims need evidence",
+        "pass"
+      ],
+      "claim_verdicts": [
+        "REVISION",
+        "PASS"
+      ],
+      "first_tools": [
+        "fault_attribution"
+      ],
+      "sup_tools": [
+        "ett_forecast",
+        "kg_search",
+        "rag_search"
+      ],
+      "sup_args": [
+        {},
+        {
+          "query": "绕组匝间短路",
+          "hops": 1
+        },
+        {
+          "query": "建议依据检修规程安排复测与带电检测"
+        }
+      ],
+      "sup_success": 3,
+      "n_sup_calls": 3,
+      "skipped_reasons": {
+        "duplicate_of_existing_call": 1
+      },
+      "skipped_tools": {
+        "fault_attribution:duplicate_of_existing_call": 1
+      },
+      "dup_with_first": 0,
+      "dup_within_sup": 0,
+      "dup_all": 0,
+      "extra_tokens": 0,
+      "extra_llm_calls": 0,
+      "sup_latency_ms": 26.3,
+      "n_claims_final": 17,
+      "final_sources": {
+        "tool": 12,
+        "kg": 3,
+        "kb": 3
+      },
+      "n_tool_calls": 4
+    },
+    {
+      "eval_id": "D10-0045",
+      "scenario": "single_tool_numeric",
+      "error": null,
+      "elapsed": 0.027,
+      "verdict": "PASS",
+      "iteration": 2,
+      "evidence_rounds": 1,
+      "route_targets": [
+        "supplement",
+        "END"
+      ],
+      "route_reasons": [
+        "unsupported:4 claims need evidence",
+        "pass"
+      ],
+      "claim_verdicts": [
+        "REVISION",
+        "PASS"
+      ],
+      "first_tools": [
+        "timeseries_anomaly"
+      ],
+      "sup_tools": [
+        "fault_attribution",
+        "ett_forecast",
+        "rag_search"
+      ],
+      "sup_args": [
+        {
+          "query": "以下是500kV 1 号主变最近 16 个采样点的高压侧有功负载读数：[31.66, 33.01, 31.83, 27.39, 35.27, 34.51, 39.04, 114.6, 41.8, 39.54, 38.37, 37.28, 39.37, 40.21, 41.97, 40.29]。请检查其中是否有异常点。"
+        },
+        {},
+        {
+          "query": "建议依据检修规程安排复测与带电检测"
+        }
+      ],
+      "sup_success": 3,
+      "n_sup_calls": 3,
+      "skipped_reasons": {
+        "no_entity_in_kg": 1
+      },
+      "skipped_tools": {
+        "kg_search:no_entity_in_kg": 1
+      },
+      "dup_with_first": 0,
+      "dup_within_sup": 0,
+      "dup_all": 0,
+      "extra_tokens": 0,
+      "extra_llm_calls": 0,
+      "sup_latency_ms": 24.3,
+      "n_claims_final": 12,
+      "final_sources": {
+        "tool": 9,
+        "kb": 3
+      },
+      "n_tool_calls": 4
+    },
+    {
+      "eval_id": "D10-0006",
+      "scenario": "kg_reasoning",
+      "error": null,
+      "elapsed": 0.047,
+      "verdict": "PASS",
+      "iteration": 2,
+      "evidence_rounds": 1,
+      "route_targets": [
+        "supplement",
+        "END"
+      ],
+      "route_reasons": [
+        "unsupported:4 claims need evidence",
+        "pass"
+      ],
+      "claim_verdicts": [
+        "REVISION",
+        "PASS"
+      ],
+      "first_tools": [
+        "kg_search"
+      ],
+      "sup_tools": [
+        "fault_attribution",
+        "ett_forecast",
+        "kg_search",
+        "rag_search"
+      ],
+      "sup_args": [
+        {
+          "query": "多点接地通常发生在哪个部位？"
+        },
+        {},
+        {
+          "query": "多点接地通常发生在哪个部位？",
+          "hops": 1
+        },
+        {
+          "query": "建议依据检修规程安排复测与带电检测"
+        }
+      ],
+      "sup_success": 4,
+      "n_sup_calls": 4,
+      "skipped_reasons": {},
+      "skipped_tools": {},
+      "dup_with_first": 0,
+      "dup_within_sup": 0,
+      "dup_all": 0,
+      "extra_tokens": 0,
+      "extra_llm_calls": 0,
+      "sup_latency_ms": 45.0,
+      "n_claims_final": 13,
+      "final_sources": {
+        "tool": 7,
+        "kg": 3,
+        "kb": 3
+      },
+      "n_tool_calls": 5
+    },
+    {
+      "eval_id": "D10-0138",
+      "scenario": "single_tool_numeric",
+      "error": null,
+      "elapsed": 0.029,
+      "verdict": "PASS",
+      "iteration": 2,
+      "evidence_rounds": 1,
+      "route_targets": [
+        "supplement",
+        "END"
+      ],
+      "route_reasons": [
+        "unsupported:4 claims need evidence",
+        "pass"
+      ],
+      "claim_verdicts": [
+        "REVISION",
+        "PASS"
+      ],
+      "first_tools": [
+        "fault_attribution"
+      ],
+      "sup_tools": [
+        "fault_attribution",
+        "ett_forecast",
+        "kg_search",
+        "rag_search"
+      ],
+      "sup_args": [
+        {
+          "query": "110kV 主变 #2油色谱检测：H2=2240.0, CH4=168.0, C2H2=0.0, C2H4=0.0，请诊断故障类型并给出处理建议。"
+        },
+        {},
+        {
+          "query": "过载过热",
+          "hops": 1
+        },
+        {
+          "query": "建议依据检修规程安排复测与带电检测"
+        }
+      ],
+      "sup_success": 4,
+      "n_sup_calls": 4,
+      "skipped_reasons": {},
+      "skipped_tools": {},
+      "dup_with_first": 0,
+      "dup_within_sup": 0,
+      "dup_all": 0,
+      "extra_tokens": 0,
+      "extra_llm_calls": 0,
+      "sup_latency_ms": 24.2,
+      "n_claims_final": 13,
+      "final_sources": {
+        "tool": 7,
+        "kg": 3,
+        "kb": 3
+      },
+      "n_tool_calls": 5
+    },
+    {
+      "eval_id": "D10-0009",
+      "scenario": "error_recovery",
+      "error": null,
+      "elapsed": 0.027,
+      "verdict": "PASS",
+      "iteration": 2,
+      "evidence_rounds": 1,
+      "route_targets": [
+        "supplement",
+        "END"
+      ],
+      "route_reasons": [
+        "unsupported:4 claims need evidence",
+        "pass"
+      ],
+      "claim_verdicts": [
+        "REVISION",
+        "PASS"
+      ],
+      "first_tools": [
+        "kg_search"
+      ],
+      "sup_tools": [
+        "fault_attribution",
+        "ett_forecast",
+        "rag_search"
+      ],
+      "sup_args": [
+        {
+          "query": "变压器有响声，可能是什么原因，怎么查？"
+        },
+        {},
+        {
+          "query": "建议依据检修规程安排复测与带电检测"
+        }
+      ],
+      "sup_success": 3,
+      "n_sup_calls": 3,
+      "skipped_reasons": {
+        "no_entity_in_kg": 1
+      },
+      "skipped_tools": {
+        "kg_search:no_entity_in_kg": 1
+      },
+      "dup_with_first": 0,
+      "dup_within_sup": 0,
+      "dup_all": 0,
+      "extra_tokens": 0,
+      "extra_llm_calls": 0,
+      "sup_latency_ms": 24.1,
+      "n_claims_final": 13,
+      "final_sources": {
+        "tool": 7,
+        "kg": 3,
+        "kb": 3
+      },
+      "n_tool_calls": 4
+    },
+    {
+      "eval_id": "D10-0071",
+      "scenario": "error_recovery",
+      "error": null,
+      "elapsed": 0.026,
+      "verdict": "PASS",
+      "iteration": 2,
+      "evidence_rounds": 1,
+      "route_targets": [
+        "supplement",
+        "END"
+      ],
+      "route_reasons": [
+        "unsupported:4 claims need evidence",
+        "pass"
+      ],
+      "claim_verdicts": [
+        "REVISION",
+        "PASS"
+      ],
+      "first_tools": [
+        "kg_search"
+      ],
+      "sup_tools": [
+        "fault_attribution",
+        "ett_forecast",
+        "rag_search"
+      ],
+      "sup_args": [
+        {
+          "query": "220kV 主变 #1重瓦斯动了，什么原因会导致？"
+        },
+        {},
+        {
+          "query": "建议依据检修规程安排复测与带电检测"
+        }
+      ],
+      "sup_success": 3,
+      "n_sup_calls": 3,
+      "skipped_reasons": {
+        "no_entity_in_kg": 1
+      },
+      "skipped_tools": {
+        "kg_search:no_entity_in_kg": 1
+      },
+      "dup_with_first": 0,
+      "dup_within_sup": 0,
+      "dup_all": 0,
+      "extra_tokens": 0,
+      "extra_llm_calls": 0,
+      "sup_latency_ms": 24.1,
+      "n_claims_final": 11,
+      "final_sources": {
+        "tool": 7,
+        "kg": 1,
+        "kb": 3
+      },
+      "n_tool_calls": 4
+    },
+    {
+      "eval_id": "D10-0104",
+      "scenario": "single_tool_fact",
+      "error": null,
+      "elapsed": 0.042,
+      "verdict": "PASS",
+      "iteration": 2,
+      "evidence_rounds": 1,
+      "route_targets": [
+        "supplement",
+        "END"
+      ],
+      "route_reasons": [
+        "unsupported:4 claims need evidence",
+        "pass"
+      ],
+      "claim_verdicts": [
+        "REVISION",
+        "PASS"
+      ],
+      "first_tools": [
+        "rag_search"
+      ],
+      "sup_tools": [
+        "fault_attribution",
+        "ett_forecast",
+        "rag_search"
+      ],
+      "sup_args": [
+        {
+          "query": "请解释变压器状态检修工作基本流程所反映的内容。"
+        },
+        {},
+        {
+          "query": "建议依据检修规程安排复测与带电检测"
+        }
+      ],
+      "sup_success": 3,
+      "n_sup_calls": 3,
+      "skipped_reasons": {
+        "no_entity_in_kg": 1
+      },
+      "skipped_tools": {
+        "kg_search:no_entity_in_kg": 1
+      },
+      "dup_with_first": 0,
+      "dup_within_sup": 0,
+      "dup_all": 0,
+      "extra_tokens": 0,
+      "extra_llm_calls": 0,
+      "sup_latency_ms": 24.3,
+      "n_claims_final": 10,
+      "final_sources": {
+        "tool": 7,
+        "kb": 3
+      },
+      "n_tool_calls": 4
+    },
+    {
+      "eval_id": "D10-0158",
+      "scenario": "kg_reasoning",
+      "error": null,
+      "elapsed": 0.026,
+      "verdict": "PASS",
+      "iteration": 2,
+      "evidence_rounds": 1,
+      "route_targets": [
+        "supplement",
+        "END"
+      ],
+      "route_reasons": [
+        "unsupported:4 claims need evidence",
+        "pass"
+      ],
+      "claim_verdicts": [
+        "REVISION",
+        "PASS"
+      ],
+      "first_tools": [
+        "kg_search"
+      ],
+      "sup_tools": [
+        "fault_attribution",
+        "ett_forecast",
+        "kg_search",
+        "rag_search"
+      ],
+      "sup_args": [
+        {
+          "query": "铁心多点接地导致的故障可以通过什么方法检测出来？"
+        },
+        {},
+        {
+          "query": "铁心多点接地导致的故障可以通过什么方法检测出来？",
+          "hops": 1
+        },
+        {
+          "query": "建议依据检修规程安排复测与带电检测"
+        }
+      ],
+      "sup_success": 4,
+      "n_sup_calls": 4,
+      "skipped_reasons": {},
+      "skipped_tools": {},
+      "dup_with_first": 0,
+      "dup_within_sup": 0,
+      "dup_all": 0,
+      "extra_tokens": 0,
+      "extra_llm_calls": 0,
+      "sup_latency_ms": 24.1,
+      "n_claims_final": 13,
+      "final_sources": {
+        "tool": 7,
+        "kg": 3,
+        "kb": 3
+      },
+      "n_tool_calls": 5
+    },
+    {
+      "eval_id": "D10-0073",
+      "scenario": "single_tool_fact",
+      "error": null,
+      "elapsed": 0.034,
+      "verdict": "PASS",
+      "iteration": 2,
+      "evidence_rounds": 1,
+      "route_targets": [
+        "supplement",
+        "END"
+      ],
+      "route_reasons": [
+        "unsupported:4 claims need evidence",
+        "pass"
+      ],
+      "claim_verdicts": [
+        "REVISION",
+        "PASS"
+      ],
+      "first_tools": [
+        "rag_search"
+      ],
+      "sup_tools": [
+        "fault_attribution",
+        "ett_forecast",
+        "rag_search"
+      ],
+      "sup_args": [
+        {
+          "query": "什么是特别？"
+        },
+        {},
+        {
+          "query": "建议依据检修规程安排复测与带电检测"
+        }
+      ],
+      "sup_success": 3,
+      "n_sup_calls": 3,
+      "skipped_reasons": {
+        "no_entity_in_kg": 1
+      },
+      "skipped_tools": {
+        "kg_search:no_entity_in_kg": 1
+      },
+      "dup_with_first": 0,
+      "dup_within_sup": 0,
+      "dup_all": 0,
+      "extra_tokens": 0,
+      "extra_llm_calls": 0,
+      "sup_latency_ms": 24.2,
+      "n_claims_final": 10,
+      "final_sources": {
+        "tool": 7,
+        "kb": 3
+      },
+      "n_tool_calls": 4
+    },
+    {
+      "eval_id": "D10-0190",
+      "scenario": "ask_user",
+      "error": null,
+      "elapsed": 0.026,
+      "verdict": "PASS",
+      "iteration": 2,
+      "evidence_rounds": 1,
+      "route_targets": [
+        "supplement",
+        "END"
+      ],
+      "route_reasons": [
+        "unsupported:4 claims need evidence",
+        "pass"
+      ],
+      "claim_verdicts": [
+        "REVISION",
+        "PASS"
+      ],
+      "first_tools": [],
+      "sup_tools": [
+        "fault_attribution",
+        "ett_forecast",
+        "rag_search"
+      ],
+      "sup_args": [
+        {
+          "query": "麻烦问一下，帮我预测一下油温。谢谢。"
+        },
+        {},
+        {
+          "query": "建议依据检修规程安排复测与带电检测"
+        }
+      ],
+      "sup_success": 3,
+      "n_sup_calls": 3,
+      "skipped_reasons": {
+        "no_entity_in_kg": 1
+      },
+      "skipped_tools": {
+        "kg_search:no_entity_in_kg": 1
+      },
+      "dup_with_first": 0,
+      "dup_within_sup": 0,
+      "dup_all": 0,
+      "extra_tokens": 0,
+      "extra_llm_calls": 0,
+      "sup_latency_ms": 24.1,
+      "n_claims_final": 10,
+      "final_sources": {
+        "tool": 7,
+        "kb": 3
+      },
+      "n_tool_calls": 3
+    },
+    {
+      "eval_id": "D10-0145",
+      "scenario": "multi_tool",
+      "error": null,
+      "elapsed": 0.006,
+      "verdict": "PASS",
+      "iteration": 1,
+      "evidence_rounds": 0,
+      "route_targets": [
+        "END"
+      ],
+      "route_reasons": [
+        "pass"
+      ],
+      "claim_verdicts": [
+        "PASS"
+      ],
+      "first_tools": [
+        "fault_attribution",
+        "kg_search"
+      ],
+      "sup_tools": [],
+      "sup_args": [],
+      "sup_success": 0,
+      "n_sup_calls": 0,
+      "skipped_reasons": {},
+      "skipped_tools": {},
+      "dup_with_first": 0,
+      "dup_within_sup": 0,
+      "dup_all": 0,
+      "extra_tokens": 0,
+      "extra_llm_calls": 0,
+      "sup_latency_ms": 0,
+      "n_claims_final": 15,
+      "final_sources": {
+        "tool": 10,
+        "kg": 2
+      },
+      "n_tool_calls": 2
+    },
+    {
+      "eval_id": "D10-0142",
+      "scenario": "ask_user",
+      "error": null,
+      "elapsed": 0.026,
+      "verdict": "PASS",
+      "iteration": 2,
+      "evidence_rounds": 1,
+      "route_targets": [
+        "supplement",
+        "END"
+      ],
+      "route_reasons": [
+        "unsupported:4 claims need evidence",
+        "pass"
+      ],
+      "claim_verdicts": [
+        "REVISION",
+        "PASS"
+      ],
+      "first_tools": [],
+      "sup_tools": [
+        "fault_attribution",
+        "ett_forecast",
+        "rag_search"
+      ],
+      "sup_args": [
+        {
+          "query": "你好，帮我预测一下油温。麻烦了。"
+        },
+        {},
+        {
+          "query": "建议依据检修规程安排复测与带电检测"
+        }
+      ],
+      "sup_success": 3,
+      "n_sup_calls": 3,
+      "skipped_reasons": {
+        "no_entity_in_kg": 1
+      },
+      "skipped_tools": {
+        "kg_search:no_entity_in_kg": 1
+      },
+      "dup_with_first": 0,
+      "dup_within_sup": 0,
+      "dup_all": 0,
+      "extra_tokens": 0,
+      "extra_llm_calls": 0,
+      "sup_latency_ms": 24.3,
+      "n_claims_final": 10,
+      "final_sources": {
+        "tool": 7,
+        "kb": 3
+      },
+      "n_tool_calls": 3
+    },
+    {
+      "eval_id": "D10-0129",
+      "scenario": "single_tool_fact",
+      "error": null,
+      "elapsed": 0.033,
+      "verdict": "PASS",
+      "iteration": 2,
+      "evidence_rounds": 1,
+      "route_targets": [
+        "supplement",
+        "END"
+      ],
+      "route_reasons": [
+        "unsupported:4 claims need evidence",
+        "pass"
+      ],
+      "claim_verdicts": [
+        "REVISION",
+        "PASS"
+      ],
+      "first_tools": [
+        "rag_search"
+      ],
+      "sup_tools": [
+        "fault_attribution",
+        "ett_forecast",
+        "kg_search",
+        "rag_search"
+      ],
+      "sup_args": [
+        {
+          "query": "请解释直流电阻测试数据所反映的内容。"
+        },
+        {},
+        {
+          "query": "请解释直流电阻测试数据所反映的内容。",
+          "hops": 1
+        },
+        {
+          "query": "建议依据检修规程安排复测与带电检测"
+        }
+      ],
+      "sup_success": 4,
+      "n_sup_calls": 4,
+      "skipped_reasons": {},
+      "skipped_tools": {},
+      "dup_with_first": 0,
+      "dup_within_sup": 0,
+      "dup_all": 0,
+      "extra_tokens": 0,
+      "extra_llm_calls": 0,
+      "sup_latency_ms": 24.0,
+      "n_claims_final": 12,
+      "final_sources": {
+        "tool": 7,
+        "kg": 2,
+        "kb": 3
+      },
+      "n_tool_calls": 5
+    },
+    {
+      "eval_id": "D10-0162",
+      "scenario": "kg_reasoning",
+      "error": null,
+      "elapsed": 0.026,
+      "verdict": "PASS",
+      "iteration": 2,
+      "evidence_rounds": 1,
+      "route_targets": [
+        "supplement",
+        "END"
+      ],
+      "route_reasons": [
+        "unsupported:4 claims need evidence",
+        "pass"
+      ],
+      "claim_verdicts": [
+        "REVISION",
+        "PASS"
+      ],
+      "first_tools": [
+        "kg_search"
+      ],
+      "sup_tools": [
+        "fault_attribution",
+        "ett_forecast",
+        "kg_search",
+        "rag_search"
+      ],
+      "sup_args": [
+        {
+          "query": "哪些原因会导致接触不良？"
+        },
+        {},
+        {
+          "query": "哪些原因会导致接触不良？",
+          "hops": 1
+        },
+        {
+          "query": "建议依据检修规程安排复测与带电检测"
+        }
+      ],
+      "sup_success": 4,
+      "n_sup_calls": 4,
+      "skipped_reasons": {},
+      "skipped_tools": {},
+      "dup_with_first": 0,
+      "dup_within_sup": 0,
+      "dup_all": 0,
+      "extra_tokens": 0,
+      "extra_llm_calls": 0,
+      "sup_latency_ms": 24.2,
+      "n_claims_final": 13,
+      "final_sources": {
+        "tool": 7,
+        "kg": 3,
+        "kb": 3
+      },
+      "n_tool_calls": 5
+    },
+    {
+      "eval_id": "D10-0054",
+      "scenario": "multi_tool",
+      "error": null,
+      "elapsed": 0.03,
+      "verdict": "PASS",
+      "iteration": 2,
+      "evidence_rounds": 1,
+      "route_targets": [
+        "supplement",
+        "END"
+      ],
+      "route_reasons": [
+        "unsupported:4 claims need evidence",
+        "pass"
+      ],
+      "claim_verdicts": [
+        "REVISION",
+        "PASS"
+      ],
+      "first_tools": [
+        "fault_attribution",
+        "kg_search"
+      ],
+      "sup_tools": [
+        "fault_attribution",
+        "ett_forecast",
+        "kg_search",
+        "rag_search"
+      ],
+      "sup_args": [
+        {
+          "query": "SFSZ-240000/220 型主变油色谱 H2=47.6, CH4=19.1, C2H2=0.72, C2H4=27.0，最可能是什么故障？该故障一般出在哪个部件、怎么处理？"
+        },
+        {},
+        {
+          "query": "绝缘老化",
+          "hops": 1
+        },
+        {
+          "query": "建议依据检修规程安排复测与带电检测"
+        }
+      ],
+      "sup_success": 4,
+      "n_sup_calls": 4,
+      "skipped_reasons": {},
+      "skipped_tools": {},
+      "dup_with_first": 0,
+      "dup_within_sup": 0,
+      "dup_all": 0,
+      "extra_tokens": 0,
+      "extra_llm_calls": 0,
+      "sup_latency_ms": 24.7,
+      "n_claims_final": 13,
+      "final_sources": {
+        "tool": 7,
+        "kg": 3,
+        "kb": 3
+      },
+      "n_tool_calls": 6
+    },
+    {
+      "eval_id": "D10-0066",
+      "scenario": "multi_tool",
+      "error": null,
+      "elapsed": 0.019,
+      "verdict": "PASS",
+      "iteration": 1,
+      "evidence_rounds": 0,
+      "route_targets": [
+        "END"
+      ],
+      "route_reasons": [
+        "pass"
+      ],
+      "claim_verdicts": [
+        "PASS"
+      ],
+      "first_tools": [
+        "fault_attribution",
+        "rag_search"
+      ],
+      "sup_tools": [],
+      "sup_args": [],
+      "sup_success": 0,
+      "n_sup_calls": 0,
+      "skipped_reasons": {},
+      "skipped_tools": {},
+      "dup_with_first": 0,
+      "dup_within_sup": 0,
+      "dup_all": 0,
+      "extra_tokens": 0,
+      "extra_llm_calls": 0,
+      "sup_latency_ms": 0,
+      "n_claims_final": 14,
+      "final_sources": {
+        "tool": 8,
+        "kb": 3
+      },
+      "n_tool_calls": 2
+    },
+    {
+      "eval_id": "D10-0133",
+      "scenario": "single_tool_fact",
+      "error": null,
+      "elapsed": 0.042,
+      "verdict": "PASS",
+      "iteration": 2,
+      "evidence_rounds": 1,
+      "route_targets": [
+        "supplement",
+        "END"
+      ],
+      "route_reasons": [
+        "unsupported:4 claims need evidence",
+        "pass"
+      ],
+      "claim_verdicts": [
+        "REVISION",
+        "PASS"
+      ],
+      "first_tools": [
+        "rag_search"
+      ],
+      "sup_tools": [
+        "fault_attribution",
+        "ett_forecast",
+        "rag_search"
+      ],
+      "sup_args": [
+        {
+          "query": "干式变压器外部检查项目应如何进行？"
+        },
+        {},
+        {
+          "query": "建议依据检修规程安排复测与带电检测"
+        }
+      ],
+      "sup_success": 3,
+      "n_sup_calls": 3,
+      "skipped_reasons": {
+        "no_entity_in_kg": 1
+      },
+      "skipped_tools": {
+        "kg_search:no_entity_in_kg": 1
+      },
+      "dup_with_first": 0,
+      "dup_within_sup": 0,
+      "dup_all": 0,
+      "extra_tokens": 0,
+      "extra_llm_calls": 0,
+      "sup_latency_ms": 24.2,
+      "n_claims_final": 10,
+      "final_sources": {
+        "tool": 7,
+        "kb": 3
+      },
+      "n_tool_calls": 4
+    },
+    {
+      "eval_id": "D10-0167",
+      "scenario": "single_tool_fact",
+      "error": null,
+      "elapsed": 0.034,
+      "verdict": "PASS",
+      "iteration": 2,
+      "evidence_rounds": 1,
+      "route_targets": [
+        "supplement",
+        "END"
+      ],
+      "route_reasons": [
+        "unsupported:4 claims need evidence",
+        "pass"
+      ],
+      "claim_verdicts": [
+        "REVISION",
+        "PASS"
+      ],
+      "first_tools": [
+        "rag_search"
+      ],
+      "sup_tools": [
+        "fault_attribution",
+        "ett_forecast",
+        "rag_search"
+      ],
+      "sup_args": [
+        {
+          "query": "故障诊断决策表说明了什么？"
+        },
+        {},
+        {
+          "query": "建议依据检修规程安排复测与带电检测"
+        }
+      ],
+      "sup_success": 3,
+      "n_sup_calls": 3,
+      "skipped_reasons": {
+        "no_entity_in_kg": 1
+      },
+      "skipped_tools": {
+        "kg_search:no_entity_in_kg": 1
+      },
+      "dup_with_first": 0,
+      "dup_within_sup": 0,
+      "dup_all": 0,
+      "extra_tokens": 0,
+      "extra_llm_calls": 0,
+      "sup_latency_ms": 24.0,
+      "n_claims_final": 10,
+      "final_sources": {
+        "tool": 7,
+        "kb": 3
+      },
+      "n_tool_calls": 4
+    }
+  ]
+}

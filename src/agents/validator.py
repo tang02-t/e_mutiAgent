@@ -127,6 +127,8 @@ class ValidatorAgent:
         mode = claim_check or wf.get("claim_check", "off")
         self.claim_check = mode if mode in ("off", "check", "route") else "off"
         self.abstain_after = int(wf.get("claim_abstain_after", 3))
+        # C-3：route 模式下最多补证轮数（每轮 = supplement → Retriever → Generator 修订）
+        self.supplement_rounds = int(wf.get("claim_supplement_rounds", 1))
         model_cfg = get_llm_config(config, "validator")
         self.llm = LLMClient(
             LLMConfig(

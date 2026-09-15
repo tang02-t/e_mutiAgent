@@ -248,16 +248,21 @@ class RetrieverAgent:
 
         # 读取 Planner 结构化 steps（取最近一轮：B-4 追问循环中 Planner 会多次运行）
         steps: List[Dict[str, Any]] = []
+        plan_meta: Dict[str, Any] = {}
         for item in reversed(state.reasoning_trace):
             if item.get("agent") == "planner" and item.get("type") == "llm_plan":
-                steps = (item.get("content") or {}).get("steps", []) or []
+                plan_meta = item.get("content") or {}
+                steps = plan_meta.get("steps", []) or []
                 break
+        # C-3 补证轮：在既有证据上追加，而非覆盖
+        is_supplement = plan_meta.get("decision_source") == "supplement"
 
         # 不再有 fallback：空计划就是「不调用工具」
         state.fallback_mode = False
         if not steps:
             logger.info("Retriever: 计划为空（status=%s），不执行任何工具。", state.plan_status)
-            state.tool_calls = []
+            if not is_supplement:
+                state.tool_calls = []
             state.reasoning_trace.append({
                 "agent": "retriever",
                 "type": "thought",
@@ -334,8 +339,8 @@ class RetrieverAgent:
             results, kb_results_acc = self._execute_tools_parallel(runnable, state)
             tool_calls.extend(results)
 
-        # 写入 state（active 追问循环中 Retriever 会多次运行：累积而非覆盖，call_index 连续）
-        accumulate = getattr(state, "planner_strategy", "free") == "active"
+        # 写入 state（active 追问循环 / C-3 补证轮中 Retriever 会多次运行：累积而非覆盖，call_index 连续）
+        accumulate = getattr(state, "planner_strategy", "free") == "active" or is_supplement
         base = len(state.tool_calls) if accumulate else 0
         for idx, rec in enumerate(tool_calls, start=base):
             rec["call_index"] = idx
@@ -362,7 +367,13 @@ class RetrieverAgent:
                 })
 
         if kb_results_acc:
-            state.retrieved_knowledge = kb_results_acc
+            if is_supplement and state.retrieved_knowledge:
+                seen = {str(k.get("chunk_id") or k.get("id") or k.get("text", "")[:80]) for k in state.retrieved_knowledge}
+                extra = [k for k in kb_results_acc
+                         if str(k.get("chunk_id") or k.get("id") or k.get("text", "")[:80]) not in seen]
+                state.retrieved_knowledge = list(state.retrieved_knowledge) + extra
+            else:
+                state.retrieved_knowledge = kb_results_acc
         state.tool_calls = (list(state.tool_calls) + tool_calls) if accumulate else tool_calls
 
         n_ok = sum(1 for r in tool_calls if r["success"])
