@@ -241,7 +241,7 @@ def run_one(sample: Dict[str, Any], config: Dict[str, Any], mcp: MCPClient, refl
 
     traj = getattr(final, "trajectory", []) or []
     n_calls = len(traj)
-    n_ok = sum(1 for t in traj if t.get("success"))
+    n_ok = sum(1 for t in traj if t.get("exec_success") and t.get("business_success"))
 
     rlog = (getattr(final, "reflection_log", None) or [])
     rlog = rlog[-1] if rlog else {}
