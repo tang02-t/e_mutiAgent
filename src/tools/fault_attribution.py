@@ -301,16 +301,33 @@ class FaultBayesianNetwork:
     计算各故障的后验概率 P(Fi | evidence)。
     """
 
-    def __init__(self) -> None:
+    #: 规则 / 贝叶斯融合的默认权重（贝叶斯占比），v1 固定值
+    DEFAULT_FUSION_WEIGHT = 0.7
+
+    def __init__(self, params: dict[str, Any] | None = None, *, use_negative_evidence: bool | None = None) -> None:
+        import os
+
         self.faults = list(_PRIOR_PROBS.keys())
         self.symptoms = list(SYMPTOM_IDS)
         self.prior: dict[str, float] = dict(_PRIOR_PROBS)
         self.cpt: dict[str, dict[str, CPTRow]] = dict(_FAULT_SYMPTOM_CPT)
 
-        # 若指定了学习参数文件（环境变量 FAULT_ATTR_PARAMS），用数据驱动的
-        # 先验/CPT 覆盖专家默认值；文件不存在则保持专家值（向后兼容）。
+        # B-1 校准字段：按故障类别的融合权重（None → 全部用 DEFAULT_FUSION_WEIGHT）、
+        # 温度缩放参数（1.0 → 不缩放）、是否把 evidence 中的 False 作为负观测参与推理
+        # （默认开；环境变量 FAULT_ATTR_NEG_EVIDENCE=0 可关闭，用于消融）。
+        self.fusion_weights: dict[str, float] | None = None
+        self.temperature: float = 1.0
+        self.calibration_meta: dict[str, Any] = {}
+        if use_negative_evidence is None:
+            use_negative_evidence = os.environ.get("FAULT_ATTR_NEG_EVIDENCE", "1") not in ("0", "false", "False")
+        self.use_negative_evidence = use_negative_evidence
+
+        # 参数来源优先级：显式传入 params > 环境变量 FAULT_ATTR_PARAMS 指向的文件 > 专家默认值。
         self.params_source = "expert_default"
-        self._maybe_load_learned_params()
+        if params is not None:
+            self._apply_params(params, source="injected")
+        else:
+            self._maybe_load_learned_params()
 
         # 症状默认概率（无条件）
         self._symptom_base_prob: dict[str, float] = {}
@@ -337,7 +354,15 @@ class FaultBayesianNetwork:
                 data = json.load(f)
         except Exception:
             return
+        self._apply_params(data, source=path)
 
+    def _apply_params(self, data: dict[str, Any], *, source: str) -> None:
+        """
+        用参数字典覆盖专家默认值。支持字段：
+          prior / cpt                  —— learn_cpt.py 学到的先验与 CPT
+          fusion_weights: {fault: w}   —— 按类别的贝叶斯占比（B-1）
+          calibration: {"method": "temperature", "T": float, ...}（B-1）
+        """
         learned_prior = data.get("prior") or {}
         learned_cpt = data.get("cpt") or {}
 
@@ -356,7 +381,82 @@ class FaultBayesianNetwork:
                     )
                 self.cpt[fid] = row_map
 
-        self.params_source = path
+        fw = data.get("fusion_weights")
+        if isinstance(fw, dict) and fw:
+            self.fusion_weights = {k: min(1.0, max(0.0, float(v))) for k, v in fw.items()}
+
+        cal = data.get("calibration") or {}
+        if isinstance(cal, dict) and cal:
+            self.calibration_meta = dict(cal)
+            t = cal.get("T")
+            if t is not None and float(t) > 0:
+                self.temperature = float(t)
+
+        self.params_source = source
+
+    # ── 校准相关公开属性 ──
+    @property
+    def is_calibrated(self) -> bool:
+        return abs(self.temperature - 1.0) > 1e-9 or self.fusion_weights is not None
+
+    def fusion_weight(self, fault: str) -> float:
+        if self.fusion_weights and fault in self.fusion_weights:
+            return self.fusion_weights[fault]
+        return self.DEFAULT_FUSION_WEIGHT
+
+    def _apply_temperature(self, probs: dict[str, float]) -> dict[str, float]:
+        """温度缩放：p_i^(1/T) 后归一化。T>1 变平（降低过度自信），T<1 变尖。"""
+        T = self.temperature
+        if abs(T - 1.0) < 1e-9:
+            return dict(probs)
+        scaled = {k: (max(v, 1e-12) ** (1.0 / T)) for k, v in probs.items()}
+        return self._normalize(scaled)
+
+    @staticmethod
+    def entropy_bits(probs: dict[str, float]) -> float:
+        """离散分布的香农熵（bit）。"""
+        h = 0.0
+        for p in probs.values():
+            if p > 0:
+                h -= p * math.log2(p)
+        return h
+
+    def posterior_only(
+        self,
+        evidence: dict[str, bool],
+        symptom_context: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """
+        只返回（融合 + 校准后的）故障分布及其不确定性度量，不生成报告。
+        供 EIG 模块反复调用（假设某征兆取值后重新计算分布）。
+
+        返回:
+            {
+              "probs": {fault_id: p},           # 归一化后验（已融合规则、已温度缩放）
+              "bayes_probs": {fault_id: p},     # 纯贝叶斯后验（未融合、未缩放）
+              "entropy_bits": H(F|E),
+              "top1": fault_id, "top1_prob": p1,
+              "top1_top2_gap": p1 - p2,
+              "calibrated": bool,
+            }
+        """
+        symptom_context = symptom_context or {}
+        dga_analysis = self._analyze_dga(symptom_context) if symptom_context else {"matched_rules": []}
+        bayes = self._compute_posterior(evidence)
+        fused = self._fuse_results(bayes, dga_analysis)
+        probs = self._apply_temperature({r["fault_id"]: r["probability"] for r in fused})
+        ranked = sorted(probs.items(), key=lambda kv: kv[1], reverse=True)
+        p1 = ranked[0][1] if ranked else 0.0
+        p2 = ranked[1][1] if len(ranked) > 1 else 0.0
+        return {
+            "probs": probs,
+            "bayes_probs": bayes,
+            "entropy_bits": self.entropy_bits(probs),
+            "top1": ranked[0][0] if ranked else None,
+            "top1_prob": p1,
+            "top1_top2_gap": p1 - p2,
+            "calibrated": self.is_calibrated,
+        }
 
     def _cpt_lookup(self, fault: str, symptom: str) -> CPTRow:
         """查询 CPT，若不存在返回极低概率。"""
@@ -395,8 +495,13 @@ class FaultBayesianNetwork:
         # ── Step 2: 贝叶斯推理计算后验概率 ──
         posterior = self._compute_posterior(evidence)
 
-        # ── Step 3: 融合规则与贝叶斯结果 ──
+        # ── Step 3: 融合规则与贝叶斯结果，并做温度缩放（校准） ──
         fused = self._fuse_results(posterior, dga_analysis)
+        scaled = self._apply_temperature({r["fault_id"]: r["probability"] for r in fused})
+        for r in fused:
+            r["probability_raw"] = r["probability"]
+            r["probability"] = scaled[r["fault_id"]]
+            r["severity"] = self._severity_level(r["probability"])
 
         # ── Step 4: 排序并生成诊断报告 ──
         ranked = sorted(fused, key=lambda x: x["probability"], reverse=True)
@@ -407,33 +512,52 @@ class FaultBayesianNetwork:
 
         report = self._build_report(ranked, dga_analysis, evidence)
 
+        probs = {r["fault_id"]: r["probability"] for r in ranked}
+        p1 = ranked[0]["probability"] if ranked else 0.0
+        p2 = ranked[1]["probability"] if len(ranked) > 1 else 0.0
+
         return {
             "status": "ok",
             "primary_fault": ranked[0]["fault_id"] if ranked else None,
             "primary_fault_name": ranked[0]["fault_name"] if ranked else None,
-            "primary_probability": ranked[0]["probability"] if ranked else 0.0,
+            "primary_probability": p1,
             "fault_ranking": ranked,
             "dga_analysis": dga_analysis,
             "evidence_used": [k for k, v in evidence.items() if v],
+            "evidence_negative": [k for k, v in evidence.items() if v is False],
+            "uncertainty": {
+                "entropy_bits": self.entropy_bits(probs),
+                "top1_top2_gap": p1 - p2,
+                "calibrated": self.is_calibrated,
+                "temperature": self.temperature,
+                "params_source": self.params_source,
+            },
             "report": report,
         }
 
     def _compute_posterior(self, evidence: dict[str, bool]) -> dict[str, float]:
-        """朴素贝叶斯推理：P(F|E) ∝ P(E|F) * P(F)"""
+        """
+        朴素贝叶斯推理：P(F|E) ∝ P(F) · ∏ P(e_i | F)。
+
+        evidence 取值：
+          True  → 观测到征兆出现，乘 P(S=True|F)
+          False → 明确排除该征兆（负观测），乘 1 - P(S=True|F)（B-1 新增，可用 use_negative_evidence 关闭）
+          None / 缺失 → 未观测，跳过
+        """
         posterior: dict[str, float] = {}
 
         for fault in self.faults:
             f_prob = self.prior.get(fault, 0.01)
 
-            # P(E|F) = ∏ P(ei | F)，若某症状未观测则跳过
             likelihood = 1.0
             for symptom, observed in evidence.items():
-                if not observed:
+                if observed is None:
+                    continue
+                if observed is False and not self.use_negative_evidence:
                     continue
                 row = self._cpt_lookup(fault, symptom)
-                # P(S=True | F)
-                p_s_given_f = row.p_true
-                likelihood *= p_s_given_f
+                p_true = min(max(row.p_true, 1e-6), 1 - 1e-6)
+                likelihood *= p_true if observed else (1.0 - p_true)
 
             posterior[fault] = likelihood * f_prob
 
@@ -577,9 +701,11 @@ class FaultBayesianNetwork:
                 if fid in rule["related_faults"]:
                     rule_boost = max(rule_boost, rule["confidence"])
 
-            # 融合：0.7 * 贝叶斯 + 0.3 * 规则（若无规则则全用贝叶斯）
+            # 融合：w · 贝叶斯 + (1-w) · 规则（若无规则则全用贝叶斯）。
+            # w 默认 0.7；B-1 校准后可按故障类别从 learned_params.json 的 fusion_weights 读取。
             if rule_boost > 0:
-                fused_prob = 0.7 * bayes_prob + 0.3 * rule_boost
+                w = self.fusion_weight(fid)
+                fused_prob = w * bayes_prob + (1.0 - w) * rule_boost
             else:
                 fused_prob = bayes_prob
 
@@ -618,8 +744,11 @@ class FaultBayesianNetwork:
 
         # 观测征兆
         observed = [k for k, v in evidence.items() if v]
+        excluded = [k for k, v in evidence.items() if v is False]
         if observed:
             lines.append(f"**输入征兆**：`{'`, `'.join(observed)}`\n")
+        if excluded:
+            lines.append(f"**已排除征兆**（负观测）：`{'`, `'.join(excluded)}`\n")
 
         # DGA 解释
         interp = dga.get("interpretation", "")
@@ -663,6 +792,46 @@ class FaultBayesianNetwork:
 
 _bn_engine: Optional[FaultBayesianNetwork] = None
 
+#: DL/T 722 注意值（μL/L），与 scripts/convert_real_dga.py 保持一致
+GAS_ATTENTION: dict[str, float] = {"H2": 150, "CH4": 120, "C2H2": 5, "C2H4": 50, "C2H6": 65}
+TOTAL_HC_ATTENTION = 150.0
+GAS_RATE_RAPID_C2H2 = 50.0
+
+#: 由 DGA 数值可完全决定的征兆集合（B-2 EIG 中成本为 0、B-3 模拟器中随气体一起遮蔽）
+GAS_DERIVED_SYMPTOMS = ["H2_elevated", "CH4_elevated", "C2H2_elevated", "C2H4_elevated",
+                        "C2H6_elevated", "TDCG_elevated", "gas_rate_rapid"]
+
+
+def derive_gas_evidence(gases: dict[str, float], *, negative: bool = True) -> dict[str, bool]:
+    """
+    由五种特征气体浓度按 DL/T 722 注意值推导气体类征兆。
+    negative=True 时低于注意值的征兆写为 False（负观测），否则只返回 True 的征兆。
+    缺失（None）的气体不推导对应征兆。
+    """
+    ev: dict[str, bool] = {}
+    for g, th in GAS_ATTENTION.items():
+        v = gases.get(g)
+        if v is None:
+            continue
+        if v > th:
+            ev[f"{g}_elevated"] = True
+        elif negative:
+            ev[f"{g}_elevated"] = False
+    hc = [gases.get(g) for g in ("CH4", "C2H2", "C2H4", "C2H6")]
+    if all(v is not None for v in hc):
+        total_hc = sum(hc)  # type: ignore[arg-type]
+        if total_hc > TOTAL_HC_ATTENTION:
+            ev["TDCG_elevated"] = True
+        elif negative:
+            ev["TDCG_elevated"] = False
+    c2h2 = gases.get("C2H2")
+    if c2h2 is not None:
+        if c2h2 > GAS_RATE_RAPID_C2H2:
+            ev["gas_rate_rapid"] = True
+        elif negative:
+            ev["gas_rate_rapid"] = False
+    return ev
+
 
 def get_engine() -> FaultBayesianNetwork:
     global _bn_engine
@@ -705,29 +874,20 @@ def fault_attribution(
         return float(m.group()) if m else default
 
     gases: dict[str, float] = {"H2": 0, "CH4": 0, "C2H2": 0, "C2H4": 0, "C2H6": 0}
+    gases_obs: dict[str, float | None] = {}  # None 表示该气体未提供（被遮蔽），不派生负观测
 
     if dga_data:
-        gases = {
-            "H2": _num(dga_data.get("H2")),
-            "CH4": _num(dga_data.get("CH4")),
-            "C2H2": _num(dga_data.get("C2H2")),
-            "C2H4": _num(dga_data.get("C2H4")),
-            "C2H6": _num(dga_data.get("C2H6")),
-        }
+        for g in gases:
+            raw = dga_data.get(g)
+            gases_obs[g] = None if raw is None else _num(raw)
+            gases[g] = gases_obs[g] or 0.0
 
-    # 根据注意值（DL/T 722）自动推断征兆
-    if gases["H2"] > 150:
-        computed_evidence.setdefault("H2_elevated", True)
-    if gases["CH4"] > 120:
-        computed_evidence.setdefault("CH4_elevated", True)
-    if gases["C2H2"] > 5:
-        computed_evidence.setdefault("C2H2_elevated", True)
-    if gases["C2H4"] > 50:
-        computed_evidence.setdefault("C2H4_elevated", True)
-    if gases["C2H6"] > 65:
-        computed_evidence.setdefault("C2H6_elevated", True)
-    if gases["C2H2"] > 50:
-        computed_evidence.setdefault("gas_rate_rapid", True)
+    # 根据注意值（DL/T 722）自动推断征兆。
+    # 有 DGA 数值时，气体类征兆是「完全可观测」的：低于注意值即为负观测（False），
+    # 让贝叶斯推理能利用「已排除的征兆」（B-1）。engine.use_negative_evidence=False 时退回 v1 行为。
+    if dga_data:
+        for sym, val in derive_gas_evidence(gases_obs, negative=engine.use_negative_evidence).items():
+            computed_evidence.setdefault(sym, val)
 
     if dga_data:
         result = engine.infer(

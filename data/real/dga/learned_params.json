@@ -4,10 +4,10 @@
     "alpha": 1.0,
     "fault_distribution": {
       "partial_discharge": 1070,
-      "normal": 1414,
-      "winding_short_circuit": 653,
+      "insulation_degradation": 511,
       "overload_overheating": 1495,
-      "insulation_degradation": 511
+      "winding_short_circuit": 653,
+      "normal": 1414
     }
   },
   "prior": {
@@ -485,5 +485,26 @@
         "p_false": 0.44778
       }
     }
+  },
+  "fusion_weights": {
+    "winding_deformation": 1.0,
+    "winding_short_circuit": 0.82,
+    "core_grounding": 1.0,
+    "bushing_fault": 1.0,
+    "olc_fault": 1.0,
+    "partial_discharge": 0.82,
+    "overload_overheating": 0.0,
+    "insulation_degradation": 0.56
+  },
+  "calibration": {
+    "method": "temperature",
+    "T": 1.22,
+    "kfold": 5,
+    "seed": 42,
+    "negative_evidence": true,
+    "ece_before": 0.1009,
+    "ece_after": 0.0549,
+    "top1_before": 0.6345,
+    "top1_after": 0.6645
   }
 }

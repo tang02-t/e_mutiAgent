@@ -97,7 +97,8 @@
 - [ ] D10 196 条 `reference_points` 人工复核，`status` 由 `auto` 改为 `reviewed`。
 - [x] 2026-09-15 核实数据来源与许可：R1 非 Kaggle（字段不符，改写为「来源未核实的 IEC 60599 标签 DGA 汇编」）；R3 589 条为公开基准并已知含重复/冲突；ETT 许可统一为 CC BY-ND 4.0（原仓库为准，脚注说明 HF 镜像差异）；R8 公开站点检索未匹配。已同步 `docs/data_inventory.md`、`docs/data_and_evaluation.md`。
 - [ ] R8 `power_transformer_fault.csv` 若在 F 阶段前仍无法核实来源，从仓库移除并登记附录 B。
-- [ ] B-1 校准实验增加「R3 589 公开基准子集」单列结果；视时间补 IEC TC 10 案例库（IEEE DataPort, DOI 10.21227/h8g0-8z59）外部检验。
+- [x] B-1 校准实验增加「R3 589 公开基准子集」单列结果（见 `docs/attribution_calibration.md` 附录，n=438，Top-1 0.662 → 0.669，ECE 0.113 → 0.091；注意该子集参与了全量学习，非严格外部检验）。（2026-09-15）
+- [ ] 视时间补 IEC TC 10 案例库（IEEE DataPort, DOI 10.21227/h8g0-8z59）外部检验。
 
 验收标准：四项标注 / 核实结果写入对应数据卡片。
 
@@ -125,12 +126,14 @@
 
 ### B-1 归因引擎补全与校准
 
-- [ ] `_compute_posterior` 支持负观测：`evidence[s] == False` 时乘 `1 - p_true`（当前跳过 False，导致「已排除的征兆」不进入推理）。
-- [ ] 新增 `posterior_only(evidence)` 公开方法，返回归一化后验、熵 `H(F|E)`、Top-1 与 Top-2 概率差。
-- [ ] 5 折交叉验证学习 CPT / 先验（扩展 `learn_cpt.py --kfold 5`），报告每折 Top-1 / Top-3 准确率、对数似然。
-- [ ] 置信度校准：在验证折上做温度缩放（对后验取幂后归一化），网格搜索 T，报告校准前后 ECE（15 桶）、Brier、可靠性图；校准参数写入 `learned_params.json` 的 `calibration` 字段。
-- [ ] 规则 / 贝叶斯融合权重 `_fuse_results` 改为按故障类别在验证折上学习（当前为固定权重），与固定权重对照。
-- [ ] 输出 `docs/attribution_calibration.md`：5143 条数据上的准确率、ECE、可靠性图（`docs/figures/fig_b1_reliability.png`）。
+- [x] `_compute_posterior` 支持负观测：`evidence[s] == False` 时乘 `1 - p_true`；`None` 仍跳过。入口 `fault_attribution` 在有 DGA 数值时把低于注意值的气体征兆自动写为 `False`（被遮蔽 / 缺失的气体不派生）；`FAULT_ATTR_NEG_EVIDENCE=0` 关闭以做消融。（2026-09-15）
+- [x] 新增 `posterior_only(evidence, symptom_context)` 公开方法，返回归一化后验、熵 `H(F|E)`、Top-1 与 Top-2 概率差；`infer` 输出新增 `uncertainty` 块与 `evidence_negative`。（2026-09-15）
+- [x] `learn_cpt.py --kfold 5` 分层 5 折交叉验证，逐折报告 Top-1 / Top-3 / NLL / Brier / ECE。（2026-09-15）
+- [x] 置信度校准：验证折二分（前半拟合、后半 held-out 评估），温度 T 网格 0.5~4.5 目标 NLL；ECE 15 桶、Brier、可靠性图；校准参数写入 `learned_params.json.calibration`。（2026-09-15）
+- [x] `_fuse_results` 融合权重改为按故障类别可学习（坐标下降网格，目标 NLL），写入 `learned_params.json.fusion_weights`；与固定 0.7 对照。（2026-09-15）
+- [x] 输出 [attribution_calibration.md](/Users/ts/Desktop/thu/multi_Agent/docs/attribution_calibration.md) 与 `docs/figures/fig_b1_reliability.png`。（2026-09-15）
+
+验收结果（2026-09-15，held-out 半折 5 折平均，n=3729 非 normal）：ECE 0.101 → 0.055（下降 46%），NLL 1.061 → 0.822，Top-1 0.635 → 0.665（+3.0pt，未下降），Top-3 0.915 → 0.975。负观测消融：关闭时 Top-1 0.596 / ECE 0.117，开启时 0.635 / 0.101。单元测试 [test_b1_attribution.py](/Users/ts/Desktop/thu/multi_Agent/tests/test_b1_attribution.py) 47 项通过。注意：`overload_overheating` 学到 w_f=0，即该类完全依赖三比值规则，报告需说明。
 
 验收标准：校准后 ECE 相对校准前下降可量化；Top-1 准确率不下降超过 1 个点；单元测试覆盖负观测与温度缩放。
 
