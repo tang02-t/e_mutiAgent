@@ -103,6 +103,44 @@ def extract_keywords_line(units: List[Dict[str, Any]]) -> List[str]:
     return []
 
 
+_SENT = re.compile(r"(?<=[。！？；.!?;\n])")
+
+
+def split_subchunks(body: str, lo: int = 100, hi: int = 150) -> List[str]:
+    """按句切成 100-150 字子块；不足 lo 的尾段并入前一子块。"""
+    sents = [s for s in _SENT.split(body) if s.strip()]
+    out: List[str] = []
+    cur = ""
+    for s in sents:
+        if len(cur) + len(s) > hi and len(cur) >= lo:
+            out.append(cur)
+            cur = s
+        else:
+            cur += s
+        while len(cur) > hi * 2:            # 单句超长硬切
+            out.append(cur[:hi]); cur = cur[hi:]
+    if cur:
+        if out and len(cur) < lo:
+            out[-1] += cur
+        else:
+            out.append(cur)
+    return out or ([body] if body else [])
+
+
+def extractive_summary(c: Dict[str, Any], max_chars: int = 100) -> str:
+    """抽取式块摘要：章节路径 + 首句（截断）+ 领域词。"""
+    head = " > ".join(c["section_path"][-2:]) if c["section_path"] else c["doc_title"]
+    first = next((s for s in _SENT.split(c["body"]) if len(s.strip()) > 8), c["body"][:60]).strip()
+    terms = [t for t in dict.fromkeys(tokenize(c["body"])) if t in _DOMAIN_LOWER][:6]
+    s = f"{head}：{first}"
+    if terms:
+        s += "（涉及：" + "、".join(terms) + "）"
+    return s[:max_chars + 40]
+
+
+_DOMAIN_LOWER = {t.lower() for t in DOMAIN_TERMS}
+
+
 def main() -> int:
     IDX.mkdir(parents=True, exist_ok=True)
     units = [json.loads(l) for l in open(KB / "units.jsonl", encoding="utf-8")]
@@ -162,9 +200,33 @@ def main() -> int:
     with (IDX / "bm25_units.pkl").open("wb") as f:
         pickle.dump({"bm25": bm25u, "ids": [u["unit_id"] for u in anchors]}, f)
 
+    # ── L2b 子文本块层（按句切 100-150 字，父指针指向块）──
+    sub_ids: List[str] = []
+    sub_parent: List[str] = []
+    sub_tokens: List[List[str]] = []
+    for c in chunks:
+        for k, s in enumerate(split_subchunks(c["body"])):
+            sub_ids.append(f"{c['chunk_id']}#s{k}")
+            sub_parent.append(c["chunk_id"])
+            sub_tokens.append(tokenize(f"{c['doc_title']} {' '.join(c['section_path'])} {s}"))
+    with (IDX / "bm25_subchunks.pkl").open("wb") as f:
+        pickle.dump({"bm25": BM25Okapi(sub_tokens), "ids": sub_ids, "parent": sub_parent}, f)
+
+    # ── L2s 摘要层（抽取式：标题路径 + 首句 + 高频领域词；LLM 摘要待接口预算允许后覆盖）──
+    summaries: List[Dict[str, Any]] = []
+    for c in chunks:
+        summaries.append({"chunk_id": c["chunk_id"], "summary": extractive_summary(c), "summary_source": "extractive"})
+    with (IDX / "chunk_summaries.jsonl").open("w", encoding="utf-8") as f:
+        for s in summaries:
+            f.write(json.dumps(s, ensure_ascii=False) + "\n")
+    with (IDX / "bm25_summaries.pkl").open("wb") as f:
+        pickle.dump({"bm25": BM25Okapi([tokenize(s["summary"]) for s in summaries]),
+                     "ids": [s["chunk_id"] for s in summaries]}, f)
+
     vocab = collections.Counter(t for toks in corpus_tokens for t in toks)
     stats = {
         "n_docs": len(docs), "n_sections": len(sec_map), "n_chunks": len(chunks), "n_anchor_units": len(anchors),
+        "n_subchunks": len(sub_ids), "n_summaries": len(summaries),
         "vocab_size": len(vocab), "avg_tokens_per_chunk": round(sum(len(t) for t in corpus_tokens) / max(1, len(chunks)), 1),
         "top_terms": vocab.most_common(40),
         "domain_terms_hit": {t: vocab.get(t.lower(), 0) for t in DOMAIN_TERMS if vocab.get(t.lower(), 0)},

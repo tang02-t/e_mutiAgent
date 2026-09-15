@@ -44,13 +44,26 @@ class LocalKBRetriever:
         rrf_k: int = 60,
         reranker: Optional[Callable[[str, List[str]], List[float]]] = None,
         embed_fn: Optional[Callable[[List[str]], List[List[float]]]] = None,
+        mode: str = "two_way",
     ) -> None:
+        """
+        mode（P1-6 消融口径）：
+          naive          仅块级 BM25（+ 锚点通道）
+          two_way        块级 BM25 + 子块层（映射回父块）+ 摘要层，RRF 融合
+          two_way_rerank two_way 基础上启用 reranker（未提供 reranker 时退化为词法重排 LexicalReranker）
+        """
         if tokenize is None:
             raise RuntimeError("无法导入 scripts/kb/build_index.tokenize，请先确认 jieba/rank_bm25 已安装")
+        if mode not in ("naive", "two_way", "two_way_rerank"):
+            raise ValueError(f"未知 mode: {mode}")
+        self.mode = mode
         self.top_k = top_k
         self.candidate_k = candidate_k
         self.rrf_k = rrf_k
+        self.rrf_weights: Dict[str, float] = {"bm25": 1.0, "dense": 1.0, "anchor": 1.2, "sub": 1.2, "summary": 0.3}  # dev 网格最优（scripts/kb/tune_rrf_weights.py）
         self.reranker = reranker
+        if mode == "two_way_rerank" and self.reranker is None:
+            self.reranker = lexical_rerank
         self.embed_fn = embed_fn
 
         self.chunks: List[Dict[str, Any]] = [json.loads(l) for l in open(KB / "chunks.jsonl", encoding="utf-8")]
@@ -58,6 +71,17 @@ class LocalKBRetriever:
         with open(IDX / "bm25_chunks.pkl", "rb") as f:
             d = pickle.load(f)
         self.bm25, self.bm25_ids = d["bm25"], d["ids"]
+
+        self.bm25_sub = self.bm25_sum = None
+        if mode != "naive":
+            if (IDX / "bm25_subchunks.pkl").exists():
+                with open(IDX / "bm25_subchunks.pkl", "rb") as f:
+                    ds = pickle.load(f)
+                self.bm25_sub, self.sub_parent = ds["bm25"], ds["parent"]
+            if (IDX / "bm25_summaries.pkl").exists():
+                with open(IDX / "bm25_summaries.pkl", "rb") as f:
+                    dm = pickle.load(f)
+                self.bm25_sum, self.sum_ids = dm["bm25"], dm["ids"]
 
         self.use_anchor = use_anchor and (IDX / "bm25_units.pkl").exists()
         if self.use_anchor:
@@ -115,11 +139,40 @@ class LocalKBRetriever:
         order = np.argsort(-sims)[: self.candidate_k]
         return [self.dense_ids[i] for i in order]
 
+    def _subchunk_channel(self, query: str) -> List[str]:
+        """路一：子文本块召回 top-20，映射回父块（去重保序）。"""
+        if self.bm25_sub is None:
+            return []
+        toks = tokenize(query)
+        if not toks:
+            return []
+        scores = self.bm25_sub.get_scores(toks)
+        order = sorted(range(len(scores)), key=lambda i: -scores[i])[: self.candidate_k]
+        out: List[str] = []
+        for i in order:
+            if scores[i] <= 0:
+                break
+            p = self.sub_parent[i]
+            if p not in out:
+                out.append(p)
+        return out
+
+    def _summary_channel(self, query: str) -> List[str]:
+        """路二：摘要层召回 top-20，映射回块。"""
+        if self.bm25_sum is None:
+            return []
+        toks = tokenize(query)
+        if not toks:
+            return []
+        scores = self.bm25_sum.get_scores(toks)
+        order = sorted(range(len(scores)), key=lambda i: -scores[i])[: self.candidate_k]
+        return [self.sum_ids[i] for i in order if scores[i] > 0]
+
     # ── 融合 ──
     def _rrf(self, channels: Dict[str, List[str]]) -> List[tuple]:
         agg: Dict[str, float] = {}
         hit: Dict[str, Dict[str, int]] = {}
-        weights = {"bm25": 1.0, "dense": 1.0, "anchor": 1.2}
+        weights = self.rrf_weights
         for name, ids in channels.items():
             for rank, cid in enumerate(ids):
                 agg[cid] = agg.get(cid, 0.0) + weights.get(name, 1.0) / (self.rrf_k + rank + 1)
@@ -135,6 +188,9 @@ class LocalKBRetriever:
             "dense": self._dense_channel(query),
             "anchor": self._anchor_channel(query),
         }
+        if self.mode != "naive":
+            channels["sub"] = self._subchunk_channel(query)
+            channels["summary"] = self._summary_channel(query)
         fused = self._rrf({n: ids for n, ids in channels.items() if ids})
         # 低价值章节（参考文献 / 致谢 / 作者简介）降权
         low = re.compile(r"(参考文献|致谢|作者简介|References|目录)")
@@ -247,15 +303,39 @@ class LocalKBRetriever:
 
 
 _singleton: Optional[LocalKBRetriever] = None
+_singleton_mode: Optional[str] = None
 
 
-def get_local_kb(top_k: int = 5) -> LocalKBRetriever:
-    global _singleton
-    if _singleton is None:
-        _singleton = LocalKBRetriever(top_k=top_k)
+def lexical_rerank(query: str, texts: List[str]) -> List[float]:
+    """离线词法重排：查询词覆盖率 × 词序邻近奖励。Qwen3-Reranker-0.6B 不可本地运行时的占位实现，
+    保留 callable(query, texts)->scores 接口，接入真实重排器时直接替换。"""
+    qt = [t for t in dict.fromkeys(tokenize(query))]
+    if not qt:
+        return [0.0] * len(texts)
+    out: List[float] = []
+    for txt in texts:
+        toks = tokenize(txt)
+        pos: Dict[str, int] = {}
+        for i, t in enumerate(toks):
+            pos.setdefault(t, i)
+        hit = [t for t in qt if t in pos]
+        cov = len(hit) / len(qt)
+        prox = 0.0
+        if len(hit) >= 2:
+            span = max(pos[t] for t in hit) - min(pos[t] for t in hit) + 1
+            prox = len(hit) / span
+        out.append(cov + 0.3 * prox)
+    return out
+
+
+def get_local_kb(top_k: int = 5, mode: str = "two_way") -> LocalKBRetriever:
+    global _singleton, _singleton_mode
+    if _singleton is None or _singleton_mode != mode:
+        _singleton = LocalKBRetriever(top_k=top_k, mode=mode)
+        _singleton_mode = mode
     return _singleton
 
 
-def local_kb_search(query: str, top_k: int = 5) -> List[Dict[str, Any]]:
-    """可直接注册为 rag_search 工具的函数。"""
-    return get_local_kb(top_k).search(query, top_k=top_k)
+def local_kb_search(query: str, top_k: int = 5, mode: str = "two_way") -> List[Dict[str, Any]]:
+    """可直接注册为 rag_search 工具的函数。mode 见 LocalKBRetriever。"""
+    return get_local_kb(top_k, mode=mode).search(query, top_k=top_k)

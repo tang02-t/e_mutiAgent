@@ -3,6 +3,8 @@
   "n_sections": 3322,
   "n_chunks": 5404,
   "n_anchor_units": 2431,
+  "n_subchunks": 13094,
+  "n_summaries": 5404,
   "vocab_size": 26187,
   "avg_tokens_per_chunk": 87.2,
   "top_terms": [

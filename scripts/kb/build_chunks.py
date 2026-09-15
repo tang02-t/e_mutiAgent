@@ -71,11 +71,16 @@ def glue_cost(prev: Dict[str, Any], nxt: Dict[str, Any]) -> float:
     return 0.6
 
 
-def dp_segment(units: List[Dict[str, Any]], target: int, max_len: int, min_len: int) -> List[List[int]]:
-    """返回每块包含的 units 下标列表。"""
+def dp_segment(units: List[Dict[str, Any]], target: int, max_len: int, min_len: int, alpha: float = 0.5) -> List[List[int]]:
+    """返回每块包含的 units 下标列表。
+
+    alpha ∈ [0,1]：切割惩罚的相对权重。总代价 = 2(1-α)·长度代价 + 2α·切割代价；α=0.5 与旧版等价。
+    α 越大越倾向保持语义粘连（块长更不均匀），α 越小越贴近目标长度。
+    """
     n = len(units)
     if n == 0:
         return []
+    w_len, w_cut = 2.0 * (1.0 - alpha), 2.0 * alpha
     lens = [u["char_len"] for u in units]
     prefix = [0]
     for L in lens:
@@ -101,7 +106,7 @@ def dp_segment(units: List[Dict[str, Any]], target: int, max_len: int, min_len: 
             if L > max_len:
                 len_cost += 5.0
             cut_cost = glue_cost(units[i - 1], units[i]) if i > 0 else 0.0
-            c = best[i] + len_cost + cut_cost
+            c = best[i] + w_len * len_cost + w_cut * cut_cost
             if c < best[j]:
                 best[j], back[j] = c, i
     segs: List[List[int]] = []
@@ -113,13 +118,42 @@ def dp_segment(units: List[Dict[str, Any]], target: int, max_len: int, min_len: 
     return segs[::-1]
 
 
+def fixed_window_segment(units: List[Dict[str, Any]], window: int, overlap: int) -> List[Tuple[str, List[str]]]:
+    """固定窗口切分：把章节内正文拼接后按字符窗口滑动。返回 [(text, unit_ids)]。"""
+    body = "\n".join(u["text"] for u in units)
+    if not body:
+        return []
+    # 记录每个字符所属 unit，便于回填 unit_ids
+    owner: List[str] = []
+    for u in units:
+        owner.extend([u["unit_id"]] * (len(u["text"]) + 1))
+    out: List[Tuple[str, List[str]]] = []
+    step = max(1, window - overlap)
+    start = 0
+    while start < len(body):
+        end = min(len(body), start + window)
+        seg = body[start:end]
+        uids = sorted({owner[k] for k in range(start, end) if k < len(owner)}, key=lambda x: owner.index(x))
+        out.append((seg, uids))
+        if end >= len(body):
+            break
+        start += step
+    return out
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--units", default=str(ROOT / "data/kb/units.jsonl"))
     ap.add_argument("--out", default=str(ROOT / "data/kb/chunks.jsonl"))
+    ap.add_argument("--report", default="", help="报告路径；默认与 out 同目录 build_chunks_report.md")
     ap.add_argument("--target", type=int, default=400)
     ap.add_argument("--max", dest="max_len", type=int, default=700)
     ap.add_argument("--min", dest="min_len", type=int, default=120)
+    ap.add_argument("--alpha", type=float, default=0.5, help="DP 切割惩罚权重 α（0.3/0.5/0.7 网格）")
+    ap.add_argument("--strategy", default="dp", choices=["dp", "title", "fixed"],
+                    help="dp=动态规划；title=按最底层章节整体成块（超长按 max 硬切）；fixed=固定窗口")
+    ap.add_argument("--window", type=int, default=512, help="fixed 策略窗口大小")
+    ap.add_argument("--overlap", type=int, default=128, help="fixed 策略重叠")
     args = ap.parse_args()
 
     units = [json.loads(l) for l in open(args.units, encoding="utf-8")]
@@ -151,10 +185,21 @@ def main() -> int:
                 else:
                     groups.append((key, [uu]))
         for key, us in groups:
-            for seg in dp_segment(us, args.target, args.max_len, args.min_len):
-                members = [us[i] for i in seg]
-                header = " > ".join(key)
-                body = "\n".join(m["text"] for m in members)
+            header = " > ".join(key)
+            pieces: List[Tuple[str, List[Dict[str, Any]], List[str]]] = []  # (body, members, unit_ids)
+            if args.strategy == "dp":
+                for seg in dp_segment(us, args.target, args.max_len, args.min_len, alpha=args.alpha):
+                    members = [us[i] for i in seg]
+                    pieces.append(("\n".join(m["text"] for m in members), members, [m["unit_id"] for m in members]))
+            elif args.strategy == "title":
+                body_all = "\n".join(m["text"] for m in us)
+                for p in split_long(body_all, args.max_len):
+                    pieces.append((p, us, [m["unit_id"] for m in us]))
+            else:
+                for body_seg, uids in fixed_window_segment(us, args.window, args.overlap):
+                    members = [m for m in us if m["unit_id"] in set(uids)] or us[:1]
+                    pieces.append((body_seg, members, uids))
+            for body, members, uids in pieces:
                 text = (f"《{doc_title}》 {header}\n{body}" if header else f"《{doc_title}》\n{body}")
                 types = sorted({m["type"] for m in members})
                 ch = {
@@ -162,7 +207,7 @@ def main() -> int:
                     "doc_id": doc_id,
                     "doc_title": doc_title,
                     "section_path": list(key),
-                    "unit_ids": [m["unit_id"] for m in members],
+                    "unit_ids": uids,
                     "unit_types": types,
                     "has_anchor": any(t in ANCHOR_TYPES for t in types),
                     "text": text,
@@ -183,6 +228,7 @@ def main() -> int:
     def pct(p): return lens[int(len(lens) * p)] if lens else 0
     rep = [
         "# P1-4 动态规划分块报告", "",
+        f"- 策略：{args.strategy}（dp: alpha={args.alpha}; fixed: window={args.window} overlap={args.overlap}）",
         f"- 参数：target={args.target} max={args.max_len} min={args.min_len}",
         f"- 输入单元：{len(units)}（不含标题 {sum(1 for u in units if u['type'] != 'title')}）",
         f"- 输出块数：{len(chunks)}",
@@ -194,7 +240,8 @@ def main() -> int:
     ]
     for b in range(0, 1000, 100):
         rep.append(f"| {b}-{b+99 if b < 900 else '+'} | {stats.get(f'len_bucket_{b}', 0)} |")
-    (Path(args.out).parent / "build_chunks_report.md").write_text("\n".join(rep), encoding="utf-8")
+    rep_path = Path(args.report) if args.report else (Path(args.out).parent / "build_chunks_report.md")
+    rep_path.write_text("\n".join(rep), encoding="utf-8")
     print("\n".join(rep))
     return 0
 

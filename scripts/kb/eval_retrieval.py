@@ -80,6 +80,7 @@ def main() -> int:
     ap.add_argument("--file", default=str(EVAL / "retrieval_seed.jsonl"))
     ap.add_argument("--split", default="test", choices=["train", "dev", "test", "all"])
     ap.add_argument("--no-anchor", action="store_true")
+    ap.add_argument("--mode", default="two_way", choices=["naive", "two_way", "two_way_rerank"])
     ap.add_argument("--ablation", action="store_true")
     ap.add_argument("--tag", default="")
     args = ap.parse_args()
@@ -91,11 +92,13 @@ def main() -> int:
 
     configs = []
     if args.ablation:
-        configs = [("bm25_only", dict(use_anchor=False, use_dense=False)),
-                   ("bm25+anchor", dict(use_anchor=True, use_dense=False))]
+        configs = [("bm25_only", dict(use_anchor=False, use_dense=False, mode="naive")),
+                   ("bm25+anchor", dict(use_anchor=True, use_dense=False, mode="naive")),
+                   ("two_way", dict(use_anchor=True, use_dense=False, mode="two_way")),
+                   ("two_way_rerank", dict(use_anchor=True, use_dense=False, mode="two_way_rerank"))]
     else:
-        configs = [(args.tag or ("bm25_only" if args.no_anchor else "bm25+anchor"),
-                    dict(use_anchor=not args.no_anchor, use_dense=False))]
+        configs = [(args.tag or args.mode,
+                    dict(use_anchor=not args.no_anchor, use_dense=False, mode=args.mode))]
 
     results = []
     for tag, kw in configs:
