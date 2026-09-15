@@ -32,6 +32,12 @@ class AgentState:
 
     # ── Generator 输出 ──────────────────────────────────────────────
     draft_answer: Optional[str] = None
+    # C-1 声明级输出（generator_output_mode=claims 时填充；模板回退亦按规则拼装）
+    # 每条：{id, text, type: observation|inference|recommendation|safety, evidence: [{source, ref, span}]}
+    draft_claims: List[Dict[str, Any]] = field(default_factory=list)
+    # 声明产出方式：llm | rule | ""（text 模式未产出）；以及 LLM claims JSON 是否解析合法
+    claims_source: str = ""
+    claims_json_valid: Optional[bool] = None
 
     # ── Validator 输出 ──────────────────────────────────────────────
     validation_report: Optional[str] = None

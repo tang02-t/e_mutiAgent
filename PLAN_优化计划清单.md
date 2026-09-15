@@ -204,12 +204,14 @@
 
 ### C-1 声明与证据的输出规范
 
-- [ ] 定义 `docs/claim_schema.md`：`claims: [{id, text, type: observation | inference | recommendation | safety, evidence: [{source: tool | kb | kg | user, ref, span}]}]`，`ref` 为工具调用 id / 文本块 uuid / 图谱边 id / 用户轮次号；`span` 为证据原文片段。
-- [ ] 约束类型定义：`DATA`（数值与工具输出不一致、单位错误、比值编码错误）、`EVIDENCE`（引用不存在、片段不含该内容、历史案例冒充当前检测）、`APPLICABILITY`（证据设备 / 数据集 / 时间窗与当前任务不匹配）、`SAFETY`（处置建议缺少前提条件、与检测结果矛盾）。每类给正例、反例各 3 条。
-- [ ] Generator 新增 `templates/generator/system_claims.txt`，要求先输出 JSON 声明列表再渲染自然语言答案；`_llm_generate` 增加 `output_mode: text | claims`。
-- [ ] 模板回退 `_template_generate` 同步产出声明（规则拼装，保证 LLM 不可用时链路不断）。
+- [x] 定义 `docs/claim_schema.md`：`claims: [{id, text, type: observation | inference | recommendation | safety, evidence: [{source: tool | kb | kg | user, ref, span}]}]`，`ref` 为工具调用 id / 文本块 uuid / 图谱边 id / 用户轮次号；`span` 为证据原文片段。（2026-09-15，ref 规范定为 `call:<call_index>` / `kb:<chunk_id>` / `kg:<path>` / `user:<round>`）
+- [x] 约束类型定义：`DATA`（数值与工具输出不一致、单位错误、比值编码错误）、`EVIDENCE`（引用不存在、片段不含该内容、历史案例冒充当前检测）、`APPLICABILITY`（证据设备 / 数据集 / 时间窗与当前任务不匹配）、`SAFETY`（处置建议缺少前提条件、与检测结果矛盾）。每类给正例、反例各 3 条。（2026-09-15，`docs/claim_schema.md` §4）
+- [x] Generator 新增 `templates/generator/system_claims.txt`，要求先输出 JSON 声明列表再渲染自然语言答案；`_llm_generate` 增加 `output_mode: text | claims`。（2026-09-15，配置项 `workflow.generator_output_mode`，`GENERATOR_SYSTEM_PROMPT(variant)`；LLM 输出按 `===ANSWER===` 切分，JSON 经 `parse_llm_json` + `validate_claims` 校验，非法自动回退规则声明）
+- [x] 模板回退 `_template_generate` 同步产出声明（规则拼装，保证 LLM 不可用时链路不断）。（2026-09-15，公共模块 [claims.py](/Users/ts/Desktop/thu/multi_Agent/src/agents/claims.py)：`evidence_catalog` / `validate_claims` / `build_rule_claims` / `render_claims_markdown`；state 新增 `draft_claims` / `claims_source` / `claims_json_valid`）
 
 验收标准：D10 抽 30 条，Generator 在 `claims` 模式下 JSON 合法率不低于 95%，每条 claim 至少一条 evidence 引用。
+
+验收结果（2026-09-15，`scripts/eval/eval_claims_c1.py --n 30`，报告 [claims_acceptance.md](/Users/ts/Desktop/thu/multi_Agent/docs/claims_acceptance.md)）：D10 按 scenario 分层抽 30 条，OraclePlanner + 真实工具 + 本地 BM25；JSON 合法率 100%（30/30），110 条声明全部 ≥1 条 evidence，ref 全部在本轮证据目录内，safety 声明 6 条均双引用工具结果（归因概率 + DGA 入参），工作流异常 0。类型分布 observation 40 / inference 43 / recommendation 21 / safety 6；证据来源 tool 73 / kb 21 / kg 16 / user 6。单元测试 `tests/test_c1_claims.py` 50 项通过；回归 p0 87 / b1 47 / b2 34 / b3 33 / b4 51 / b5 30 全绿。**验收通过。** 标注：本次在 LLM 未启用条件下验证的是规则拼装路径（`claims_source=rule`）；LLM 路径（`system_claims.txt` → JSON 解析）合法率需在启用 LLM 后用 `--llm` 补跑并更新报告（后置项）。
 
 ### C-2 约束核查器
 

@@ -146,8 +146,11 @@ def PLANNER_SYSTEM_PROMPT(allowed_tools: Optional[list] = None, variant: Optiona
     return template
 
 
-def GENERATOR_SYSTEM_PROMPT() -> str:
-    return _loader.get_system("generator")
+def GENERATOR_SYSTEM_PROMPT(variant: Optional[str] = None) -> str:
+    """
+    variant="claims" 时加载 templates/generator/system_claims.txt（C-1 声明级输出；缺失则回退基础模板）。
+    """
+    return _loader.get_system("generator", variant)
 
 
 def VALIDATOR_SYSTEM_PROMPT() -> str:

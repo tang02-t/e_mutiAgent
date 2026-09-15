@@ -1,4 +1,4 @@
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional, Tuple
 
 from src.graph.state import AgentState
 from src.utils.config import get_llm_config
@@ -10,9 +10,20 @@ from src.utils.prompts import (
     render_generator_user,
     render_generator_revision_user,
 )
+from src.utils.json_parse import parse_llm_json
+from src.agents.claims import (
+    build_rule_claims,
+    evidence_catalog,
+    render_evidence_catalog,
+    render_claims_markdown,
+    validate_claims,
+)
 
 
 logger = get_logger(__name__)
+
+CLAIMS_SEPARATOR = "===ANSWER==="
+OUTPUT_MODES = ("text", "claims")
 
 
 class GeneratorAgent:
@@ -21,10 +32,14 @@ class GeneratorAgent:
     - 根据检索到的知识和时序分析结果，生成面向一线的诊断与操作建议
     - 支持 Validator 触发重生成，根据改进建议优化诊断草案
     - 优先使用 LLM 生成，若 LLM 未启用则使用模板填充
+    - C-1：output_mode=claims 时先产出 JSON 声明列表（state.draft_claims）再渲染自然语言草案；
+      模板回退路径按规则拼装声明，保证 LLM 不可用时链路不断
     """
 
-    def __init__(self, config: Dict[str, Any]) -> None:
+    def __init__(self, config: Dict[str, Any], output_mode: Optional[str] = None) -> None:
         self.config = config
+        mode = output_mode or (config.get("workflow", {}) or {}).get("generator_output_mode", "text")
+        self.output_mode = mode if mode in OUTPUT_MODES else "text"
         model_cfg = get_llm_config(config, "generator")
         self.llm = LLMClient(
             LLMConfig(
@@ -239,10 +254,11 @@ class GeneratorAgent:
         return choice.get("content", "") if isinstance(choice, dict) else ""
 
     def _llm_generate(self, state: AgentState) -> str:
-        """调用 LLM 生成诊断草案（首次生成）。"""
+        """调用 LLM 生成诊断草案（首次生成）。output_mode=claims 时先解析 JSON 声明再取自然语言正文。"""
         kb_text, ts_text, attribution_text, forecast_text, kg_text = self._extract_tool_results(state)
 
-        system_msg = GENERATOR_SYSTEM_PROMPT()
+        claims_mode = self.output_mode == "claims"
+        system_msg = GENERATOR_SYSTEM_PROMPT("claims" if claims_mode else None)
         user_msg = render_generator_user(
             query=state.user_query,
             kb_text=kb_text,
@@ -251,6 +267,11 @@ class GeneratorAgent:
             forecast_text=forecast_text,
             kg_text=kg_text,
         )
+        catalog = None
+        if claims_mode:
+            catalog = evidence_catalog(state)
+            user_msg = user_msg.rstrip() + "\n\n" + render_evidence_catalog(catalog) + \
+                f"\n\n请先输出 JSON 声明列表，再输出一行 {CLAIMS_SEPARATOR}，然后输出自然语言诊断建议。"
 
         messages: List[Dict[str, str]] = [
             {"role": "system", "content": system_msg},
@@ -258,11 +279,60 @@ class GeneratorAgent:
         ]
 
         choice = self.llm.chat(messages)
-        return choice.get("content", "") if isinstance(choice, dict) else ""
+        content = choice.get("content", "") if isinstance(choice, dict) else ""
+        if not claims_mode:
+            return content
+
+        claims, answer, valid = self._split_claims_output(content, catalog["refs"] if catalog else None)
+        state.claims_json_valid = valid
+        if valid and claims:
+            state.draft_claims = claims
+            state.claims_source = "llm"
+        else:
+            logger.warning("Generator claims JSON invalid or empty; falling back to rule-based claims.")
+            state.errors.append({"agent": "generator", "error": "claims JSON 解析或校验失败，已改用规则声明。"})
+            state.draft_claims = build_rule_claims(state)
+            state.claims_source = "rule"
+        if not answer.strip():
+            answer = content
+        return answer.strip() + "\n\n" + render_claims_markdown(state.draft_claims)
+
+    @staticmethod
+    def _split_claims_output(content: str, known_refs=None) -> Tuple[List[Dict[str, Any]], str, bool]:
+        """
+        把 LLM 输出拆成 (claims, answer_text, json_valid)。
+        - 优先按 CLAIMS_SEPARATOR 切分；无分隔符时取首个 JSON 对象，其后内容作为正文。
+        - json_valid 为 True 当且仅当 JSON 可解析且通过 validate_claims（每条 claim ≥1 evidence）。
+        """
+        if not content:
+            return [], "", False
+        if CLAIMS_SEPARATOR in content:
+            head, _, tail = content.partition(CLAIMS_SEPARATOR)
+        else:
+            head, tail = content, ""
+            last = content.rfind("}")
+            if last != -1:
+                head, tail = content[: last + 1], content[last + 1:]
+        obj = parse_llm_json(head)
+        if obj is None:
+            return [], tail, False
+        ok, errors, claims = validate_claims(obj, known_refs)
+        if not ok:
+            logger.warning("claims schema errors: %s", "; ".join(errors[:5]))
+        elif errors:
+            logger.info("claims ref warnings: %s", "; ".join(errors[:5]))
+        return claims, tail, ok
 
     def _template_generate(self, state: AgentState) -> str:
-        """使用模板填充生成诊断草案（LLM 不可用时的降级路径）。"""
+        """使用模板填充生成诊断草案（LLM 不可用时的降级路径）。同步按规则拼装声明（C-1）。"""
         kb_text, ts_text, attribution_text, forecast_text, kg_text = self._extract_tool_results(state)
+
+        state.draft_claims = build_rule_claims(state)
+        state.claims_source = "rule"
+        ok, errors, _ = validate_claims(state.draft_claims)
+        state.claims_json_valid = ok
+        if not ok:
+            logger.warning("rule claims failed schema validation: %s", "; ".join(errors[:5]))
 
         draft_parts: List[str] = [
             "【模板生成模式：LLM 未启用或调用失败，以下为基于工具结果的结构化摘要】",
@@ -296,6 +366,9 @@ class GeneratorAgent:
                 "5. 如有必要申请停电进行绕组直流电阻、绝缘电阻、变比等电气试验。",
             ]
         )
+
+        if self.output_mode == "claims":
+            draft_parts.extend(["", render_claims_markdown(state.draft_claims)])
 
         return "\n".join(draft_parts)
 
@@ -338,6 +411,10 @@ class GeneratorAgent:
                     draft = self._llm_generate(state)
 
                 if draft:
+                    if self.output_mode == "claims" and is_revision and not state.draft_claims:
+                        # 修订路径不重新生成 JSON 声明：沿用首轮声明；缺失时按规则兜底
+                        state.draft_claims = build_rule_claims(state)
+                        state.claims_source = state.claims_source or "rule"
                     state.draft_answer = draft
                     logger.info("Generator %s succeeded, draft length=%d chars.",
                                 "revision" if is_revision else "generation", len(draft))
@@ -359,6 +436,7 @@ class GeneratorAgent:
             logger.info("Generator LLM not enabled, using template.")
             state.draft_answer = self._template_generate(state)
 
-        logger.info("[yellow]Generator Output:[/yellow] draft_answer length=%d chars", len(state.draft_answer))
+        logger.info("[yellow]Generator Output:[/yellow] draft_answer length=%d chars, claims=%d (%s)",
+                    len(state.draft_answer), len(state.draft_claims), state.claims_source or "n/a")
         return state
 

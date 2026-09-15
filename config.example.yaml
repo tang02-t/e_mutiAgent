@@ -85,3 +85,8 @@ workflow:
   planner_decision: llm
   max_inquiry_rounds: 3
   attribution_mode: calibrated
+  # C-1 Generator 输出模式：
+  #   text   —— v1 行为，只输出自然语言草案
+  #   claims —— 先输出 JSON 声明列表（state.draft_claims，见 docs/claim_schema.md）再输出自然语言草案；
+  #             LLM 不可用或 JSON 非法时按工具结果规则拼装声明，链路不断
+  generator_output_mode: text
