@@ -139,12 +139,16 @@
 
 ### B-2 期望信息增益（EIG）模块
 
-- [ ] 新建 `src/tools/eig.py`：对每个未观测征兆 `s`，计算 `EIG(s) = H(F|E) - Σ_v P(s=v|E)·H(F|E, s=v)`，其中 `P(s=v|E) = Σ_F P(s=v|F)·P(F|E)`。
-- [ ] 征兆获取成本表 `data/real/dga/symptom_cost.json`：已由 DGA 数值推出的征兆成本 0；需追问用户的现场征兆（声响、油位、温度）成本 1；需额外试验（局放、绕组变形）成本 3。`VoI(s) = EIG(s) - λ·cost(s)`，λ 为可配置参数（默认 0.05）。
-- [ ] 停止准则：`H(F|E) < τ_H` 或 `max VoI < ε` 或已达最大问询轮数 `K`（默认 τ_H=0.8 bit、ε=0.02、K=3），三者可配置。
-- [ ] `fault_attribution` 工具返回新增 `uncertainty` 块：`{entropy, top1_top2_gap, calibrated: bool, recommendations: [{symptom, eig, cost, voi, how_to_obtain: ask_user | call_tool:<tool_name>}], suggested_action: ask | call_tool | conclude}`。`how_to_obtain` 由征兆 → 工具映射表给出（例如「油温持续上升」→ `ett_forecast`，「负载异常波动」→ `timeseries_anomaly`）。
-- [ ] 与 [kg_search.py](/Users/ts/Desktop/thu/multi_Agent/src/tools/kg_search.py) 联动：推荐征兆附带图谱中 `INDICATE` / `DETECTED_BY` 边的原文片段，供 Planner 生成可解释的追问话术。
-- [ ] 单元测试：EIG 非负、观测全部征兆后 EIG 为 0、成本单调性。
+- [x] 新建 [eig.py](/Users/ts/Desktop/thu/multi_Agent/src/tools/eig.py)：`EIG(s) = H(F|E) - Σ_v P(s=v|E)·H(F|E, s=v)`，`P(s=v|E) = Σ_F P(s=v|F)·P(F|E)`；两种计算基 `bayes`（严格互信息，非负）/ `fused`（系统实际置信分布，裁剪到 0）。（2026-09-15）
+- [x] 成本表 [symptom_cost.json](/Users/ts/Desktop/thu/multi_Agent/data/real/dga/symptom_cost.json)：气体派生征兆 0、现场征兆 / 时序工具 1、局放检测 3；`VoI = EIG - λ·cost`，λ 默认 0.05。（2026-09-15）
+- [x] 停止准则 `H < τ_H(0.8) | max VoI < ε(0.02) | rounds ≥ K(3)`，成本表 `stop` 段可配，`recommend(..., stop=...)` 可覆盖。（2026-09-15）
+- [x] `fault_attribution` 返回 `uncertainty` 块新增 `recommendations[{symptom, eig, cost, voi, p_true, how_to_obtain, ask_hint, kg_evidence}]`、`suggested_action`、`suggested_tool`、`stop_reason`；`how_to_obtain` 映射 `oil_temp_elevated → call_tool:ett_forecast`、`load_elevated → call_tool:timeseries_anomaly`，其余 `ask_user`。`FAULT_ATTR_EIG=0` 或 `with_eig=False` 关闭（mode2 基座用）。（2026-09-15）
+- [x] 与 `kg_search` 联动：成本表 `kg_nodes` → 图谱 `INDICATES / DETECTED_BY / PRODUCES / CAUSES` 边原文（最多 2 条）附在推荐上。（2026-09-15）
+- [x] 单元测试 [test_b2_eig.py](/Users/ts/Desktop/thu/multi_Agent/tests/test_b2_eig.py) 34 项：EIG 非负、不超过当前熵、全部观测后无候选、λ 单调性、三种停止原因、call_tool 映射、遮蔽气体不触发伪三比值规则。（2026-09-15）
+
+附带修复（2026-09-15）：三比值法在任一气体缺失时不再用 0 代入触发伪规则（`dga_analysis.ratios_incomplete`）；数据集不含 CO / 温度 / 负载 / 振动 / 局放 7 个征兆，`learn_cpt.py` 对其写入向 0.5 收缩的专家 CPT（κ=`EXPERT_SHRINK`=0.5，条目标记 `source: expert_shrunk`），否则原专家值在 EIG 中会压过数据学到的气体征兆。
+
+验收结果（2026-09-15）：[eig_sanity_check.md](/Users/ts/Desktop/thu/multi_Agent/docs/eig_sanity_check.md) 20 条手工部分观测样例，Top-1 一致率 90%、Top-3 一致率 95%（κ=0.5；κ=1.0 时仅 60%/70%，κ≤0.6 稳定在 90%/95%）。预期集合为 AI 预填，**需人工复核后登记**。
 
 验收标准：对 20 条手工部分观测样例，推荐征兆与领域专家直觉一致率不低于 80%（人工判定）。
 

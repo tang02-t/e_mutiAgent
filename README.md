@@ -23,7 +23,7 @@ python3 scripts/probe_llm_endpoint.py   # 探测对话与 function calling 是�
 bash reproduce.sh                # 全部：DGA → 知识库 → 图谱 → 反思 → 规划数据 → D10 → 评测自检 → 回归测试
 bash reproduce.sh kb kg          # 只跑指定阶段
 SKIP_EXISTING=1 bash reproduce.sh
-python3 tests/test_p0_fixes.py   # 87 项回归测试
+for t in tests/test_*.py; do python3 "$t" | tail -1; done   # 回归测试：p0 87 项 + B-1 47 项 + B-2 34 项
 ```
 
 各阶段对应脚本：

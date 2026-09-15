@@ -1,0 +1,22 @@
+{
+  "_comment": "B-2 征兆获取成本表。cost: 0 = 已由 DGA 数值直接推出（无需额外获取）；1 = 需追问用户现场征兆或调用已有时序工具；3 = 需额外试验（局放测试、绕组变形试验等）。how_to_obtain: ask_user | call_tool:<tool_name>。kg_nodes 为图谱中对应节点 id（用于附带追问话术的文献原文）。",
+  "version": "2026-09-15",
+  "lambda_default": 0.05,
+  "stop": {"tau_h_bits": 0.8, "eps_voi": 0.02, "max_rounds": 3},
+  "symptoms": {
+    "H2_elevated":            {"cost": 0, "how_to_obtain": "ask_user", "ask_hint": "请提供油色谱中的氢气（H2）浓度（μL/L）", "kg_nodes": ["Symptom:氢气升高", "Indicator:氢气"]},
+    "CH4_elevated":           {"cost": 0, "how_to_obtain": "ask_user", "ask_hint": "请提供甲烷（CH4）浓度（μL/L）", "kg_nodes": ["Indicator:甲烷"]},
+    "C2H2_elevated":          {"cost": 0, "how_to_obtain": "ask_user", "ask_hint": "请提供乙炔（C2H2）浓度（μL/L）", "kg_nodes": ["Symptom:乙炔升高", "Indicator:乙炔"]},
+    "C2H4_elevated":          {"cost": 0, "how_to_obtain": "ask_user", "ask_hint": "请提供乙烯（C2H4）浓度（μL/L）", "kg_nodes": ["Indicator:乙烯"]},
+    "C2H6_elevated":          {"cost": 0, "how_to_obtain": "ask_user", "ask_hint": "请提供乙烷（C2H6）浓度（μL/L）", "kg_nodes": ["Indicator:乙烷"]},
+    "TDCG_elevated":          {"cost": 0, "how_to_obtain": "ask_user", "ask_hint": "请提供总烃含量或四种烃类气体浓度", "kg_nodes": ["Symptom:总烃超标", "Indicator:总烃"]},
+    "gas_rate_rapid":         {"cost": 1, "how_to_obtain": "ask_user", "ask_hint": "是否有前一次色谱数据可计算产气速率？近期气体是否快速增长？", "kg_nodes": ["Indicator:产气速率"]},
+    "CO_elevated":            {"cost": 1, "how_to_obtain": "ask_user", "ask_hint": "请提供一氧化碳（CO）浓度（μL/L）", "kg_nodes": ["Symptom:一氧化碳升高", "Indicator:一氧化碳"]},
+    "CO2_elevated":           {"cost": 1, "how_to_obtain": "ask_user", "ask_hint": "请提供二氧化碳（CO2）浓度（μL/L）", "kg_nodes": ["Indicator:二氧化碳"]},
+    "oil_temp_elevated":      {"cost": 1, "how_to_obtain": "call_tool:ett_forecast", "ask_hint": "上层油温是否高于同负载历史水平或持续上升？", "kg_nodes": ["Symptom:油温升高", "Indicator:油温"]},
+    "load_elevated":          {"cost": 1, "how_to_obtain": "call_tool:timeseries_anomaly", "ask_hint": "近期负载电流是否明显高于额定或出现异常波动？", "kg_nodes": []},
+    "winding_temp_elevated":  {"cost": 1, "how_to_obtain": "ask_user", "ask_hint": "绕组温度计 / 热点温度是否偏高？", "kg_nodes": ["Indicator:绕组温度"]},
+    "vibration_elevated":     {"cost": 1, "how_to_obtain": "ask_user", "ask_hint": "现场是否有异常振动、噪声或放电声？", "kg_nodes": ["Symptom:噪声异常"]},
+    "partial_discharge_alarm":{"cost": 3, "how_to_obtain": "ask_user", "ask_hint": "是否做过局部放电（超声 / 特高频）检测，是否有告警？", "kg_nodes": ["Indicator:局放量", "Fault:局部放电"]}
+  }
+}

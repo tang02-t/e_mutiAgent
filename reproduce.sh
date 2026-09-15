@@ -21,7 +21,8 @@ run() { echo; echo "▶ $*"; eval "$* 2>&1 | $FILTER"; }
 if has dga; then
   echo "== 0. DGA 数据合并与贝叶斯参数学习 =="
   skip_if data/real/dga/dga_records.jsonl || run python3 scripts/convert_real_dga.py
-  skip_if data/real/dga/learned_params.json || run python3 scripts/learn_cpt.py
+  skip_if data/real/dga/learned_params.json || run python3 scripts/learn_cpt.py --kfold 5   # B-1：5 折校准，写 docs/attribution_calibration.md
+  run python3 scripts/eval/eig_sanity_check.py   # B-2：EIG 领域一致性抽检，写 docs/eig_sanity_check.md
 fi
 
 if has kb; then
@@ -68,7 +69,7 @@ fi
 
 if has test; then
   echo "== 7. 回归测试 =="
-  python3 tests/test_p0_fixes.py 2>&1 | grep -E "FAIL|结果：" || true
+  for t in tests/test_*.py; do echo "-- $t"; python3 "$t" 2>&1 | grep -E "FAIL|结果：" || true; done
 fi
 
 echo; echo "完成。报告：docs/kb_ablation_test.md  docs/reflection_eval.md  docs/end2end_eval.md  data/planner/sft/DATA_CARD.md  data/eval/d10/DATA_CARD.md"

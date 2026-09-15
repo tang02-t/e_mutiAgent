@@ -48,8 +48,10 @@ from src.tools.fault_attribution import (  # noqa: E402
     FaultBayesianNetwork,
     derive_gas_evidence,
 )
+from src.tools.fault_attribution import _FAULT_SYMPTOM_CPT as _EXPERT_CPT  # noqa: E402
 
 ALPHA = 1.0  # 拉普拉斯平滑系数
+EXPERT_SHRINK = float(os.environ.get("EXPERT_SHRINK", "0.5"))  # 无数据征兆的专家 CPT 向 0.5 收缩系数 κ
 T_GRID = [round(0.5 + 0.1 * i, 2) for i in range(0, 41)]          # 0.5 .. 4.5
 W_GRID = [round(0.1 * i, 2) for i in range(0, 11)]                # 0.0 .. 1.0
 N_BINS = 15
@@ -95,22 +97,38 @@ def learn(records: list[dict]) -> dict:
                 pos[f][s] += 1
                 total_pos[s] += 1
 
+    # 数据中从未出现过的征兆（CO / 油温 / 振动等，本数据集不含这些字段）：
+    # 专家 CPT 未经数据验证，直接保留会在 EIG 中压过数据学到的气体征兆（专家值普遍比数据值更「自信」）。
+    # 处理：写入向 0.5 收缩的专家值 p' = 0.5 + κ·(p - 0.5)（κ=EXPERT_SHRINK，默认 0.5，等价于对无数据支持的
+    # 参数施加弱信息先验），并在 meta 中登记。κ=1 即原专家值。
+    learnable = [s for s in SYMPTOM_IDS if total_pos[s] > 0]
+    unobserved = [s for s in SYMPTOM_IDS if total_pos[s] == 0]
+
     cpt = {}
     for f in FAULT_IDS:
         nf = n_f.get(f, 0)
         n_not_f = n - nf
         row = {}
-        for s in SYMPTOM_IDS:
+        for s in learnable:
             p_true = (pos[f][s] + ALPHA) / (nf + 2 * ALPHA)
             neg_count = total_pos[s] - pos[f][s]
             p_false = (neg_count + ALPHA) / (n_not_f + 2 * ALPHA)
             row[s] = {"p_true": round(p_true, 5), "p_false": round(p_false, 5)}
+        for s in unobserved:
+            exp_row = _EXPERT_CPT.get(f, {}).get(s)
+            p_exp = exp_row.p_true if exp_row else 0.05
+            p_shr = 0.5 + EXPERT_SHRINK * (p_exp - 0.5)
+            row[s] = {"p_true": round(p_shr, 5), "p_false": round(exp_row.p_false if exp_row else 0.01, 5),
+                      "source": "expert_shrunk"}
         cpt[f] = row
 
     return {
         "meta": {
             "n_samples": n,
             "alpha": ALPHA,
+            "learned_symptoms": learnable,
+            "expert_kept_symptoms": unobserved,
+            "expert_shrink": EXPERT_SHRINK,
             "fault_distribution": dict(fault_counter),
         },
         "prior": {k: round(v, 5) for k, v in prior.items()},
@@ -514,6 +532,10 @@ def write_report(cv: dict[str, Any], out_md: Path, fig_rel: Path | None, subset_
         "- 数据为文献汇编 DGA（见 `docs/data_inventory.md`），标签仅有 4 个故障类（局部放电 / 匝间短路 / 过载过热 / 绝缘老化）+ normal；"
         "引擎 8 类中的另 4 类（绕组变形 / 铁芯接地 / 套管 / 分接开关）无正样本，其先验被平滑到接近 0，Top-1 不会落在这些类上。",
         "- 朴素贝叶斯独立假设使多征兆同时出现时后验过尖，这是温度 T>1 的直接原因；报告的 ECE 下降即对此的修正。",
+        f"- 数据集不含 CO / CO2 / 油温 / 绕组温度 / 负载 / 振动 / 局放告警字段，这 7 个征兆的 CPT 无法从数据学习；"
+        f"写入向 0.5 收缩的专家值 p' = 0.5 + κ(p − 0.5)，κ = {EXPERT_SHRINK}（`EXPERT_SHRINK`），"
+        "并在 CPT 条目标记 `source: expert_shrunk`。κ 对本报告的准确率 / ECE 无影响（评测数据不含这些征兆），"
+        "但直接影响 B-2 EIG 对现场征兆的推荐强度，其敏感性见 `docs/eig_sanity_check.md`。",
         "- 校准参数（T、w_f）为 5 折平均值，最终 prior / CPT 用全量数据重学；线上引擎加载 `learned_params.json` 时自动生效。",
     ]
     out_md.parent.mkdir(parents=True, exist_ok=True)

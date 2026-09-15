@@ -373,7 +373,8 @@ class FaultBayesianNetwork:
 
         if learned_cpt:
             for fid, rows in learned_cpt.items():
-                row_map: dict[str, CPTRow] = {}
+                # 按征兆合并：学习到的征兆覆盖专家值，未学习的征兆保留专家 CPT
+                row_map: dict[str, CPTRow] = dict(self.cpt.get(fid, {}))
                 for sid, vals in rows.items():
                     row_map[sid] = CPTRow(
                         p_true=float(vals.get("p_true", 0.05)),
@@ -591,10 +592,13 @@ class FaultBayesianNetwork:
         """
         基于 DL/T 722-2014 三比值法分析 DGA 数据。
         ctx 支持字段：
-            H2, CH4, C2H2, C2H4, C2H6 (单位: μL/L)
+            H2, CH4, C2H2, C2H4, C2H6 (单位: μL/L)；值为 None 表示该气体未提供（被遮蔽）
             或 ratios: {C2H2_C2H4, CH4_H2, C2H4_C2H6}
+        任一比值所需气体缺失时不做三比值规则匹配（`ratios_incomplete=True`），避免用 0 代入触发伪规则。
         """
-        gases = {k: ctx.get(k, 0) for k in ["H2", "CH4", "C2H2", "C2H4", "C2H6"]}
+        raw = {k: ctx.get(k) for k in ["H2", "CH4", "C2H2", "C2H4", "C2H6"]}
+        missing = [k for k, v in raw.items() if v is None]
+        gases = {k: (v if v is not None else 0) for k, v in raw.items()}
         ratios = ctx.get("ratios", {})
 
         # 计算气体比例（若未直接提供则从浓度计算）
@@ -614,22 +618,27 @@ class FaultBayesianNetwork:
             "code_C2H4_C2H6": self._code_c2h4_c2h6(calc_ratios.get("C2H4_C2H6", 0)),
         }
 
-        # 应用 DGA 规则
+        # 应用 DGA 规则（五种气体齐全或显式给了 ratios 时才匹配）
         matched_rules: list[dict[str, Any]] = []
-        for rule in _DGA_RULES:
-            if self._match_rule(rule, ratio_codes):
-                matched_rules.append({
-                    "rule_name": rule["name"],
-                    "related_faults": rule["related_faults"],
-                    "confidence": rule["weight"],
-                })
+        ratios_incomplete = bool(missing) and not ratios
+        if not ratios_incomplete:
+            for rule in _DGA_RULES:
+                if self._match_rule(rule, ratio_codes):
+                    matched_rules.append({
+                        "rule_name": rule["name"],
+                        "related_faults": rule["related_faults"],
+                        "confidence": rule["weight"],
+                    })
 
         return {
             "gases": gases,
+            "missing_gases": missing,
             "ratios": calc_ratios,
+            "ratios_incomplete": ratios_incomplete,
             "ratio_codes": ratio_codes,
             "matched_rules": matched_rules,
-            "interpretation": self._interpret_gases(gases, calc_ratios),
+            "interpretation": self._interpret_gases(gases, calc_ratios)
+            + (f"\n- 缺少 {'/'.join(missing)} 浓度，未做三比值法判断" if ratios_incomplete else ""),
         }
 
     def _match_rule(self, rule: dict[str, Any], ratio_codes: dict[str, int]) -> bool:
@@ -844,15 +853,21 @@ def fault_attribution(
     dga_data: dict[str, Any] | None = None,
     evidence: dict[str, bool] | None = None,
     query: str = "",
+    *,
+    with_eig: bool | None = None,
+    rounds_done: int = 0,
 ) -> dict[str, Any]:
     """
     故障归因主入口函数，供 MCP 工具调用。
 
     参数:
         dga_data: DGA 气体数据字典，字段包括 H2/CH4/C2H2/C2H4/C2H6（单位μL/L）
-                  以及可选的 ratios 子字典
-        evidence: 征兆布尔字典，如 {"H2_elevated": True, "C2H2_elevated": True}
+                  以及可选的 ratios 子字典；缺失（None）的气体视为未观测（被遮蔽），不派生负观测
+        evidence: 征兆布尔字典，如 {"H2_elevated": True, "C2H2_elevated": False}
+                  True=出现，False=明确排除（负观测），缺失=未观测
         query: 用户原始问题描述（用于上下文）
+        with_eig: 是否附带 EIG 推荐块（默认读环境变量 FAULT_ATTR_EIG，默认开）
+        rounds_done: 已进行的追问轮数（供停止准则）
 
     示例:
         fault_attribution(
@@ -860,6 +875,7 @@ def fault_attribution(
             evidence={"H2_elevated": True, "C2H2_elevated": True},
         )
     """
+    import os
     import re
 
     engine = get_engine()
@@ -889,19 +905,39 @@ def fault_attribution(
         for sym, val in derive_gas_evidence(gases_obs, negative=engine.use_negative_evidence).items():
             computed_evidence.setdefault(sym, val)
 
+    symptom_context = None
     if dga_data:
-        result = engine.infer(
-            computed_evidence,
-            symptom_context={
-                "H2": gases["H2"],
-                "CH4": gases["CH4"],
-                "C2H2": gases["C2H2"],
-                "C2H4": gases["C2H4"],
-                "C2H6": gases["C2H6"],
-                "query": query,
-            },
-        )
+        symptom_context = {
+            "H2": gases_obs.get("H2"),
+            "CH4": gases_obs.get("CH4"),
+            "C2H2": gases_obs.get("C2H2"),
+            "C2H4": gases_obs.get("C2H4"),
+            "C2H6": gases_obs.get("C2H6"),
+            "query": query,
+        }
+        if isinstance(dga_data.get("ratios"), dict):
+            symptom_context["ratios"] = dga_data["ratios"]
+        result = engine.infer(computed_evidence, symptom_context=symptom_context)
     else:
         result = engine.infer(computed_evidence)
+
+    # B-2：EIG 推荐块。FAULT_ATTR_EIG=0 或 with_eig=False 时关闭（mode2 工程基座不输出不确定性推荐）。
+    if with_eig is None:
+        with_eig = os.environ.get("FAULT_ATTR_EIG", "1") not in ("0", "false", "False")
+    if with_eig:
+        try:
+            from src.tools.eig import recommend, render_recommendations
+            rec = recommend(computed_evidence, symptom_context, engine=engine, rounds_done=rounds_done)
+            result["uncertainty"].update({
+                "recommendations": rec["recommendations"],
+                "suggested_action": rec["suggested_action"],
+                "suggested_tool": rec["suggested_tool"],
+                "stop_reason": rec["stop_reason"],
+                "lambda": rec["lambda"],
+                "stop": rec["stop"],
+            })
+            result["report"] = result["report"] + "\n\n" + render_recommendations(rec)
+        except Exception as exc:  # noqa: BLE001
+            result["uncertainty"]["eig_error"] = str(exc)
 
     return result

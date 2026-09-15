@@ -1,0 +1,714 @@
+[
+ {
+  "case": "仅氢气高",
+  "top1": "partial_discharge",
+  "H": 1.8488156778680596,
+  "action": "ask",
+  "rec_top3": [
+   [
+    "C2H2_elevated",
+    0.21784,
+    0.0,
+    0.21784
+   ],
+   [
+    "C2H4_elevated",
+    0.14199,
+    0.0,
+    0.14199
+   ],
+   [
+    "gas_rate_rapid",
+    0.16033,
+    1.0,
+    0.11033
+   ]
+  ],
+  "expected": [
+   "C2H2_elevated",
+   "CH4_elevated",
+   "partial_discharge_alarm"
+  ],
+  "hit_top1": true,
+  "hit_top3": true,
+  "why": "H2 单独升高：局放 vs 受潮 vs 低温过热，关键看 C2H2 / CH4 或局放检测"
+ },
+ {
+  "case": "氢乙炔高、无其他气体",
+  "top1": "winding_short_circuit",
+  "H": 1.197473591224928,
+  "action": "ask",
+  "rec_top3": [
+   [
+    "C2H4_elevated",
+    0.09466,
+    0.0,
+    0.09466
+   ],
+   [
+    "TDCG_elevated",
+    0.05437,
+    0.0,
+    0.05437
+   ],
+   [
+    "winding_temp_elevated",
+    0.08816,
+    1.0,
+    0.03816
+   ]
+  ],
+  "expected": [
+   "C2H4_elevated",
+   "CH4_elevated",
+   "oil_temp_elevated",
+   "winding_temp_elevated"
+  ],
+  "hit_top1": true,
+  "hit_top3": true,
+  "why": "放电已确定，区分匝间短路（伴随过热/温升）与套管/分接开关放电（不伴随）"
+ },
+ {
+  "case": "乙烯乙烷高、无乙炔",
+  "top1": "overload_overheating",
+  "H": 0.9254722147197497,
+  "action": "ask",
+  "rec_top3": [
+   [
+    "CH4_elevated",
+    0.03281,
+    0.0,
+    0.03281
+   ],
+   [
+    "winding_temp_elevated",
+    0.07819,
+    1.0,
+    0.02819
+   ],
+   [
+    "TDCG_elevated",
+    0.02255,
+    0.0,
+    0.02255
+   ]
+  ],
+  "expected": [
+   "CH4_elevated",
+   "CO2_elevated",
+   "CO_elevated",
+   "load_elevated",
+   "oil_temp_elevated",
+   "winding_temp_elevated"
+  ],
+  "hit_top1": true,
+  "hit_top3": true,
+  "why": "过热特征，需确认是否负载/温度导致（过载过热）或固体绝缘参与（CO/CO2）"
+ },
+ {
+  "case": "CO 类信息缺失的过热",
+  "top1": "overload_overheating",
+  "H": 0.7329403217084033,
+  "action": "conclude",
+  "rec_top3": [
+   [
+    "winding_temp_elevated",
+    0.06704,
+    1.0,
+    0.01704
+   ],
+   [
+    "load_elevated",
+    0.05092,
+    1.0,
+    0.00092
+   ],
+   [
+    "oil_temp_elevated",
+    0.03535,
+    1.0,
+    -0.01465
+   ]
+  ],
+  "expected": [
+   "CO2_elevated",
+   "CO_elevated",
+   "load_elevated",
+   "oil_temp_elevated",
+   "winding_temp_elevated"
+  ],
+  "hit_top1": true,
+  "hit_top3": true,
+  "why": "高温过热已定，区分裸金属过热与固体绝缘过热看 CO/CO2；是否过载看负载与温度"
+ },
+ {
+  "case": "全气体正常、用户报油温高",
+  "top1": "insulation_degradation",
+  "H": 1.5875224487734523,
+  "action": "conclude",
+  "rec_top3": [
+   [
+    "winding_temp_elevated",
+    0.06438,
+    1.0,
+    0.01438
+   ],
+   [
+    "CO2_elevated",
+    0.05002,
+    1.0,
+    2e-05
+   ],
+   [
+    "load_elevated",
+    0.04372,
+    1.0,
+    -0.00628
+   ]
+  ],
+  "expected": [
+   "CO2_elevated",
+   "CO_elevated",
+   "gas_rate_rapid",
+   "load_elevated",
+   "winding_temp_elevated"
+  ],
+  "hit_top1": true,
+  "hit_top3": true,
+  "why": "气体正常但油温高：首先排查是否过载或冷却问题，再看产气趋势"
+ },
+ {
+  "case": "仅乙炔高",
+  "top1": "partial_discharge",
+  "H": 1.8013285407632662,
+  "action": "ask",
+  "rec_top3": [
+   [
+    "C2H4_elevated",
+    0.15413,
+    0.0,
+    0.15413
+   ],
+   [
+    "C2H6_elevated",
+    0.09648,
+    0.0,
+    0.09648
+   ],
+   [
+    "TDCG_elevated",
+    0.08393,
+    0.0,
+    0.08393
+   ]
+  ],
+  "expected": [
+   "C2H4_elevated",
+   "CH4_elevated",
+   "H2_elevated"
+  ],
+  "hit_top1": true,
+  "hit_top3": true,
+  "why": "乙炔升高必是放电，H2/C2H4 决定能量等级（三比值法两个比值都缺）"
+ },
+ {
+  "case": "局放告警、无气体",
+  "top1": "partial_discharge",
+  "H": 1.8345060334637464,
+  "action": "ask",
+  "rec_top3": [
+   [
+    "C2H2_elevated",
+    0.1966,
+    0.0,
+    0.1966
+   ],
+   [
+    "C2H4_elevated",
+    0.14946,
+    0.0,
+    0.14946
+   ],
+   [
+    "C2H6_elevated",
+    0.10122,
+    0.0,
+    0.10122
+   ]
+  ],
+  "expected": [
+   "C2H2_elevated",
+   "CH4_elevated",
+   "H2_elevated",
+   "TDCG_elevated"
+  ],
+  "hit_top1": true,
+  "hit_top3": true,
+  "why": "局放告警需油色谱确认（H2 为主、C2H2 低）"
+ },
+ {
+  "case": "振动异常、无气体",
+  "top1": "overload_overheating",
+  "H": 1.958543266795252,
+  "action": "ask",
+  "rec_top3": [
+   [
+    "C2H2_elevated",
+    0.23505,
+    0.0,
+    0.23505
+   ],
+   [
+    "C2H4_elevated",
+    0.14233,
+    0.0,
+    0.14233
+   ],
+   [
+    "gas_rate_rapid",
+    0.16738,
+    1.0,
+    0.11738
+   ]
+  ],
+  "expected": [
+   "C2H2_elevated",
+   "H2_elevated",
+   "TDCG_elevated",
+   "gas_rate_rapid",
+   "load_elevated"
+  ],
+  "hit_top1": true,
+  "hit_top3": true,
+  "why": "振动异常对应绕组变形/铁芯松动，先看是否伴随放电气体或负载"
+ },
+ {
+  "case": "匝间短路典型气体但无温度",
+  "top1": "winding_short_circuit",
+  "H": 1.0930155501994876,
+  "action": "conclude",
+  "rec_top3": [
+   [
+    "load_elevated",
+    0.00974,
+    1.0,
+    -0.04026
+   ],
+   [
+    "CO2_elevated",
+    0.00562,
+    1.0,
+    -0.04438
+   ],
+   [
+    "CO_elevated",
+    0.00239,
+    1.0,
+    -0.04761
+   ]
+  ],
+  "expected": [
+   "CO2_elevated",
+   "CO_elevated",
+   "load_elevated",
+   "oil_temp_elevated",
+   "winding_temp_elevated"
+  ],
+  "hit_top1": true,
+  "hit_top3": true,
+  "why": "电弧放电兼过热，需要温度/负载确认匝间短路而非分接开关拉弧"
+ },
+ {
+  "case": "低能放电、无 H2",
+  "top1": "partial_discharge",
+  "H": 1.6758945276616268,
+  "action": "ask",
+  "rec_top3": [
+   [
+    "winding_temp_elevated",
+    0.09479,
+    1.0,
+    0.04479
+   ],
+   [
+    "H2_elevated",
+    0.0424,
+    0.0,
+    0.0424
+   ],
+   [
+    "oil_temp_elevated",
+    0.08654,
+    1.0,
+    0.03654
+   ]
+  ],
+  "expected": [
+   "H2_elevated",
+   "oil_temp_elevated",
+   "partial_discharge_alarm",
+   "winding_temp_elevated"
+  ],
+  "hit_top1": true,
+  "hit_top3": true,
+  "why": "缺 H2 无法判断 CH4/H2，需补 H2 或局放检测"
+ },
+ {
+  "case": "过热+CO 高",
+  "top1": "overload_overheating",
+  "H": 0.596867931253727,
+  "action": "conclude",
+  "rec_top3": [
+   [
+    "winding_temp_elevated",
+    0.05707,
+    1.0,
+    0.00707
+   ],
+   [
+    "load_elevated",
+    0.04235,
+    1.0,
+    -0.00765
+   ],
+   [
+    "oil_temp_elevated",
+    0.02421,
+    1.0,
+    -0.02579
+   ]
+  ],
+  "expected": [
+   "CO2_elevated",
+   "load_elevated",
+   "oil_temp_elevated",
+   "winding_temp_elevated"
+  ],
+  "hit_top1": true,
+  "hit_top3": true,
+  "why": "固体绝缘参与过热，看 CO2 与温度/负载区分绝缘老化与过载"
+ },
+ {
+  "case": "绝缘老化疑似",
+  "top1": "insulation_degradation",
+  "H": 1.5404641495947595,
+  "action": "conclude",
+  "rec_top3": [
+   [
+    "winding_temp_elevated",
+    0.06541,
+    1.0,
+    0.01541
+   ],
+   [
+    "oil_temp_elevated",
+    0.05254,
+    1.0,
+    0.00254
+   ],
+   [
+    "load_elevated",
+    0.04491,
+    1.0,
+    -0.00509
+   ]
+  ],
+  "expected": [
+   "gas_rate_rapid",
+   "load_elevated",
+   "oil_temp_elevated",
+   "winding_temp_elevated"
+  ],
+  "hit_top1": true,
+  "hit_top3": true,
+  "why": "CO/CO2 高但烃低：老化 vs 过载，看负载/温度与产气速率"
+ },
+ {
+  "case": "已排除乙炔与过热气体",
+  "top1": "partial_discharge",
+  "H": 1.1965698576681432,
+  "action": "conclude",
+  "rec_top3": [
+   [
+    "winding_temp_elevated",
+    0.02956,
+    1.0,
+    -0.02044
+   ],
+   [
+    "load_elevated",
+    0.01837,
+    1.0,
+    -0.03163
+   ],
+   [
+    "oil_temp_elevated",
+    0.01517,
+    1.0,
+    -0.03483
+   ]
+  ],
+  "expected": [
+   "CO2_elevated",
+   "CO_elevated",
+   "gas_rate_rapid",
+   "partial_discharge_alarm"
+  ],
+  "hit_top1": false,
+  "hit_top3": false,
+  "why": "只剩 H2 高：局放或受潮，局放检测最有区分度"
+ },
+ {
+  "case": "总烃高、气体明细缺失",
+  "top1": "overload_overheating",
+  "H": 1.8847748154781105,
+  "action": "ask",
+  "rec_top3": [
+   [
+    "C2H2_elevated",
+    0.24882,
+    0.0,
+    0.24882
+   ],
+   [
+    "C2H4_elevated",
+    0.13204,
+    0.0,
+    0.13204
+   ],
+   [
+    "gas_rate_rapid",
+    0.17728,
+    1.0,
+    0.12728
+   ]
+  ],
+  "expected": [
+   "C2H2_elevated",
+   "C2H4_elevated",
+   "CH4_elevated",
+   "H2_elevated"
+  ],
+  "hit_top1": true,
+  "hit_top3": true,
+  "why": "总烃高需拆分明细，乙炔决定放电 vs 过热"
+ },
+ {
+  "case": "负载高、气体缺失",
+  "top1": "overload_overheating",
+  "H": 1.7781340955932867,
+  "action": "ask",
+  "rec_top3": [
+   [
+    "C2H2_elevated",
+    0.22892,
+    0.0,
+    0.22892
+   ],
+   [
+    "C2H4_elevated",
+    0.13644,
+    0.0,
+    0.13644
+   ],
+   [
+    "gas_rate_rapid",
+    0.16828,
+    1.0,
+    0.11828
+   ]
+  ],
+  "expected": [
+   "C2H4_elevated",
+   "CO_elevated",
+   "TDCG_elevated",
+   "oil_temp_elevated",
+   "winding_temp_elevated"
+  ],
+  "hit_top1": false,
+  "hit_top3": true,
+  "why": "负载高看温度是否跟随、是否已产生过热气体"
+ },
+ {
+  "case": "产气快、其他缺失",
+  "top1": "winding_short_circuit",
+  "H": 1.6275358723058941,
+  "action": "ask",
+  "rec_top3": [
+   [
+    "C2H2_elevated",
+    0.20015,
+    0.0,
+    0.20015
+   ],
+   [
+    "C2H4_elevated",
+    0.11545,
+    0.0,
+    0.11545
+   ],
+   [
+    "TDCG_elevated",
+    0.06577,
+    0.0,
+    0.06577
+   ]
+  ],
+  "expected": [
+   "C2H2_elevated",
+   "C2H4_elevated",
+   "H2_elevated",
+   "TDCG_elevated"
+  ],
+  "hit_top1": true,
+  "hit_top3": true,
+  "why": "产气速率快说明活跃故障，乙炔决定放电性质"
+ },
+ {
+  "case": "套管放电疑似",
+  "top1": "partial_discharge",
+  "H": 1.3008388270618356,
+  "action": "ask",
+  "rec_top3": [
+   [
+    "winding_temp_elevated",
+    0.08603,
+    1.0,
+    0.03603
+   ],
+   [
+    "oil_temp_elevated",
+    0.07929,
+    1.0,
+    0.02929
+   ],
+   [
+    "CO2_elevated",
+    0.05827,
+    1.0,
+    0.00827
+   ]
+  ],
+  "expected": [
+   "load_elevated",
+   "oil_temp_elevated",
+   "partial_discharge_alarm",
+   "vibration_elevated",
+   "winding_temp_elevated"
+  ],
+  "hit_top1": true,
+  "hit_top3": true,
+  "why": "低能放电 + 高 H2：套管 / 局放 / 匝间，看局放检测或温度"
+ },
+ {
+  "case": "已排除大多数、只剩 CH4",
+  "top1": "overload_overheating",
+  "H": 1.4759431211747354,
+  "action": "ask",
+  "rec_top3": [
+   [
+    "winding_temp_elevated",
+    0.09818,
+    1.0,
+    0.04818
+   ],
+   [
+    "load_elevated",
+    0.0713,
+    1.0,
+    0.0213
+   ],
+   [
+    "oil_temp_elevated",
+    0.06052,
+    1.0,
+    0.01052
+   ]
+  ],
+  "expected": [
+   "CO2_elevated",
+   "CO_elevated",
+   "load_elevated",
+   "oil_temp_elevated",
+   "winding_temp_elevated"
+  ],
+  "hit_top1": true,
+  "hit_top3": true,
+  "why": "CH4 单独高：低温过热，看温度/负载/CO"
+ },
+ {
+  "case": "匝间短路+已知无过热",
+  "top1": "winding_short_circuit",
+  "H": 1.2453331478558838,
+  "action": "conclude",
+  "rec_top3": [
+   [
+    "CO2_elevated",
+    0.01576,
+    1.0,
+    -0.03424
+   ],
+   [
+    "load_elevated",
+    0.01186,
+    1.0,
+    -0.03814
+   ],
+   [
+    "CO_elevated",
+    0.00646,
+    1.0,
+    -0.04354
+   ]
+  ],
+  "expected": [
+   "CO2_elevated",
+   "CO_elevated",
+   "load_elevated",
+   "partial_discharge_alarm",
+   "vibration_elevated"
+  ],
+  "hit_top1": true,
+  "hit_top3": true,
+  "why": "温度已排除，剩余区分度在负载/振动/局放/CO"
+ },
+ {
+  "case": "正常气体、无征兆",
+  "top1": "partial_discharge",
+  "H": 1.4216711060619678,
+  "action": "conclude",
+  "rec_top3": [
+   [
+    "winding_temp_elevated",
+    0.04678,
+    1.0,
+    -0.00322
+   ],
+   [
+    "oil_temp_elevated",
+    0.03585,
+    1.0,
+    -0.01415
+   ],
+   [
+    "load_elevated",
+    0.03193,
+    1.0,
+    -0.01807
+   ]
+  ],
+  "expected": [
+   "CO2_elevated",
+   "CO_elevated",
+   "gas_rate_rapid",
+   "load_elevated",
+   "oil_temp_elevated",
+   "partial_discharge_alarm",
+   "vibration_elevated",
+   "winding_temp_elevated"
+  ],
+  "hit_top1": true,
+  "hit_top3": true,
+  "why": "气体全正常时任何现场征兆都是补充信息，任意非气体征兆均可接受"
+ }
+]
