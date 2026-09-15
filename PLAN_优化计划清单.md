@@ -154,12 +154,14 @@
 
 ### B-3 部分观测诊断模拟器（数据 D12）
 
-- [ ] 新建 `scripts/sim/partial_obs_sim.py`：从 5143 条真实 DGA 记录抽样，随机遮蔽 1-3 种气体或全部现场征兆，构造「初始观测 + 隐藏观测 + 真实标签」三元组。
-- [ ] 模拟器接口：`reveal(symptom) -> bool | None`（None 表示该记录无此字段）；记录每次揭示的成本。
-- [ ] 按遮蔽比例分三档（轻 / 中 / 重）各 500 条，按故障类别分层；只用真实 DGA 派生，合成数据不入。
-- [ ] 数据卡片 `data/eval/d12/DATA_CARD.md`。
+- [x] 新建 `scripts/sim/partial_obs_sim.py`：从 5143 条真实 DGA 记录抽样，随机遮蔽 1-3 种气体或全部现场征兆，构造「初始观测 + 隐藏观测 + 真实标签」三元组。（2026-09-15；源为 3729 条非 normal 记录，现场征兆在源数据中无字段，统一记入 `unavailable_symptoms`）
+- [x] 模拟器接口：`reveal(symptom) -> bool | None`（None 表示该记录无此字段）；记录每次揭示的成本。（`PartialObsEnv`：`reveal / reveal_gas / context / masked_remaining / history / total_cost / n_queries`；成本读 `symptom_cost.json`，不可获取征兆仍计费）
+- [x] 按遮蔽比例分三档（轻 / 中 / 重）各 500 条，按故障类别分层；只用真实 DGA 派生，合成数据不入。（light/medium/heavy 各遮蔽 1/2/3 种气体；`data_guard.assert_not_synthetic` 校验源路径）
+- [x] 数据卡片 `data/eval/d12/DATA_CARD.md`。（含遮蔽方案、标签分布对照、用途、局限）
 
 验收标准：1500 条模拟样例可复现（固定 seed），标签分布与原始数据一致。
+
+验收结果（2026-09-15）：`--build` 生成 1500 条，seed 20260915，sha256 `9e2a35b3…`；`--check` 重建比对一致，标签分布最大偏差 0.097%（insulation 13.8% / overheating 40.0% / PD 28.6% / short 17.6%，与源一致）；平均隐藏征兆数 light 2.02 / medium 3.47 / heavy 4.60；`tests/test_b3_sim.py` 33 项通过。局限：现场征兆（温度 / 负载 / 振动 / 局放）无法揭示，B-5 主动规划评测只能在 7 个气体征兆空间内进行，需在论文中说明。
 
 ### B-4 Planner 接入主动策略
 

@@ -1,0 +1,16 @@
+{
+  "seed": 20260915,
+  "n": 1500,
+  "sha256": "9e2a35b3e0758e9bf6571715b593a8ef25ff9278e98a2b60d50d6ed51e4ae410",
+  "levels": {
+    "light": 500,
+    "medium": 500,
+    "heavy": 500
+  },
+  "labels": {
+    "overload_overheating": 600,
+    "winding_short_circuit": 264,
+    "partial_discharge": 429,
+    "insulation_degradation": 207
+  }
+}
