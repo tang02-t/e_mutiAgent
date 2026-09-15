@@ -177,13 +177,15 @@
 
 ### B-5 对照实验与评测
 
-- [ ] 新建 `scripts/eval/eval_active_planning.py`，在 D12 上运行以下策略：`random`（随机问）、`fixed`（按 IEC 60599 常规顺序问）、`llm_free`（当前 Planner 自由追问）、`eig_greedy`（本文）、`eig_cost`（EIG 减成本）；可选 `llm_sampled_eig`（让 LLM 采样估计后验再算 EIG，对标 BED-LLM 思路）。
-- [ ] 指标：停止时 Top-1 / Top-3 准确率、平均问询次数、平均获取成本、追问命中率（问的是否在最高 VoI 前 2）、每轮后验熵曲线、校准 ECE。
-- [ ] 消融：有 / 无校准（B-1）、有 / 无成本项、不同 τ_H。
-- [ ] LLM 相关策略每条固定 seed 跑 2 次取均值；EIG 策略确定性。
-- [ ] 结果写入 `docs/active_planning_eval.md`，图表：准确率-问询次数曲线（`fig_b5_acc_vs_queries.png`）、熵下降曲线。
+- [x] 新建 `scripts/eval/eval_active_planning.py`，在 D12 上运行以下策略：`random`（随机问）、`fixed`（按 IEC 60599 常规顺序问）、`eig_greedy`（argmax EIG，λ=0）、`eig_cost`（VoI = EIG − λ·cost，本文）；`llm_free`（当前 Planner 自由追问，`decision=llm`）已实现为 `--llm N` 选项，需真实 LLM，本次未运行；`llm_sampled_eig` 不做（D-4 已决定不复现采样式 EIG）。
+- [x] 指标：停止时 Top-1 / Top-3、平均问询次数、平均获取成本、追问命中率@2、每轮后验熵曲线、ECE / NLL；分档（light / medium / heavy）与停止原因分布。
+- [x] 消融：有 / 无校准（calibrated vs expert）、有 / 无成本项（eig_cost vs eig_greedy）、τ_H ∈ {0.5, 0.8, 1.0, 1.2, 1.5}。
+- [x] 四种策略均确定性（random 固定 seed 20260915）；LLM 策略后置，跑时按每条固定 seed。
+- [x] 结果写入 `docs/active_planning_eval.md`（附 `.json`），图表 `docs/figures/fig_b5_acc_vs_queries.png`、`fig_b5_entropy_curve.png`。
 
 验收标准：`eig_greedy` 在同等 Top-1 下平均问询次数低于 `llm_free` 与 `fixed`，差异有配对检验 p 值；结论写入报告。
+
+验收结果（2026-09-15，D12 全量 1500 条，calibrated 引擎，τ_H=0.8 / ε=0.02 / K=3 / λ=0.05）：无追问基线 Top-1 0.592；自适应停止后 `eig_cost` Top-1 0.660、平均 2.04 问、成本 0.26；`fixed` 0.661 / 2.79 问 / 0.85；`random` 0.641 / 2.84 / 2.63；`eig_greedy` 0.661 / 2.64 / 1.78。`eig_cost` vs `fixed` 问询均差 −0.754（减少 27%，配对置换检验 p<0.0001），Top-1 差 −0.001（McNemar p=0.77，无显著差异）；vs `random` 均差 −0.807（p<0.0001）且 Top-1 显著更高（McNemar p=0.017）。固定预算 q=1 时 Top-1 eig_cost 0.642 > fixed 0.635 > random 0.617。校准消融：expert 引擎下 eig_cost Top-1 仅 0.383、ECE 0.130，calibrated 0.660 / 0.042。完整 LangGraph 工作流（decision=eig）30 条与轻量模拟 Top-1 结论逐条一致 30/30、轮数一致 26/30。`tests/test_b5_eval.py` 30 项通过。局限：`llm_free` 对照需 LLM，待 A-1 一并补跑；D12 只能揭示气体征兆，EIG 优势体现为「先问哪种气体」与更早停止，Top-1 与 fixed 持平。
 
 ### B-6 章节素材
 

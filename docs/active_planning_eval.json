@@ -1,0 +1,939 @@
+{
+  "generated_at": "2026-09-15 22:06:32",
+  "config": {
+    "n_samples": 1500,
+    "d12_sha256": "9e2a35b3e0758e9bf6571715b593a8ef25ff9278e98a2b60d50d6ed51e4ae410",
+    "q_max": 6,
+    "K": 3,
+    "tau": 0.8,
+    "eps": 0.02,
+    "lam": 0.05,
+    "seed": 20260915,
+    "n_askable": 12,
+    "askable": [
+      "H2_elevated",
+      "CH4_elevated",
+      "C2H2_elevated",
+      "C2H4_elevated",
+      "C2H6_elevated",
+      "CO_elevated",
+      "CO2_elevated",
+      "winding_temp_elevated",
+      "vibration_elevated",
+      "partial_discharge_alarm",
+      "gas_rate_rapid",
+      "TDCG_elevated"
+    ],
+    "params_source": "/Users/ts/Desktop/thu/multi_Agent/data/real/dga/learned_params.json"
+  },
+  "adaptive": {
+    "calibrated": {
+      "random": {
+        "n": 1500,
+        "top1": 0.6406666666666667,
+        "top3": 0.9753333333333334,
+        "nll": 0.8653309886204205,
+        "ece": 0.025974476666666323,
+        "avg_queries": 2.8426666666666667,
+        "avg_cost": 2.6253333333333333,
+        "hit2": 0.30558161350844276,
+        "n_picks": 4264,
+        "stop_reasons": {
+          "max_rounds": 1347,
+          "entropy_below_tau": 153
+        },
+        "per_level": {
+          "heavy": {
+            "top1": 0.652,
+            "avg_queries": 2.91
+          },
+          "light": {
+            "top1": 0.644,
+            "avg_queries": 2.746
+          },
+          "medium": {
+            "top1": 0.626,
+            "avg_queries": 2.872
+          }
+        }
+      },
+      "fixed": {
+        "n": 1500,
+        "top1": 0.6613333333333333,
+        "top3": 0.98,
+        "nll": 0.8030568945681704,
+        "ece": 0.04141779999999952,
+        "avg_queries": 2.79,
+        "avg_cost": 0.8453333333333334,
+        "hit2": 0.6234169653524492,
+        "n_picks": 4185,
+        "stop_reasons": {
+          "max_rounds": 1268,
+          "entropy_below_tau": 232
+        },
+        "per_level": {
+          "heavy": {
+            "top1": 0.674,
+            "avg_queries": 2.942
+          },
+          "light": {
+            "top1": 0.66,
+            "avg_queries": 2.64
+          },
+          "medium": {
+            "top1": 0.65,
+            "avg_queries": 2.788
+          }
+        }
+      },
+      "eig_greedy": {
+        "n": 1500,
+        "top1": 0.6613333333333333,
+        "top3": 0.9793333333333333,
+        "nll": 0.8171630199653502,
+        "ece": 0.03647399533333297,
+        "avg_queries": 2.6366666666666667,
+        "avg_cost": 1.776,
+        "hit2": 0.7620733249051833,
+        "n_picks": 3955,
+        "stop_reasons": {
+          "voi_below_eps": 324,
+          "max_rounds": 959,
+          "entropy_below_tau": 217
+        },
+        "per_level": {
+          "heavy": {
+            "top1": 0.668,
+            "avg_queries": 2.888
+          },
+          "light": {
+            "top1": 0.66,
+            "avg_queries": 2.292
+          },
+          "medium": {
+            "top1": 0.656,
+            "avg_queries": 2.73
+          }
+        }
+      },
+      "eig_cost": {
+        "n": 1500,
+        "top1": 0.66,
+        "top3": 0.98,
+        "nll": 0.805894461993606,
+        "ece": 0.04170487999999923,
+        "avg_queries": 2.036,
+        "avg_cost": 0.258,
+        "hit2": 1.0,
+        "n_picks": 3054,
+        "stop_reasons": {
+          "voi_below_eps": 1100,
+          "entropy_below_tau": 261,
+          "max_rounds": 139
+        },
+        "per_level": {
+          "heavy": {
+            "top1": 0.67,
+            "avg_queries": 2.756
+          },
+          "light": {
+            "top1": 0.66,
+            "avg_queries": 1.222
+          },
+          "medium": {
+            "top1": 0.65,
+            "avg_queries": 2.13
+          }
+        }
+      }
+    },
+    "expert": {
+      "random": {
+        "n": 1500,
+        "top1": 0.4066666666666667,
+        "top3": 0.7026666666666667,
+        "nll": 1.9600052558263554,
+        "ece": 0.08549668000000005,
+        "avg_queries": 2.941333333333333,
+        "avg_cost": 2.731333333333333,
+        "hit2": 0.31210335448776066,
+        "n_picks": 4412,
+        "stop_reasons": {
+          "max_rounds": 1454,
+          "entropy_below_tau": 46
+        },
+        "per_level": {
+          "heavy": {
+            "top1": 0.386,
+            "avg_queries": 2.978
+          },
+          "light": {
+            "top1": 0.39,
+            "avg_queries": 2.892
+          },
+          "medium": {
+            "top1": 0.444,
+            "avg_queries": 2.954
+          }
+        }
+      },
+      "fixed": {
+        "n": 1500,
+        "top1": 0.406,
+        "top3": 0.734,
+        "nll": 1.942254813340077,
+        "ece": 0.14530950266666645,
+        "avg_queries": 2.941333333333333,
+        "avg_cost": 0.9673333333333334,
+        "hit2": 0.1455122393472348,
+        "n_picks": 4412,
+        "stop_reasons": {
+          "max_rounds": 1461,
+          "entropy_below_tau": 39
+        },
+        "per_level": {
+          "heavy": {
+            "top1": 0.398,
+            "avg_queries": 2.984
+          },
+          "light": {
+            "top1": 0.38,
+            "avg_queries": 2.892
+          },
+          "medium": {
+            "top1": 0.44,
+            "avg_queries": 2.948
+          }
+        }
+      },
+      "eig_greedy": {
+        "n": 1500,
+        "top1": 0.37733333333333335,
+        "top3": 0.676,
+        "nll": 1.9658761948961876,
+        "ece": 0.12700167466666662,
+        "avg_queries": 2.958,
+        "avg_cost": 3.5,
+        "hit2": 0.9265269326121253,
+        "n_picks": 4437,
+        "stop_reasons": {
+          "voi_below_eps": 19,
+          "max_rounds": 1456,
+          "entropy_below_tau": 25
+        },
+        "per_level": {
+          "heavy": {
+            "top1": 0.37,
+            "avg_queries": 3.0
+          },
+          "light": {
+            "top1": 0.376,
+            "avg_queries": 2.888
+          },
+          "medium": {
+            "top1": 0.386,
+            "avg_queries": 2.986
+          }
+        }
+      },
+      "eig_cost": {
+        "n": 1500,
+        "top1": 0.38266666666666665,
+        "top3": 0.6686666666666666,
+        "nll": 2.0198108209153736,
+        "ece": 0.1301498033333333,
+        "avg_queries": 2.925333333333333,
+        "avg_cost": 2.7953333333333332,
+        "hit2": 1.0,
+        "n_picks": 4388,
+        "stop_reasons": {
+          "voi_below_eps": 131,
+          "max_rounds": 1330,
+          "entropy_below_tau": 39
+        },
+        "per_level": {
+          "heavy": {
+            "top1": 0.374,
+            "avg_queries": 2.984
+          },
+          "light": {
+            "top1": 0.378,
+            "avg_queries": 2.828
+          },
+          "medium": {
+            "top1": 0.396,
+            "avg_queries": 2.964
+          }
+        }
+      }
+    },
+    "baseline_q0": {
+      "n": 1500,
+      "top1": 0.592,
+      "top3": 0.956,
+      "nll": 0.9790902731112302,
+      "ece": 0.03902911666666672,
+      "avg_queries": 0.0,
+      "avg_cost": 0.0,
+      "hit2": null
+    }
+  },
+  "curves": {
+    "calibrated": {
+      "random": {
+        "top1": [
+          0.592,
+          0.6166666666666667,
+          0.62,
+          0.6406666666666667,
+          0.6533333333333333,
+          0.6593333333333333,
+          0.6606666666666666
+        ],
+        "entropy": [
+          1.4974681399999994,
+          1.4033508466666635,
+          1.3222791599999977,
+          1.2646642533333325,
+          1.2217445799999986,
+          1.1940874999999997,
+          1.1787783
+        ]
+      },
+      "fixed": {
+        "top1": [
+          0.592,
+          0.6346666666666667,
+          0.6526666666666666,
+          0.6613333333333333,
+          0.6613333333333333,
+          0.6613333333333333,
+          0.6613333333333333
+        ],
+        "entropy": [
+          1.4974681399999994,
+          1.3742933333333298,
+          1.2252345266666662,
+          1.1635758533333358,
+          1.1635758533333358,
+          1.1635758533333358,
+          1.1635758533333358
+        ]
+      },
+      "eig_greedy": {
+        "top1": [
+          0.592,
+          0.6353333333333333,
+          0.654,
+          0.6613333333333333,
+          0.66,
+          0.662,
+          0.662
+        ],
+        "entropy": [
+          1.4974681399999994,
+          1.276010339999992,
+          1.2021407533333284,
+          1.1702975733333323,
+          1.1615116666666705,
+          1.159025613333336,
+          1.163501060000001
+        ]
+      },
+      "eig_cost": {
+        "top1": [
+          0.592,
+          0.642,
+          0.6526666666666666,
+          0.66,
+          0.6613333333333333,
+          0.6613333333333333,
+          0.6613333333333333
+        ],
+        "entropy": [
+          1.4974681399999994,
+          1.2645801999999924,
+          1.1686425466666646,
+          1.1631776266666667,
+          1.1635758533333358,
+          1.1635758533333358,
+          1.1635758533333358
+        ]
+      }
+    },
+    "expert": {
+      "random": {
+        "top1": [
+          0.3953333333333333,
+          0.3993333333333333,
+          0.398,
+          0.4066666666666667,
+          0.4066666666666667,
+          0.408,
+          0.4053333333333333
+        ],
+        "entropy": [
+          2.2017371866666555,
+          2.119595026666667,
+          2.0614561733333385,
+          2.0295926333333396,
+          2.011830906666674,
+          1.9995313800000085,
+          2.0068046400000075
+        ]
+      },
+      "fixed": {
+        "top1": [
+          0.3953333333333333,
+          0.4046666666666667,
+          0.4013333333333333,
+          0.406,
+          0.406,
+          0.406,
+          0.406
+        ],
+        "entropy": [
+          2.2017371866666555,
+          2.0937499733333413,
+          2.023123093333336,
+          2.01750914666667,
+          2.01750914666667,
+          2.01750914666667,
+          2.01750914666667
+        ]
+      },
+      "eig_greedy": {
+        "top1": [
+          0.3953333333333333,
+          0.3953333333333333,
+          0.39066666666666666,
+          0.37733333333333335,
+          0.37533333333333335,
+          0.378,
+          0.384
+        ],
+        "entropy": [
+          2.2017371866666555,
+          2.2017371866666555,
+          2.1744652799999873,
+          2.0542582466666595,
+          2.0044123399999942,
+          1.9876832199999999,
+          2.0054677466666706
+        ]
+      },
+      "eig_cost": {
+        "top1": [
+          0.3953333333333333,
+          0.39466666666666667,
+          0.39466666666666667,
+          0.38266666666666665,
+          0.37266666666666665,
+          0.38266666666666665,
+          0.398
+        ],
+        "entropy": [
+          2.2017371866666555,
+          2.199369719999989,
+          2.0984800999999926,
+          2.0386606066666633,
+          2.0203835799999963,
+          2.004346133333339,
+          2.010132399999999
+        ]
+      }
+    }
+  },
+  "tests": {
+    "`eig_cost` vs `fixed`": {
+      "queries": {
+        "mean_diff": -0.754,
+        "p_value": 4.999750012499375e-05
+      },
+      "top1": {
+        "b": 5,
+        "c": 7,
+        "p_value": 0.7744140625
+      }
+    },
+    "`eig_cost` vs `random`": {
+      "queries": {
+        "mean_diff": -0.8066666666666666,
+        "p_value": 4.999750012499375e-05
+      },
+      "top1": {
+        "b": 84,
+        "c": 55,
+        "p_value": 0.01723638286712925
+      }
+    },
+    "`eig_greedy` vs `fixed`": {
+      "queries": {
+        "mean_diff": -0.15333333333333332,
+        "p_value": 4.999750012499375e-05
+      },
+      "top1": {
+        "b": 29,
+        "c": 29,
+        "p_value": 1.0
+      }
+    },
+    "`eig_cost` vs `eig_greedy`": {
+      "queries": {
+        "mean_diff": -0.6006666666666667,
+        "p_value": 4.999750012499375e-05
+      },
+      "top1": {
+        "b": 22,
+        "c": 24,
+        "p_value": 0.8829959121223965
+      }
+    }
+  },
+  "tau_sweep": {
+    "0.5": {
+      "n": 1500,
+      "top1": 0.66,
+      "top3": 0.98,
+      "nll": 0.8056789939631458,
+      "ece": 0.04193009866666605,
+      "avg_queries": 2.0606666666666666,
+      "avg_cost": 0.258,
+      "hit2": 1.0,
+      "n_picks": 3091,
+      "stop_reasons": {
+        "voi_below_eps": 1361,
+        "max_rounds": 139
+      },
+      "per_level": {
+        "heavy": {
+          "top1": 0.67,
+          "avg_queries": 2.816
+        },
+        "light": {
+          "top1": 0.66,
+          "avg_queries": 1.222
+        },
+        "medium": {
+          "top1": 0.65,
+          "avg_queries": 2.144
+        }
+      }
+    },
+    "0.8": {
+      "n": 1500,
+      "top1": 0.66,
+      "top3": 0.98,
+      "nll": 0.805894461993606,
+      "ece": 0.04170487999999923,
+      "avg_queries": 2.036,
+      "avg_cost": 0.258,
+      "hit2": 1.0,
+      "n_picks": 3054,
+      "stop_reasons": {
+        "voi_below_eps": 1100,
+        "entropy_below_tau": 261,
+        "max_rounds": 139
+      },
+      "per_level": {
+        "heavy": {
+          "top1": 0.67,
+          "avg_queries": 2.756
+        },
+        "light": {
+          "top1": 0.66,
+          "avg_queries": 1.222
+        },
+        "medium": {
+          "top1": 0.65,
+          "avg_queries": 2.13
+        }
+      }
+    },
+    "1.0": {
+      "n": 1500,
+      "top1": 0.6606666666666666,
+      "top3": 0.982,
+      "nll": 0.8064123962324485,
+      "ece": 0.038084123333332894,
+      "avg_queries": 1.8573333333333333,
+      "avg_cost": 0.24,
+      "hit2": 1.0,
+      "n_picks": 2786,
+      "stop_reasons": {
+        "entropy_below_tau": 585,
+        "voi_below_eps": 783,
+        "max_rounds": 132
+      },
+      "per_level": {
+        "heavy": {
+          "top1": 0.67,
+          "avg_queries": 2.542
+        },
+        "light": {
+          "top1": 0.66,
+          "avg_queries": 1.074
+        },
+        "medium": {
+          "top1": 0.652,
+          "avg_queries": 1.956
+        }
+      }
+    },
+    "1.2": {
+      "n": 1500,
+      "top1": 0.6533333333333333,
+      "top3": 0.9806666666666667,
+      "nll": 0.813928951697068,
+      "ece": 0.039957228666665824,
+      "avg_queries": 1.5233333333333334,
+      "avg_cost": 0.17066666666666666,
+      "hit2": 1.0,
+      "n_picks": 2285,
+      "stop_reasons": {
+        "entropy_below_tau": 935,
+        "voi_below_eps": 453,
+        "max_rounds": 112
+      },
+      "per_level": {
+        "heavy": {
+          "top1": 0.658,
+          "avg_queries": 2.134
+        },
+        "light": {
+          "top1": 0.656,
+          "avg_queries": 0.842
+        },
+        "medium": {
+          "top1": 0.646,
+          "avg_queries": 1.594
+        }
+      }
+    },
+    "1.5": {
+      "n": 1500,
+      "top1": 0.6393333333333333,
+      "top3": 0.9793333333333333,
+      "nll": 0.859317505951893,
+      "ece": 0.04001491399999953,
+      "avg_queries": 0.846,
+      "avg_cost": 0.024,
+      "hit2": 1.0,
+      "n_picks": 1269,
+      "stop_reasons": {
+        "entropy_below_tau": 1382,
+        "voi_below_eps": 99,
+        "max_rounds": 19
+      },
+      "per_level": {
+        "heavy": {
+          "top1": 0.644,
+          "avg_queries": 1.246
+        },
+        "light": {
+          "top1": 0.646,
+          "avg_queries": 0.392
+        },
+        "medium": {
+          "top1": 0.628,
+          "avg_queries": 0.9
+        }
+      }
+    }
+  },
+  "workflow_check": {
+    "n": 30,
+    "top1": 0.7666666666666667,
+    "avg_rounds": 2.2,
+    "sim_top1": 0.7666666666666667,
+    "sim_avg_queries": 2.066666666666667,
+    "agree_top1": 30,
+    "agree_rounds": 26,
+    "stop_reasons": {
+      "max_rounds": 11,
+      "voi_below_eps": 13,
+      "entropy_below_tau": 6
+    },
+    "rows": [
+      {
+        "sim_id": "D12-L0000",
+        "label": "overload_overheating",
+        "top1": "overload_overheating",
+        "rounds": 3,
+        "cost": 2.0,
+        "n_queries": 3,
+        "stop_reason": "max_rounds"
+      },
+      {
+        "sim_id": "D12-L0001",
+        "label": "overload_overheating",
+        "top1": "overload_overheating",
+        "rounds": 3,
+        "cost": 2.0,
+        "n_queries": 3,
+        "stop_reason": "max_rounds"
+      },
+      {
+        "sim_id": "D12-L0002",
+        "label": "winding_short_circuit",
+        "top1": "partial_discharge",
+        "rounds": 3,
+        "cost": 2.0,
+        "n_queries": 3,
+        "stop_reason": "max_rounds"
+      },
+      {
+        "sim_id": "D12-L0003",
+        "label": "winding_short_circuit",
+        "top1": "winding_short_circuit",
+        "rounds": 1,
+        "cost": 0.0,
+        "n_queries": 1,
+        "stop_reason": "voi_below_eps"
+      },
+      {
+        "sim_id": "D12-L0004",
+        "label": "winding_short_circuit",
+        "top1": "partial_discharge",
+        "rounds": 3,
+        "cost": 2.0,
+        "n_queries": 3,
+        "stop_reason": "max_rounds"
+      },
+      {
+        "sim_id": "D12-L0005",
+        "label": "overload_overheating",
+        "top1": "overload_overheating",
+        "rounds": 1,
+        "cost": 0.0,
+        "n_queries": 1,
+        "stop_reason": "entropy_below_tau"
+      },
+      {
+        "sim_id": "D12-L0006",
+        "label": "overload_overheating",
+        "top1": "overload_overheating",
+        "rounds": 1,
+        "cost": 0.0,
+        "n_queries": 1,
+        "stop_reason": "voi_below_eps"
+      },
+      {
+        "sim_id": "D12-L0007",
+        "label": "overload_overheating",
+        "top1": "overload_overheating",
+        "rounds": 1,
+        "cost": 0.0,
+        "n_queries": 1,
+        "stop_reason": "voi_below_eps"
+      },
+      {
+        "sim_id": "D12-L0008",
+        "label": "winding_short_circuit",
+        "top1": "winding_short_circuit",
+        "rounds": 1,
+        "cost": 0.0,
+        "n_queries": 1,
+        "stop_reason": "voi_below_eps"
+      },
+      {
+        "sim_id": "D12-L0009",
+        "label": "partial_discharge",
+        "top1": "partial_discharge",
+        "rounds": 1,
+        "cost": 0.0,
+        "n_queries": 1,
+        "stop_reason": "voi_below_eps"
+      },
+      {
+        "sim_id": "D12-M0000",
+        "label": "overload_overheating",
+        "top1": "overload_overheating",
+        "rounds": 1,
+        "cost": 0.0,
+        "n_queries": 1,
+        "stop_reason": "entropy_below_tau"
+      },
+      {
+        "sim_id": "D12-M0001",
+        "label": "partial_discharge",
+        "top1": "partial_discharge",
+        "rounds": 2,
+        "cost": 0.0,
+        "n_queries": 2,
+        "stop_reason": "entropy_below_tau"
+      },
+      {
+        "sim_id": "D12-M0002",
+        "label": "partial_discharge",
+        "top1": "partial_discharge",
+        "rounds": 2,
+        "cost": 0.0,
+        "n_queries": 2,
+        "stop_reason": "voi_below_eps"
+      },
+      {
+        "sim_id": "D12-M0003",
+        "label": "partial_discharge",
+        "top1": "partial_discharge",
+        "rounds": 2,
+        "cost": 0.0,
+        "n_queries": 2,
+        "stop_reason": "voi_below_eps"
+      },
+      {
+        "sim_id": "D12-M0004",
+        "label": "partial_discharge",
+        "top1": "partial_discharge",
+        "rounds": 3,
+        "cost": 1.0,
+        "n_queries": 3,
+        "stop_reason": "max_rounds"
+      },
+      {
+        "sim_id": "D12-M0005",
+        "label": "insulation_degradation",
+        "top1": "insulation_degradation",
+        "rounds": 3,
+        "cost": 1.0,
+        "n_queries": 3,
+        "stop_reason": "max_rounds"
+      },
+      {
+        "sim_id": "D12-M0006",
+        "label": "overload_overheating",
+        "top1": "overload_overheating",
+        "rounds": 2,
+        "cost": 0.0,
+        "n_queries": 2,
+        "stop_reason": "voi_below_eps"
+      },
+      {
+        "sim_id": "D12-M0007",
+        "label": "overload_overheating",
+        "top1": "overload_overheating",
+        "rounds": 1,
+        "cost": 0.0,
+        "n_queries": 1,
+        "stop_reason": "entropy_below_tau"
+      },
+      {
+        "sim_id": "D12-M0008",
+        "label": "winding_short_circuit",
+        "top1": "overload_overheating",
+        "rounds": 2,
+        "cost": 0.0,
+        "n_queries": 2,
+        "stop_reason": "voi_below_eps"
+      },
+      {
+        "sim_id": "D12-M0009",
+        "label": "overload_overheating",
+        "top1": "overload_overheating",
+        "rounds": 2,
+        "cost": 0.0,
+        "n_queries": 2,
+        "stop_reason": "entropy_below_tau"
+      },
+      {
+        "sim_id": "D12-H0000",
+        "label": "winding_short_circuit",
+        "top1": "winding_short_circuit",
+        "rounds": 3,
+        "cost": 0.0,
+        "n_queries": 3,
+        "stop_reason": "voi_below_eps"
+      },
+      {
+        "sim_id": "D12-H0001",
+        "label": "insulation_degradation",
+        "top1": "overload_overheating",
+        "rounds": 3,
+        "cost": 0.0,
+        "n_queries": 3,
+        "stop_reason": "voi_below_eps"
+      },
+      {
+        "sim_id": "D12-H0002",
+        "label": "insulation_degradation",
+        "top1": "partial_discharge",
+        "rounds": 3,
+        "cost": 0.0,
+        "n_queries": 3,
+        "stop_reason": "voi_below_eps"
+      },
+      {
+        "sim_id": "D12-H0003",
+        "label": "overload_overheating",
+        "top1": "overload_overheating",
+        "rounds": 3,
+        "cost": 0.0,
+        "n_queries": 3,
+        "stop_reason": "voi_below_eps"
+      },
+      {
+        "sim_id": "D12-H0004",
+        "label": "overload_overheating",
+        "top1": "partial_discharge",
+        "rounds": 3,
+        "cost": 0.0,
+        "n_queries": 3,
+        "stop_reason": "max_rounds"
+      },
+      {
+        "sim_id": "D12-H0005",
+        "label": "insulation_degradation",
+        "top1": "insulation_degradation",
+        "rounds": 3,
+        "cost": 0.0,
+        "n_queries": 3,
+        "stop_reason": "max_rounds"
+      },
+      {
+        "sim_id": "D12-H0006",
+        "label": "insulation_degradation",
+        "top1": "insulation_degradation",
+        "rounds": 3,
+        "cost": 1.0,
+        "n_queries": 3,
+        "stop_reason": "max_rounds"
+      },
+      {
+        "sim_id": "D12-H0007",
+        "label": "overload_overheating",
+        "top1": "overload_overheating",
+        "rounds": 1,
+        "cost": 0.0,
+        "n_queries": 1,
+        "stop_reason": "entropy_below_tau"
+      },
+      {
+        "sim_id": "D12-H0008",
+        "label": "partial_discharge",
+        "top1": "partial_discharge",
+        "rounds": 3,
+        "cost": 0.0,
+        "n_queries": 3,
+        "stop_reason": "max_rounds"
+      },
+      {
+        "sim_id": "D12-H0009",
+        "label": "overload_overheating",
+        "top1": "insulation_degradation",
+        "rounds": 3,
+        "cost": 0.0,
+        "n_queries": 3,
+        "stop_reason": "max_rounds"
+      }
+    ]
+  },
+  "llm_free": null,
+  "conclusion": [
+    "无追问基线 Top-1 0.592；自适应停止后 eig_cost 0.660（平均 2.04 问）、fixed 0.661（2.79 问）、random 0.641（2.84 问）、eig_greedy 0.661（2.64 问）。",
+    "eig_cost 相对 fixed：问询次数均差 -0.754（置换检验 p=<0.0001），Top-1 McNemar p=0.7744；相对 random：均差 -0.807（p=<0.0001），McNemar p=0.0172。",
+    "固定预算下（协议 A）q=1 时 Top-1：eig_cost 0.642 / fixed 0.635 / random 0.617；q=2 时 0.653 / 0.653 / 0.620。",
+    "校准消融：expert 引擎下 eig_cost Top-1 0.383 ECE 0.130，calibrated 下 0.660 / 0.042。",
+    "验收通过：eig_cost 在 Top-1 不低于 fixed（差 -0.001）的前提下平均问询次数低于 fixed（2.04 vs 2.79，减少 27%，p=<0.0001）；平均获取成本 0.26 vs 0.85。llm_free 对照待 LLM 可用时补跑。"
+  ],
+  "elapsed_s": 21.7
+}
