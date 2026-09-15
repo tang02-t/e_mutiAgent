@@ -238,12 +238,14 @@
 
 ### C-4 故障注入评测集（数据 D11）
 
-- [ ] 新建 `scripts/eval/build_d11_fault_injection.py`：以 [oracle_mode5.jsonl](/Users/ts/Desktop/thu/multi_Agent/data/eval/d10/results/oracle_mode5.jsonl) 中 196 条正确草案为底，自动注入四类错误各 50 条：篡改数值（气体浓度 ±30%、概率互换）、伪造引用（不存在的 chunk uuid / 编造片段）、换设备或换数据集（ETTh1 → ETTm1、设备号错位）、删安全前提（保留「立即停电吊罩」删去支撑它的高乙炔观测）。
-- [ ] 加 100 条未注入的干净草案作为负样本（考察误报）。
-- [ ] 每条记录 `injected: bool, type, location, original`；人工抽 40 条确认注入确实构成错误。
-- [ ] 数据卡片 `data/eval/d11/DATA_CARD.md`。
+- [x] 新建 `scripts/eval/build_d11_fault_injection.py`：以 [oracle_mode5.jsonl](/Users/ts/Desktop/thu/multi_Agent/data/eval/d10/results/oracle_mode5.jsonl) 中 196 条正确草案为底，自动注入四类错误各 50 条：篡改数值（气体浓度 ±30%、概率互换）、伪造引用（不存在的 chunk uuid / 编造片段）、换设备或换数据集（ETTh1 → ETTm1、设备号错位）、删安全前提（保留「立即停电吊罩」删去支撑它的高乙炔观测）。（2026-09-15，[build_d11_fault_injection.py](/Users/ts/Desktop/thu/multi_Agent/scripts/eval/build_d11_fault_injection.py)；`oracle_mode5.jsonl` 仅存 `answer_head` 无完整声明，改为在 D10 196 条上以 OraclePlanner + 真实工具 + 规则声明重新生成等价干净底稿；15 个注入子类：numeric 5、fake_reference 5、applicability 3、safety 2；`low_risk_shutdown` 因 D10 无低风险归因候选为 0，已在 DATA_CARD 说明）
+- [x] 加 100 条未注入的干净草案作为负样本（考察误报）。（2026-09-15，100 个不同底稿，全部含工具 / 知识 / 图谱证据）
+- [x] 每条记录 `injected: bool, type, location, original`；人工抽 40 条确认注入确实构成错误。（2026-09-15，另含 `subtype / expected_constraints / injection_detail / snapshot / checker_preview / annotation`；`snapshot` 可离线重建 `AgentState` 供 C-5 复跑；人工抽检清单 [manual_review_sample.md](/Users/ts/Desktop/thu/multi_Agent/data/eval/d11/manual_review_sample.md) 已生成，每类 10 条，**人工判定列待填**）
+- [x] 数据卡片 `data/eval/d11/DATA_CARD.md`。（2026-09-15，[DATA_CARD.md](/Users/ts/Desktop/thu/multi_Agent/data/eval/d11/DATA_CARD.md)：来源、注入类型与子类说明、场景分布、字段说明、确定性层预览、已知偏差）
 
 验收标准：300 条（200 注入 + 100 干净），人工抽检注入有效率不低于 95%。
+
+验收结果（2026-09-15，`python3 scripts/eval/build_d11_fault_injection.py --per-type 50 --clean 100`，seed 20260915，耗时 2.2 s，无 LLM）：[fault_injection_eval.jsonl](/Users/ts/Desktop/thu/multi_Agent/data/eval/d11/fault_injection_eval.jsonl) 300 条 = 200 注入（四类各 50）+ 100 干净；候选池 numeric 189 / fake_reference 405 / applicability 53 / safety 55，numeric 与 fake_reference 子类各 10 条均衡，applicability（底稿 31）与 safety（底稿 43）因 ett_forecast 仅 22 条、设备号 9 条而复用底稿。构建时 C-2 确定性层预览：注入声明被标记 200/200 且全部命中期望约束，干净 100 条误报 0（该预览仅证明注入可被机器识别，不替代 C-5 评测）。自检 [tests/test_c4_d11.py](/Users/ts/Desktop/thu/multi_Agent/tests/test_c4_d11.py) 35 项通过（规模、字段、schema、注入位置确实改动、snapshot 重建后 ClaimChecker 复跑与预览一致 60/60、同 seed 可复现、文档产物）；回归 p0 87 / b1 47 / b2 34 / b3 33 / b4 51 / b5 30 / c1 50 / c2 59 / c3 84 全绿。**规模与结构验收通过。** 标注：「人工抽检 40 条有效率 ≥ 95%」为人工项，清单已生成待填写，完成后将 `annotation.status` 改为 `reviewed`。
 
 ### C-5 对照实验与评测
 

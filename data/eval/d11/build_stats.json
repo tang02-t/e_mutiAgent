@@ -1,0 +1,95 @@
+{
+  "seed": 20260915,
+  "elapsed_s": 2.19,
+  "n_bases": 196,
+  "n_records": 300,
+  "n_injected": 200,
+  "n_clean": 100,
+  "candidates": {
+    "numeric_tamper": 189,
+    "fake_reference": 405,
+    "applicability_swap": 53,
+    "safety_premise_removed": 55
+  },
+  "per_type": {
+    "numeric_tamper": {
+      "n": 50,
+      "subtypes": {
+        "probability_swap": 10,
+        "gas_concentration": 10,
+        "primary_probability": 10,
+        "anomaly_count": 10,
+        "forecast_temperature": 10
+      },
+      "distinct_bases": 50,
+      "preview_target_flagged": 50,
+      "preview_expected_constraint_hit": 50,
+      "preview_verdict": {
+        "REVISION": 50
+      }
+    },
+    "fake_reference": {
+      "n": 50,
+      "subtypes": {
+        "nonexistent_call": 10,
+        "nonexistent_kg_edge": 10,
+        "fabricated_span": 10,
+        "nonexistent_chunk": 10,
+        "kb_as_detection": 10
+      },
+      "distinct_bases": 50,
+      "preview_target_flagged": 50,
+      "preview_expected_constraint_hit": 50,
+      "preview_verdict": {
+        "PASS": 16,
+        "REVISION": 34
+      }
+    },
+    "applicability_swap": {
+      "n": 50,
+      "subtypes": {
+        "horizon_window_swap": 20,
+        "device_swap": 9,
+        "dataset_swap": 21
+      },
+      "distinct_bases": 31,
+      "preview_target_flagged": 50,
+      "preview_expected_constraint_hit": 50,
+      "preview_verdict": {
+        "REVISION": 20,
+        "PASS": 30
+      }
+    },
+    "safety_premise_removed": {
+      "n": 50,
+      "subtypes": {
+        "remove_dga_premise": 38,
+        "no_action_contradiction": 12
+      },
+      "distinct_bases": 43,
+      "preview_target_flagged": 50,
+      "preview_expected_constraint_hit": 50,
+      "preview_verdict": {
+        "REVISION": 50
+      }
+    }
+  },
+  "clean": {
+    "n": 100,
+    "distinct_bases": 100,
+    "preview_false_positive": 0,
+    "preview_verdict": {
+      "PASS": 100
+    },
+    "with_evidence": 100
+  },
+  "scenario_counts": {
+    "single_tool_numeric": 88,
+    "context_contrast": 19,
+    "single_tool_fact": 46,
+    "kg_reasoning": 32,
+    "multi_tool": 87,
+    "error_recovery": 28
+  },
+  "avg_claims_per_record": 5.23
+}
