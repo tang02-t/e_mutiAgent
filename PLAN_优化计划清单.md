@@ -85,10 +85,10 @@
 
 - [ ] 执行 [rewrite_queries.py](/Users/ts/Desktop/thu/multi_Agent/scripts/planner_data/rewrite_queries.py) 去掉 `--dry-run`（估算约 1.2 元），产出 `task_seeds_rewritten.jsonl`。
 - [ ] 人工抽 50 条确认数字 / 实体守卫生效（气体浓度、设备号、数据集名未被改写）。
-- [ ] `export_sft.py --seeds task_seeds_rewritten.jsonl` 重导出；同时新增 `--format bailian` 导出百炼 ChatML（messages 多轮，含 tool 角色消息按百炼模板处理）。
-- [ ] test 切分封存：写入 `data/planner/sft/SEALED.md` 记录 sha256，训练结束前不读取。
+- [x] `export_sft.py --seeds task_seeds_rewritten.jsonl` 重导出；同时新增 `--format bailian` 导出百炼 ChatML（messages 多轮，含 tool 角色消息按百炼模板处理）。（2026-09-15：`--format bailian` 与默认导出均产出 `bailian_{train,dev}.jsonl`（单轮 + 多轮合并，train 3181 / dev 583 条，42.0 / 7.7 MB），转换与校验在 [bailian_format.py](/Users/ts/Desktop/thu/multi_Agent/scripts/planner_data/bailian_format.py)：剥离 `meta` / tool `name`，`tool_calls[].id` 与 `tool_call_id` 一一对应，`arguments` 为 JSON 字符串，导出即校验；[test_d1_bailian_export.py](/Users/ts/Desktop/thu/multi_Agent/tests/test_d1_bailian_export.py) 22 项通过。口语化改写后用 `--seeds task_seeds_rewritten.jsonl` 重跑即可，改写实跑后置。）
+- [x] test 切分封存：写入 `data/planner/sft/SEALED.md` 记录 sha256，训练结束前不读取。（2026-09-15：[SEALED.md](/Users/ts/Desktop/thu/multi_Agent/data/planner/sft/SEALED.md) 登记种子级（test 732 + 多轮 92 行）与导出文件级 sha256；`scripts/planner_data/check_sealed.py` 比对种子级哈希，`export_sft.py` 不产出 `bailian_test.jsonl`。）
 
-验收标准：改写后训练 / 验证集重导出完成，泄漏检查仍为 0，百炼格式文件通过控制台数据校验。
+验收标准：改写后训练 / 验证集重导出完成，泄漏检查仍为 0，百炼格式文件通过控制台数据校验。（本地格式校验已通过；控制台校验随 D-1 上传时完成。）
 
 ### A-3 人工标注（与 B、C 并行，不阻塞代码）
 
@@ -275,13 +275,15 @@
 
 ### D-1 百炼 SFT 基线（M1）
 
-- [ ] A-2 产出的百炼 ChatML 训练集 + 验证集上传（`purpose=fine-tune`），记录 `file_id`。
-- [ ] 控制台或 API 创建任务：`training_type=efficient_sft`，`n_epochs=3`、`batch_size=16`、`max_length=4096`、`learning_rate` 取平台默认，`split` 不用（已自带验证集）。
-- [ ] 训练完成后部署，记录模型 ID 到 `config.yaml` 的 `llms.planner_finetuned`；`scripts/probe_llm_endpoint.py` 验证 `tool_calls` 能被 `_build_plan_from_tool_calls` 解析。
-- [ ] 在 D8 test 切分上跑 `eval_planner_offline.py`，与 A-1 的 M0 数字并列写入 `docs/planner_dpo_eval.md` 第一节。
-- [ ] 训练脚本、超参与 job_id 记录到 `training/planner_bailian/README.md`；新建 `training/planner_bailian/submit_job.py`（封装文件上传、任务创建、状态轮询、部署）。
+- [ ] A-2 产出的百炼 ChatML 训练集 + 验证集上传（`purpose=fine-tune`），记录 `file_id`。（后置：需百炼账号与费用；文件已就绪并通过本地校验，`submit_job.py upload` 一条命令完成）
+- [ ] 控制台或 API 创建任务：`training_type=efficient_sft`，`n_epochs=3`、`batch_size=16`、`max_length=4096`、`learning_rate` 取平台默认，`split` 不用（已自带验证集）。（后置：`submit_job.py create` 请求体已按此固化，dry-run 核对通过）
+- [ ] 训练完成后部署，记录模型 ID 到 `config.yaml` 的 `llms.planner_finetuned`；`scripts/probe_llm_endpoint.py` 验证 `tool_calls` 能被 `_build_plan_from_tool_calls` 解析。（后置：需部署实例；离线已验证训练样本中的 `tool_calls` 结构可被 `_build_plan_from_tool_calls` 解析且参数校验通过、`call_id` 保留）
+- [ ] 在 D8 test 切分上跑 `eval_planner_offline.py`，与 A-1 的 M0 数字并列写入 `docs/planner_dpo_eval.md` 第一节。（后置：依赖 M1 部署与 A-1）
+- [x] 训练脚本、超参与 job_id 记录到 `training/planner_bailian/README.md`；新建 `training/planner_bailian/submit_job.py`（封装文件上传、任务创建、状态轮询、部署）。（2026-09-15：[submit_job.py](/Users/ts/Desktop/thu/multi_Agent/training/planner_bailian/submit_job.py) 提供 `upload / create(--stage sft|dpo) / status(--wait) / logs / deploy / deploy-status / undeploy` 子命令，仅标准库，默认 dry-run，`--execute` 才发请求并追加 `jobs.jsonl`；[README.md](/Users/ts/Desktop/thu/multi_Agent/training/planner_bailian/README.md) 记录路线约束、数据格式、操作步骤、任务记录表（job_id 占位）、计费与快照不可下载提示。）
 
 验收标准：M1 部署可调用；离线 7 项指标相对 M0 有提升；50 条端到端任务跑通。
+
+验收结果（2026-09-15，离线部分）：百炼 SFT 训练 / 验证文件导出并通过结构校验（train 3181 / dev 583 条）；`submit_job.py` 四类请求 dry-run 输出与平台 API 规范一致（`POST /files`、`POST /fine-tunes` body 含 `model / training_file_ids / validation_file_ids / hyper_parameters / training_type / job_name / model_name`、`GET /fine-tunes/{job_id}`、`POST /deployments`）；test 切分封存哈希登记。**离线可完成部分验收通过；上传、训练、部署、离线评测四项需百炼账号与费用，后置，脚本一条命令可执行。**
 
 ### D-2 偏好对构造（数据 D13）
 

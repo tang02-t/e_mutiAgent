@@ -7,6 +7,8 @@ P4-3 / P5 数据格式导出：把 task_seeds.jsonl（金标动作）转换为 P
 1. ms-swift messages + tools（agent 模板，assistant 以 tool_calls 输出）  → data/planner/sft/swift_{split}.jsonl
 2. LLaMA-Factory function-calling（conversations + tools 字符串）           → data/planner/sft/lf_{split}.json
 3. 同时给出「JSON 文本规划」版本（与线上 json_text 回退路径一致）        → data/planner/sft/jsontext_{split}.jsonl
+4. 百炼模型调优 SFT 格式（messages + tools，含 tool 角色；单轮 + 多轮合并）→ data/planner/sft/bailian_{split}.jsonl
+   （`--format bailian` 只导出百炼格式；默认 `all` 同时导出上述全部；test 切分不导出百炼文件，保持封存）
 
 系统提示与线上 Planner 完全一致（PLANNER_SYSTEM_PROMPT + render_planner_user），保证训练/推理分布对齐。
 所有样本 `needs_llm_rewrite=true` 仍为模板问法；本脚本为格式管线，LLM 扩写完成后重新运行即可。
@@ -26,6 +28,7 @@ sys.path.insert(0, str(ROOT))
 from src.utils.prompts import PLANNER_SYSTEM_PROMPT, render_planner_user  # noqa: E402
 from src.tools.tool_registry import to_openai_tools                       # noqa: E402
 from src.agents.planner import PlannerAgent                               # noqa: E402
+from scripts.planner_data.bailian_format import to_bailian_record, validate_bailian_file  # noqa: E402
 
 SEEDS = ROOT / "data/planner/seeds/task_seeds.jsonl"
 OUT = ROOT / "data/planner/sft"
@@ -162,18 +165,59 @@ def multi_turn_samples(rec: Dict[str, Any], tools: List[Dict[str, Any]]) -> List
     return out
 
 
+BAILIAN_SPLITS = ("train", "dev")   # test 封存，不产出百炼上传文件
+
+
+def export_bailian(seeds: List[Dict[str, Any]], recs: List[Dict[str, Any]],
+                   tools: List[Dict[str, Any]]) -> Counter:
+    """百炼 SFT 格式：单轮（to_swift）与多轮决策点（multi_turn_samples）合并为 bailian_{split}.jsonl。
+
+    导出后立即用 validate_bailian_file 校验（结构 / tool_call_id 对应 / arguments 可解析 / 文件大小），
+    任一文件不通过即抛 RuntimeError，避免把坏文件上传到平台。
+    返回 Counter[(split, source)]，source ∈ {single, multi}。
+    """
+    stats: Counter = Counter()
+    for sp in BAILIAN_SPLITS:
+        path = OUT / f"bailian_{sp}.jsonl"
+        with open(path, "w", encoding="utf-8") as f:
+            for s in seeds:
+                if s["split"] != sp:
+                    continue
+                f.write(json.dumps(to_bailian_record(to_swift(s, tools)), ensure_ascii=False) + "\n")
+                stats[(sp, "single")] += 1
+            for r in recs:
+                if r["split"] != sp:
+                    continue
+                for smp in multi_turn_samples(r, tools):
+                    f.write(json.dumps(to_bailian_record(smp), ensure_ascii=False) + "\n")
+                    stats[(sp, "multi")] += 1
+        n, errs = validate_bailian_file(path)
+        if errs:
+            raise RuntimeError(f"百炼格式校验失败 {path.name}: " + "; ".join(errs[:5]))
+        print(f"{sp}: 百炼 SFT {n} 条（单轮 {stats[(sp, 'single')]} + 多轮 {stats[(sp, 'multi')]}）"
+              f"→ {path.name}，校验通过，{path.stat().st_size / 1024 / 1024:.1f} MB")
+    return stats
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--seeds", default=str(SEEDS))
     ap.add_argument("--include-composite", action="store_true", default=True)
     ap.add_argument("--no-test", action="store_true", help="不导出 test（封存，训练前不查看）")
     ap.add_argument("--no-multi-turn", action="store_true", help="不导出多轮/错误恢复样本")
+    ap.add_argument("--format", choices=["all", "bailian"], default="all",
+                    help="all：swift/jsontext/lf + bailian；bailian：只导出百炼 SFT 格式")
     args = ap.parse_args()
 
     seeds = [json.loads(l) for l in open(args.seeds, encoding="utf-8") if l.strip()]
     tools = to_openai_tools()
     OUT.mkdir(parents=True, exist_ok=True)
     splits = ["train", "dev"] + ([] if args.no_test else ["test"])
+    recs = [json.loads(l) for l in open(MULTI, encoding="utf-8") if l.strip()] \
+        if (MULTI.exists() and not args.no_multi_turn) else []
+    if args.format == "bailian":
+        export_bailian(seeds, recs, tools)
+        return
     stats = Counter()
     for sp in splits:
         rows = [s for s in seeds if s["split"] == sp]
@@ -190,8 +234,7 @@ def main() -> None:
 
     # 多轮 / 错误恢复（ms-swift messages 格式，含 tool 角色）
     mt_stats = Counter()
-    if MULTI.exists() and not args.no_multi_turn:
-        recs = [json.loads(l) for l in open(MULTI, encoding="utf-8") if l.strip()]
+    if recs:
         for sp in splits:
             n = 0
             with open(OUT / f"swift_multiturn_{sp}.jsonl", "w", encoding="utf-8") as f:
@@ -204,13 +247,18 @@ def main() -> None:
                         mt_stats[(sp, r["category"], r["sub_type"])] += 1
             print(f"{sp}: 多轮决策点样本 {n} 条 → swift_multiturn_{sp}.jsonl")
 
+    # 百炼 SFT 格式（train / dev；test 封存不导出）
+    bl_stats = export_bailian(seeds, recs, tools)
+
     # 数据卡片
     card = ["# Planner SFT 数据卡片（模板阶段，LLM 扩写前）\n",
             f"- 来源：`{Path(args.seeds).relative_to(ROOT)}`（P4 任务种子，金标动作已参数校验 + 真实执行）"
             + (f"；多轮/错误恢复：`{MULTI.relative_to(ROOT)}`（工具返回全部来自真实执行）" if mt_stats else ""),
             "- 系统提示：与线上 `PLANNER_SYSTEM_PROMPT()` 一致（含工具清单）；user 为 `render_planner_user` 渲染，context 走 `PlannerAgent._render_context`",
             "- 格式：ms-swift messages+tools（`swift_*.jsonl`）、LLaMA-Factory function-calling（`lf_*.json`）、JSON 文本规划（`jsontext_*.jsonl`）；"
-            "多轮为 ms-swift messages（含 `tool` 角色，`swift_multiturn_*.jsonl`），每个 assistant 决策点一条样本",
+            "多轮为 ms-swift messages（含 `tool` 角色，`swift_multiturn_*.jsonl`），每个 assistant 决策点一条样本；"
+            "百炼模型调优 SFT（`bailian_{train,dev}.jsonl`）= 单轮 + 多轮合并，剥离 `meta` / tool 消息 `name`，"
+            "`tool_calls[].id` 与 `tool_call_id` 一一对应，`arguments` 为 JSON 字符串，导出时已通过 `bailian_format.validate_bailian_file`；test 不导出百炼文件",
             "- 切分：按 `group_key` 分组，train/dev/test 互不共享来源；test 封存",
             "- 已知偏差：问法为模板生成，多样性不足（待 P4-2 LLM 口语化扩写）；数值类 DGA 记录来自 3 个公开数据集，标签分布不均（过载过热/正常偏多）；"
             "图谱推理类受规则抽取图谱覆盖限制（90 节点/190 边）；多轮样本中 assistant 的 thought 为规则模板文本",
@@ -223,6 +271,11 @@ def main() -> None:
         card += ["", "## 规模（多轮决策点样本）", "| split | category | sub_type | n |", "|---|---|---|---|"]
         for (sp, c, st), v in sorted(mt_stats.items()):
             card.append(f"| {sp} | {c} | {st} | {v} |")
+    if bl_stats:
+        card += ["", "## 规模（百炼 SFT 上传文件，单轮 + 多轮合并）", "| split | 单轮 | 多轮决策点 | 合计 |", "|---|---|---|---|"]
+        for sp in BAILIAN_SPLITS:
+            a, b = bl_stats[(sp, "single")], bl_stats[(sp, "multi")]
+            card.append(f"| {sp} | {a} | {b} | {a + b} |")
     (OUT / "DATA_CARD.md").write_text("\n".join(card), encoding="utf-8")
     print(f"数据卡片 → {OUT / 'DATA_CARD.md'}")
 
