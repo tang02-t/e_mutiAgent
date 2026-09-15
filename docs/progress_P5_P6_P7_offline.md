@@ -46,4 +46,4 @@
 | P6 五级模式正式评测 + LLM 裁判 | LLM（含微调 Planner） | `eval_system_modes.py --modes all --judge llm` |
 | P7 `v1-final` tag | 上述完成后 | — |
 
-人工待办：D9 `human_score`；图谱 `precision_sample.jsonl` label；`power_transformer_fault.csv` 来源；D10 `reference_points` 复核；轮换已泄露的 AccessKey `REDACTED_AK_ID`。
+人工待办：D9 `human_score`；图谱 `precision_sample.jsonl` label；`power_transformer_fault.csv` 来源；D10 `reference_points` 复核；轮换已泄露的 AccessKey （ID 已脱敏）。
