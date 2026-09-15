@@ -55,6 +55,8 @@ def _tok(text: str) -> List[str]:
 
 class Scorer:
     name = "base"
+    # 该评分器配套的保留阈值（分数 >= 该值保留）；ReflectionModule 未显式指定 min_keep_score 时采用
+    recommended_min_keep: int = _DEFAULT_MIN_KEEP_SCORE
 
     def score(self, query: str, chunk_text: str, section_title: str = "") -> int:  # pragma: no cover
         raise NotImplementedError
@@ -72,9 +74,12 @@ class LexicalScorer(Scorer):
     校准（retrieval_seed 随机 400 条，2026-09-15）：金标块得 3 分占 97%，随机块得 0 分占 79%；
     对 BM25 检回的非金标块约 11% 被判 <2（其余多为 2-3 分），因此它只能剔除明显无关块，
     正式实验应使用 LLMScorer 并在 D9 上校验一致率。
+    阈值：D3 test 有/无反思对比（docs/reflection_eval.md）显示 min_keep=3 在零金标误丢下精度 0.177→0.271，
+    min_keep=2 几乎不过滤，故本评分器 recommended_min_keep=3。
     """
 
     name = "lexical"
+    recommended_min_keep = 3
 
     def __init__(self, t1: float = 0.2, t2: float = 0.5, t3: float = 0.8, idf: Optional[Dict[str, float]] = None) -> None:
         self.t1, self.t2, self.t3 = t1, t2, t3
@@ -174,19 +179,20 @@ class ReflectionModule:
         llm_client: Any = None,
         research_fn: Optional[Callable[[str], List[Dict[str, Any]]]] = None,
         rewrite_fn: Optional[Callable[[str], str]] = None,
-        min_keep_score: int = _DEFAULT_MIN_KEEP_SCORE,
+        min_keep_score: Optional[int] = None,
         max_rounds: int = _DEFAULT_MAX_ROUNDS,
         neighbor_window: int = 1,
         max_total_chunks: int = 8,
         enabled: bool = True,
     ) -> None:
         self.enabled = enabled
-        self.min_keep_score = min_keep_score
         self.max_rounds = max_rounds
         self.neighbor_window = neighbor_window
         self.max_total_chunks = max_total_chunks
         self.lexical = LexicalScorer()
         self.scorer: Scorer = scorer or (LLMScorer(llm_client) if llm_client is not None and getattr(llm_client, "enabled", False) else self.lexical)
+        # 阈值：显式传入优先，否则用评分器推荐值（LexicalScorer=3，LLMScorer=2）
+        self.min_keep_score = int(min_keep_score) if min_keep_score is not None else int(getattr(self.scorer, "recommended_min_keep", _DEFAULT_MIN_KEEP_SCORE))
         self.kb = kb
         if self.kb is None:
             try:

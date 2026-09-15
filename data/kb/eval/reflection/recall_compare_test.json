@@ -1,0 +1,62 @@
+{
+ "min_keep": 3,
+ "top_k": 5,
+ "rows": [
+  {
+   "type": "ALL",
+   "n": 264,
+   "R@5_base": 0.7462,
+   "R_refl": 0.7652,
+   "P_base": 0.1773,
+   "P_refl": 0.2714,
+   "gold_dropped": 0,
+   "gold_gained": 5,
+   "avg_out": 5.28,
+   "all_dropped": 1,
+   "rewrite": 2,
+   "avg_ms": 6.19
+  },
+  {
+   "type": "A_title",
+   "n": 143,
+   "R@5_base": 0.7832,
+   "R_refl": 0.7902,
+   "P_base": 0.2084,
+   "P_refl": 0.2819,
+   "gold_dropped": 0,
+   "gold_gained": 1,
+   "avg_out": 5.48,
+   "all_dropped": 0,
+   "rewrite": 1,
+   "avg_ms": 5.96
+  },
+  {
+   "type": "B_caption",
+   "n": 92,
+   "R@5_base": 0.7935,
+   "R_refl": 0.8261,
+   "P_base": 0.1587,
+   "P_refl": 0.3125,
+   "gold_dropped": 0,
+   "gold_gained": 3,
+   "avg_out": 4.71,
+   "all_dropped": 1,
+   "rewrite": 1,
+   "avg_ms": 6.45
+  },
+  {
+   "type": "C_definition",
+   "n": 29,
+   "R@5_base": 0.4138,
+   "R_refl": 0.4483,
+   "P_base": 0.0828,
+   "P_refl": 0.0897,
+   "gold_dropped": 0,
+   "gold_gained": 1,
+   "avg_out": 6.17,
+   "all_dropped": 0,
+   "rewrite": 0,
+   "avg_ms": 6.52
+  }
+ ]
+}
