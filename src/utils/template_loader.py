@@ -68,11 +68,14 @@ class TemplateLoader:
             self._cache[relative_path] = ""
             return ""
 
-    def load_system(self, agent_name: str) -> str:
+    def load_system(self, agent_name: str, variant: str | None = None) -> str:
         """
         加载指定智能体的系统提示词。
         例如：load_system("planner") → templates/planner/system.txt
+              load_system("planner", "active") → templates/planner/system_active.txt
         """
+        if variant:
+            return self._load_file(f"{agent_name}/system_{variant}.txt")
         return self._load_file(f"{agent_name}/system.txt")
 
     def load_user_template(self, agent_name: str) -> str:

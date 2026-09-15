@@ -147,12 +147,18 @@ class RetrieverAgent:
                 dga_data = args.get("dga_data") or None
                 evidence = args.get("evidence") or None
                 query = args.get("query") or state.user_query
-                result = self.mcp.call_tool(
-                    "fault_attribution",
-                    dga_data=dga_data,
-                    evidence=evidence,
-                    query=query,
-                )
+                kwargs = {"dga_data": dga_data, "evidence": evidence, "query": query}
+                if getattr(state, "planner_strategy", "free") == "active":
+                    # 追问循环：把已完成轮数传给引擎的停止准则；注册的工具函数不接受该参数时省略
+                    fn = getattr(self.mcp, "_tools", {}).get("fault_attribution")
+                    try:
+                        import inspect
+                        params = inspect.signature(fn).parameters
+                        if "rounds_done" in params or any(p.kind == p.VAR_KEYWORD for p in params.values()):
+                            kwargs["rounds_done"] = int(getattr(state, "inquiry_rounds", 0))
+                    except (TypeError, ValueError):
+                        pass
+                result = self.mcp.call_tool("fault_attribution", **kwargs)
 
             elif tool == "kg_search":
                 kwargs = {k: v for k, v in args.items() if v is not None}
@@ -240,9 +246,9 @@ class RetrieverAgent:
             (state.plan[:100] + "...") if state.plan and len(state.plan) > 100 else state.plan,
         )
 
-        # 读取 Planner 结构化 steps
+        # 读取 Planner 结构化 steps（取最近一轮：B-4 追问循环中 Planner 会多次运行）
         steps: List[Dict[str, Any]] = []
-        for item in state.reasoning_trace:
+        for item in reversed(state.reasoning_trace):
             if item.get("agent") == "planner" and item.get("type") == "llm_plan":
                 steps = (item.get("content") or {}).get("steps", []) or []
                 break
@@ -328,9 +334,12 @@ class RetrieverAgent:
             results, kb_results_acc = self._execute_tools_parallel(runnable, state)
             tool_calls.extend(results)
 
-        # 写入 state
-        for idx, rec in enumerate(tool_calls):
+        # 写入 state（active 追问循环中 Retriever 会多次运行：累积而非覆盖，call_index 连续）
+        accumulate = getattr(state, "planner_strategy", "free") == "active"
+        base = len(state.tool_calls) if accumulate else 0
+        for idx, rec in enumerate(tool_calls, start=base):
             rec["call_index"] = idx
+            rec["inquiry_round"] = getattr(state, "inquiry_rounds", 0)
             state.reasoning_trace.append({"agent": "retriever", "type": "tool_call", "content": rec})
             state.trajectory.append({
                 "call_index": idx,
@@ -344,6 +353,7 @@ class RetrieverAgent:
                 "latency_ms": rec["latency_ms"],
                 "call_id": rec.get("call_id"),
                 "step_id": rec.get("step_id"),
+                "inquiry_round": rec["inquiry_round"],
             })
             if not rec["success"] and rec["error_code"] != "validation_failed":
                 state.errors.append({
@@ -353,7 +363,7 @@ class RetrieverAgent:
 
         if kb_results_acc:
             state.retrieved_knowledge = kb_results_acc
-        state.tool_calls = tool_calls
+        state.tool_calls = (list(state.tool_calls) + tool_calls) if accumulate else tool_calls
 
         n_ok = sum(1 for r in tool_calls if r["success"])
         logger.info(

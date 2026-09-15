@@ -73,3 +73,15 @@ workflow:
   #   finetuned —— 使用 llms.planner_finetuned（LoRA 微调后的 Planner）；缺失时自动回退 baseline
   # 可被 scripts/eval_end2end.py --planner-mode 与前端侧边栏覆盖
   planner_mode: baseline
+  # B-4 主动规划开关：
+  #   planner_strategy: free   —— v1 行为，Planner 只做意图分析 + 工具决策
+  #                     active —— Planner 输出 action: ask | call_tool | conclude，按 EIG 推荐决定是否追问
+  #   planner_decision: llm    —— active 下由大模型决策（LLM 不可用时自动回退 eig）
+  #                     eig    —— 不调 LLM，直接按最高 VoI 征兆决策（B-5 的 eig_greedy）
+  #   max_inquiry_rounds: 追问轮数上限 K
+  #   attribution_mode: expert     —— 归因引擎用专家默认 CPT
+  #                     calibrated —— 加载 data/real/dga/learned_params.json（B-1 校准参数）
+  planner_strategy: free
+  planner_decision: llm
+  max_inquiry_rounds: 3
+  attribution_mode: calibrated

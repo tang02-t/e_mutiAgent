@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Optional
 
 # ──────────────────────────────────────────────────────────────
@@ -847,6 +848,38 @@ def get_engine() -> FaultBayesianNetwork:
     if _bn_engine is None:
         _bn_engine = FaultBayesianNetwork()
     return _bn_engine
+
+
+DEFAULT_LEARNED_PARAMS = Path(__file__).resolve().parents[2] / "data" / "real" / "dga" / "learned_params.json"
+
+
+def configure_engine(mode: str = "calibrated", params_path: str | Path | None = None) -> FaultBayesianNetwork:
+    """
+    按配置开关重建全局引擎（B-4 `attribution_mode`）：
+      expert      专家默认 CPT，忽略 FAULT_ATTR_PARAMS
+      calibrated  加载 learned_params.json（B-1 学习先验 / CPT / 融合权重 / 温度），
+                  路径优先级：params_path > FAULT_ATTR_PARAMS > data/real/dga/learned_params.json
+    返回新引擎；后续 get_engine() / fault_attribution() 均使用它。
+    """
+    import json
+    import os
+
+    global _bn_engine
+    if mode not in ("expert", "calibrated"):
+        raise ValueError(f"attribution_mode 只能是 expert|calibrated，得到 {mode!r}")
+    if mode == "expert":
+        _bn_engine = FaultBayesianNetwork(params={})
+        _bn_engine.params_source = "expert_default"
+        return _bn_engine
+    path = Path(params_path or os.environ.get("FAULT_ATTR_PARAMS") or DEFAULT_LEARNED_PARAMS)
+    if not path.exists():
+        raise FileNotFoundError(f"attribution_mode=calibrated 需要参数文件，未找到 {path}")
+    with path.open(encoding="utf-8") as f:
+        data = json.load(f)
+    engine = FaultBayesianNetwork(params=data)
+    engine.params_source = str(path)
+    _bn_engine = engine
+    return engine
 
 
 def fault_attribution(

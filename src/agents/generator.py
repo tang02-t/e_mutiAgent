@@ -68,14 +68,17 @@ class GeneratorAgent:
 
     @staticmethod
     def _first_result(state: AgentState, tool: str, require_ok: bool = False):
-        """取指定工具第一条调用的 result；require_ok=True 时优先取 success 的那条。"""
+        """
+        取指定工具的 result：require_ok=True 时优先取最近一条 success 的（B-4 追问循环会多次调用
+        fault_attribution，结论必须基于最新后验）；否则取第一条。
+        """
         calls = [c for c in state.tool_calls if c.get("tool") == tool]
         if not calls:
             return None
         if require_ok:
             ok_calls = [c for c in calls if c.get("success", True) and c.get("result")]
             if ok_calls:
-                return ok_calls[0].get("result")
+                return ok_calls[-1].get("result")
         return calls[0].get("result")
 
     def _format_kg_result(self, kg_result: Any) -> str:
@@ -158,6 +161,24 @@ class GeneratorAgent:
                 f"- 故障概率排序（贝叶斯网络 × DGA规则融合）：\n{top_faults}\n"
                 f"- DGA特征解释：{interpretation}"
             )
+            unc = attr_result.get("uncertainty") or {}
+            if unc:
+                attribution_text += (
+                    f"\n- 不确定性：后验熵 {unc.get('entropy_bits', 0):.2f} bit，"
+                    f"Top-1 与 Top-2 概率差 {unc.get('top1_top2_gap', 0) * 100:.1f}%"
+                    + ("（参数已校准）" if unc.get("calibrated") else "")
+                )
+            neg = attr_result.get("evidence_negative") or []
+            if neg:
+                attribution_text += f"\n- 已排除的征兆（负观测）：{', '.join(neg)}"
+            log = getattr(state, "inquiry_log", None) or []
+            asked = [e for e in log if e.get("action") == "ask"]
+            if asked:
+                qa = "；".join(
+                    f"{e.get('symptom')}={'有' if e.get('answer') is True else ('无' if e.get('answer') is False else '未知')}"
+                    for e in asked
+                )
+                attribution_text += f"\n- 追问获得的补充证据（{len(asked)} 轮）：{qa}"
         else:
             attribution_text = "- 当前无故障归因分析结果。"
 

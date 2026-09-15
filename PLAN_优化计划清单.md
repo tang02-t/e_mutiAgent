@@ -165,13 +165,15 @@
 
 ### B-4 Planner 接入主动策略
 
-- [ ] `state.py` 增加 `pending_questions`、`asked_symptoms`、`user_answers` 字段；`workflow.py` 增加「追问 → 用户回答 → 重新归因」的有限循环（最多 K 轮），评测时用模拟器代替用户。
-- [ ] `templates/planner/system.txt` 新增 `active` 变体：说明 `uncertainty` 块含义、三种动作的选择规则、追问话术要求（一次只问一个征兆、给出为什么问）。
-- [ ] Planner 输出增加 `action: ask | call_tool | conclude` 与 `rationale`；`_validate_steps` 校验 `ask` 时必须携带 `symptom` 字段且属于推荐列表。
-- [ ] 配置开关 `attribution_mode: expert | calibrated` 与 `planner_strategy: free | active`。
-- [ ] 前端 [app.py](/Users/ts/Desktop/thu/multi_Agent/app.py)：展示后验分布、熵、推荐征兆与追问话术；演示案例新增 2 个「信息不足 → 追问 → 确诊」流程。
+- [x] `state.py` 增加 `pending_questions`、`asked_symptoms`、`user_answers` 字段（另加 `planner_strategy / planner_action / inquiry_rounds / max_inquiry_rounds / inquiry_log / inquiry_cost`）；`workflow.py` 增加「追问 → 用户回答 → 重新归因」的有限循环（最多 K 轮，`recursion_limit = 25 + 6K`），`answer_fn` 注入模拟器回答，`answer_fn=None` 时中断并留 `pending_questions`，`resume_after_answer()` 续跑。
+- [x] `templates/planner/system_active.txt` 新增 `active` 变体（`TemplateLoader.load_system(agent, variant)`）：说明 `uncertainty` 块含义、三种动作选择规则、追问话术要求（一次一个征兆、说明为什么问、不重复）。
+- [x] Planner 输出增加 `action: ask | call_tool | conclude` 与 `rationale`；`_validate_action` 校验 `ask` 必须携带推荐列表内且未问过的 `symptom` 与 `question`，`call_tool` 必须带步骤；另提供无 LLM 的 `decision=eig` 路径（`eig_decide`），LLM 失败时自动回退。
+- [x] 配置开关 `attribution_mode: expert | calibrated`（`configure_engine()`）、`planner_strategy: free | active`、`planner_decision: llm | eig`、`max_inquiry_rounds`。
+- [x] 前端 [app.py](/Users/ts/Desktop/thu/multi_Agent/app.py)：侧边栏「主动规划」区（策略 / 决策来源 / K / 归因参数），展示后验柱状图、熵、Top-1 与 Top-2 差、推荐征兆表与追问话术，「追问轨迹」tab 含日志与熵曲线，是 / 否 / 不知道三按钮续跑；新增案例 6（H2/CH4/C2H4，缺 C2H2/C2H6）与案例 7（H2/C2H2，其余缺），每种气体支持「未检测」。
 
 验收标准：mode3 在 D12 抽 30 条上能完整走通追问循环，轨迹日志记录每轮 EIG 与动作。
+
+验收结果（2026-09-15）：`decision=eig` + `PartialObsEnv.answer` 模拟器，D12 每档抽 10 条共 30 条全部走通，平均追问 2.20 轮，Top-1 命中 23/30，停止原因 max_rounds 11 / voi_below_eps 13 / entropy_below_tau 6；`inquiry_log` 每轮记录 entropy_bits / top1 / gap / recommendations（含 EIG、cost、VoI、how_to_obtain）/ action / decision_source / stop_reason；mode3 工具名单 6 条走通无越权；追问后熵单调下降、成本与模拟器一致；案例 6 / 7 首轮即追问。`tests/test_b4_active.py` 51 项通过，B-1~B-3 / P0 回归全绿，streamlit AppTest 冒烟无异常。局限：LLM 决策路径（`decision=llm`）尚未用真实 LLM 验证，验收走 eig / eig_fallback 路径，待 A-1 基线补跑时一并验证。
 
 ### B-5 对照实验与评测
 

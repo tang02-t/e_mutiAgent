@@ -94,9 +94,13 @@ TOOL_SPECS: List[Dict[str, Any]] = [
             "基于贝叶斯网络 + DL/T 722-2014 三比值法的故障归因引擎。输入 DGA 油色谱气体浓度"
             "（H2/CH4/C2H2/C2H4/C2H6，单位 μL/L）和/或征兆布尔标记，输出各故障类型的后验概率排序"
             "（如绕组短路、局部放电、过载过热、绝缘老化等）与诊断报告。"
+            "结果附带 uncertainty 块：entropy_bits（后验熵，越大越不确定）、top1_top2_gap、calibrated，"
+            "以及 recommendations（按信息价值 VoI 排序的待补征兆，每项含 eig / cost / how_to_obtain / ask_hint）"
+            "和 suggested_action（ask=追问用户 / call_tool=调用其他工具 / conclude=可直接结论）。"
         ),
         "when_to_use": (
             "当用户提供了 DGA 油色谱数据，或问题需要『判断故障类型 / 故障原因 / 哪种故障可能性最大』时必选。"
+            "追问得到用户回答后，应把回答写入 evidence 再次调用以更新后验。"
         ),
         "parameters": {
             "type": "object",
@@ -105,7 +109,8 @@ TOOL_SPECS: List[Dict[str, Any]] = [
                     "type": "object",
                     "description": (
                         "DGA 气体浓度字典，单位 μL/L。字段：H2, CH4, C2H2, C2H4, C2H6。"
-                        "若用户未提供具体数值，可留空（系统会使用前端填写的 DGA 数据）。"
+                        "若用户未提供具体数值，可留空（系统会使用前端填写的 DGA 数据）；"
+                        "用户未提供的单种气体不要填 0，直接省略该字段（省略=未观测，0=实测为零）。"
                     ),
                     "properties": {
                         "H2": {"type": "number"},
@@ -118,9 +123,10 @@ TOOL_SPECS: List[Dict[str, Any]] = [
                 "evidence": {
                     "type": "object",
                     "description": (
-                        "征兆布尔字典，可选。键为征兆 ID，值为 true 表示该征兆出现。"
+                        "征兆布尔字典，可选。键为征兆 ID；true=该征兆出现，false=用户明确排除（负观测，会降低相关故障概率），"
+                        "未知的征兆不要填写（缺失=未观测）。"
                         "常用键：H2_elevated, CH4_elevated, C2H2_elevated, C2H4_elevated, "
-                        "C2H6_elevated, oil_temp_elevated, winding_temp_elevated, "
+                        "C2H6_elevated, CO_elevated, CO2_elevated, oil_temp_elevated, winding_temp_elevated, "
                         "load_elevated, vibration_elevated, partial_discharge_alarm, "
                         "gas_rate_rapid, TDCG_elevated。"
                     ),

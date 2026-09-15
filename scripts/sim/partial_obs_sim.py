@@ -264,6 +264,20 @@ class PartialObsEnv:
         """当前可见气体（缺失为 None），供 fault_attribution / eig 使用。"""
         return dict(self.visible)
 
+    def answer(self, symptom: str, meta: Optional[dict[str, Any]] = None) -> dict[str, Any]:
+        """
+        供 workflow answer_fn 使用的回答：揭示征兆的同时把新可见的气体浓度与由此派生的全部征兆一并返回，
+        模拟「用户回答乙炔浓度」时系统能同时更新 TDCG / 产气速率等派生征兆。
+        返回 {"answer": bool|None, "dga": {gas: value}, "evidence": {symptom: bool}, "cost": float}
+        """
+        before_visible = {g for g, v in self.visible.items() if v is not None}
+        before_ev = dict(self.evidence)
+        cost_before = self.total_cost
+        val = self.reveal(symptom)
+        new_gases = {g: self.visible[g] for g in self.visible if g not in before_visible and self.visible[g] is not None}
+        new_ev = {s: v for s, v in self.evidence.items() if before_ev.get(s) != v}
+        return {"answer": val, "dga": new_gases, "evidence": new_ev, "cost": self.total_cost - cost_before}
+
 
 def load_d12(path: Path = OUT, level: Optional[str] = None, limit: int = 0) -> list[dict]:
     assert_not_synthetic(path, purpose="d12")

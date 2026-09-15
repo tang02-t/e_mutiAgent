@@ -89,10 +89,10 @@ def build_mcp(kb_mode: str, user_dga: Dict[str, Any] | None, rag_mode: str | Non
     mcp = MCPClient()
 
     # fault_attribution：用闭包注入前端填写的 DGA（当 plan 未带 dga_data 时生效）
-    def fault_attribution_with_dga(dga_data=None, evidence=None, query: str = ""):
+    def fault_attribution_with_dga(dga_data=None, evidence=None, query: str = "", **kwargs):
         if not dga_data and user_dga:
             dga_data = user_dga
-        return fault_attribution(dga_data=dga_data, evidence=evidence, query=query)
+        return fault_attribution(dga_data=dga_data, evidence=evidence, query=query, **kwargs)
 
     mcp.register_tool("fault_attribution", fault_attribution_with_dga)
     mcp.register_tool("timeseries_anomaly", timeseries_anomaly)
@@ -134,20 +134,34 @@ def run_workflow(
     reflection_mode: str = "off",
     planner_mode: str = "baseline",
     allowed_tools: List[str] | None = None,
+    planner_strategy: str = "free",
+    planner_decision: str = "llm",
+    max_inquiry_rounds: int = 3,
+    attribution_mode: str = "calibrated",
 ) -> tuple[AgentState | None, float, str | None]:
-    """执行完整诊断工作流，返回 (final_state, elapsed, error)。"""
+    """执行完整诊断工作流，返回 (final_state, elapsed, error)。
+    planner_strategy=active 时遇到追问会中断并把问题留在 final_state.pending_questions，由前端收集回答后续跑。
+    """
     from src.agents.planner import PlannerAgent
     from src.agents.retriever import RetrieverAgent
     from src.agents.generator import GeneratorAgent
     from src.agents.validator import ValidatorAgent
+    from src.tools.fault_attribution import configure_engine
+
+    try:
+        configure_engine(attribution_mode)
+    except Exception as exc:  # noqa: BLE001
+        st.warning(f"归因参数切换失败（{exc}），沿用当前引擎")
 
     state = AgentState(
         user_query=user_query,
         context=context,
         max_iterations=config.get("workflow", {}).get("max_iterations", 3),
+        max_inquiry_rounds=int(max_inquiry_rounds),
     )
 
-    planner = PlannerAgent(config, planner_mode=planner_mode, allowed_tools=allowed_tools)
+    planner = PlannerAgent(config, planner_mode=planner_mode, allowed_tools=allowed_tools,
+                           strategy=planner_strategy, decision=planner_decision)
     retriever = RetrieverAgent(config, mcp, allowed_tools=allowed_tools)
     generator = GeneratorAgent(config)
     validator = ValidatorAgent(config)
@@ -159,10 +173,28 @@ def run_workflow(
             reflector = ReflectionModule(scorer=LexicalScorer(), kb=get_local_kb())
         except Exception as exc:  # noqa: BLE001
             st.warning(f"反思模块初始化失败，已关闭：{exc}")
+    st.session_state["agents"] = (planner, retriever, generator, validator, reflector)
 
     t0 = time.time()
     try:
-        final = run_diagnosis_workflow(state, planner, retriever, generator, validator, reflector=reflector)
+        final = run_diagnosis_workflow(state, planner, retriever, generator, validator, reflector=reflector,
+                                       answer_fn=None)
+        return final, time.time() - t0, None
+    except Exception as exc:  # noqa: BLE001
+        import traceback
+        return None, time.time() - t0, traceback.format_exc()
+
+
+def resume_workflow(state: AgentState, symptom: str, answer: bool | None) -> tuple[AgentState | None, float, str | None]:
+    """用户回答追问后续跑（复用本轮构造的智能体实例）。"""
+    from src.graph.workflow import resume_after_answer
+    agents = st.session_state.get("agents")
+    if not agents:
+        return None, 0.0, "智能体实例已失效，请重新开始诊断。"
+    planner, retriever, generator, validator, reflector = agents
+    t0 = time.time()
+    try:
+        final = resume_after_answer(state, symptom, answer, planner, retriever, generator, validator, reflector)
         return final, time.time() - t0, None
     except Exception as exc:  # noqa: BLE001
         import traceback
@@ -279,6 +311,59 @@ def _render_fault_attribution(result: Dict[str, Any]) -> None:
     dga = result.get("dga_analysis") or {}
     if dga.get("interpretation"):
         st.markdown(f"**DGA 特征解释：** {dga['interpretation']}")
+    if result.get("evidence_negative"):
+        st.caption("已排除征兆（负观测）：" + "、".join(result["evidence_negative"]))
+
+    unc = result.get("uncertainty") or {}
+    if unc:
+        _render_uncertainty(unc, ranking)
+
+
+def _render_uncertainty(unc: Dict[str, Any], ranking: List[Dict[str, Any]] | None = None) -> None:
+    """后验分布 / 熵 / EIG 推荐征兆（B-4）。"""
+    st.markdown("**不确定性与下一步建议**")
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("后验熵 H(F|E)", f"{unc.get('entropy_bits', 0):.2f} bit")
+    c2.metric("Top-1 与 Top-2 差", f"{unc.get('top1_top2_gap', 0) * 100:.1f}%")
+    c3.metric("参数校准", "已校准" if unc.get("calibrated") else "未校准")
+    action_cn = {"ask": "追问用户", "call_tool": "调用工具", "conclude": "可下结论"}
+    c4.metric("建议动作", action_cn.get(unc.get("suggested_action"), unc.get("suggested_action") or "—"))
+    if ranking:
+        probs = {r.get("fault_name"): float(str(r.get("probability_pct", "0")).rstrip("%")) for r in ranking}
+        st.bar_chart(probs)
+    recs = unc.get("recommendations") or []
+    if recs:
+        st.caption("候选征兆（按信息价值 VoI = EIG − λ·cost 降序）")
+        st.dataframe([
+            {"征兆": r.get("symptom"), "EIG (bit)": round(r.get("eig", 0), 3), "成本": r.get("cost"),
+             "VoI": round(r.get("voi", 0), 3), "获取方式": r.get("how_to_obtain"), "追问话术": r.get("ask_hint", "")}
+            for r in recs[:5]
+        ], use_container_width=True, hide_index=True)
+    if unc.get("stop_reason"):
+        st.caption(f"停止原因：{unc['stop_reason']}")
+
+
+def _render_inquiry(state: AgentState) -> None:
+    """追问循环轨迹：每轮熵 / 动作 / 征兆 / 回答。"""
+    if not state.inquiry_log:
+        st.info("本次未进入主动追问循环（planner_strategy=free 或无需追问）。")
+        return
+    st.markdown(f"追问 {state.inquiry_rounds} 轮，累计获取成本 {state.inquiry_cost:.0f}")
+    rows = []
+    for e in state.inquiry_log:
+        rows.append({
+            "轮": e.get("round"), "动作": e.get("action"), "决策来源": e.get("decision_source"),
+            "征兆": e.get("symptom") or "", "回答": {True: "有", False: "无", None: ""}.get(e.get("answer"), ""),
+            "后验熵": None if e.get("entropy_bits") is None else round(e["entropy_bits"], 3),
+            "Top-1": e.get("top1") or "", "首推征兆": (e.get("recommendations") or [{}])[0].get("symptom", ""),
+            "理由": (e.get("rationale") or "")[:60],
+        })
+    st.dataframe(rows, use_container_width=True, hide_index=True)
+    ents = [(e["round"], e["entropy_bits"]) for e in state.inquiry_log
+            if e.get("action") == "call_tool" and e.get("entropy_bits") is not None]
+    if len(ents) >= 2:
+        st.caption("后验熵随归因轮次变化")
+        st.line_chart([h for _, h in ents])
 
 
 def _render_ett_forecast(result: Dict[str, Any]) -> None:
@@ -543,17 +628,44 @@ with st.sidebar:
     rag_mode = _spec.rag_mode
 
     st.divider()
+    st.subheader("🎯 主动规划（B-4）")
+    _wf = config.get("workflow", {}) or {}
+    planner_strategy = st.radio(
+        "Planner 策略", options=["free", "active"],
+        index=["free", "active"].index(_wf.get("planner_strategy", "free")),
+        format_func=lambda x: {"free": "free：一次规划直接结论", "active": "active：按信息增益决定追问 / 调工具 / 结论"}[x],
+        horizontal=False,
+    )
+    planner_decision = "llm"
+    max_inquiry_rounds = int(_wf.get("max_inquiry_rounds", 3))
+    if planner_strategy == "active":
+        planner_decision = st.radio(
+            "动作决策来源", options=["llm", "eig"],
+            index=["llm", "eig"].index(_wf.get("planner_decision", "llm")),
+            format_func=lambda x: {"llm": "LLM 决策（读 uncertainty 块，失败回退 EIG）", "eig": "EIG 规则（不调 LLM，问 VoI 最高征兆）"}[x],
+        )
+        max_inquiry_rounds = st.slider("最大追问轮数 K", 1, 5, value=max_inquiry_rounds)
+    attribution_mode = st.selectbox(
+        "归因参数", options=["calibrated", "expert"],
+        index=["calibrated", "expert"].index(_wf.get("attribution_mode", "calibrated")),
+        format_func=lambda x: {"calibrated": "calibrated：数据学习 + 温度缩放（B-1）", "expert": "expert：专家默认 CPT"}[x],
+    )
+
+    st.divider()
     st.subheader("🧪 DGA 油色谱（可选）")
     st.caption("填写后将注入故障归因引擎（单位 μL/L）")
     use_dga = st.checkbox("提供 DGA 数据", value=True)
     dga: Dict[str, Any] = {}
     if use_dga:
-        cda, cdb = st.columns(2)
-        dga["H2"] = cda.number_input("H₂", min_value=0.0, value=105.0, step=1.0)
-        dga["CH4"] = cdb.number_input("CH₄", min_value=0.0, value=160.0, step=1.0)
-        dga["C2H2"] = cda.number_input("C₂H₂", min_value=0.0, value=1.7, step=0.1)
-        dga["C2H4"] = cdb.number_input("C₂H₄", min_value=0.0, value=375.0, step=1.0)
-        dga["C2H6"] = cda.number_input("C₂H₆", min_value=0.0, value=40.0, step=1.0)
+        st.caption("勾选「未检测」的气体将作为缺失值传入（用于演示信息不足 → 追问）")
+        _defaults = {"H2": 105.0, "CH4": 160.0, "C2H2": 1.7, "C2H4": 375.0, "C2H6": 40.0}
+        _labels = {"H2": "H₂", "CH4": "CH₄", "C2H2": "C₂H₂", "C2H4": "C₂H₄", "C2H6": "C₂H₆"}
+        _steps = {"H2": 1.0, "CH4": 1.0, "C2H2": 0.1, "C2H4": 1.0, "C2H6": 1.0}
+        for g in ("H2", "CH4", "C2H2", "C2H4", "C2H6"):
+            ca, cb = st.columns([3, 1])
+            val = ca.number_input(_labels[g], min_value=0.0, value=_defaults[g], step=_steps[g], key=f"dga_{g}")
+            miss = cb.checkbox("未检测", key=f"miss_{g}")
+            dga[g] = None if miss else val
 
     st.divider()
     st.subheader("🏷️ 设备上下文（可选）")
@@ -573,6 +685,13 @@ EXAMPLES = {
     "案例3 图谱多跳推理（部位 + 处理）": "铁心多点接地会导致什么后果？一般发生在哪个部件、如何检测和处理？",
     "案例4 油温趋势预测": "请基于 ETTh1 数据集预测该变压器未来 24 小时的油温走势，并判断是否存在过热风险。",
     "案例5 信息不足需追问": "帮我看看这台变压器有没有问题。",
+    "案例6 主动追问 A（缺乙炔，放电 vs 过热）": "110kV主变本次色谱只测到 H2=180, CH4=95, C2H4=60 μL/L（乙炔、乙烷未出结果），现场反映近期负载偏高，请判断故障类型；如需补充信息请直接问我。",
+    "案例7 主动追问 B（仅两种气体，需多轮确认）": "这台主变只拿到 H2=420 和 C2H2=38 μL/L 两个数，其余气体还没测，请先给出可能的故障并告诉我还需要补什么检测。",
+}
+# 追问演示案例对应的 DGA 缺失设置（选中案例后自动勾选「未检测」）
+EXAMPLE_DGA = {
+    "案例6 主动追问 A（缺乙炔，放电 vs 过热）": {"H2": 180.0, "CH4": 95.0, "C2H2": None, "C2H4": 60.0, "C2H6": None},
+    "案例7 主动追问 B（仅两种气体，需多轮确认）": {"H2": 420.0, "CH4": None, "C2H2": 38.0, "C2H4": None, "C2H6": None},
 }
 
 example = st.selectbox("示例问题", list(EXAMPLES.keys()))
@@ -603,15 +722,25 @@ if run_clicked:
                 v["api_key_env"] = "___DISABLED___"
 
     context: Dict[str, Any] = {"device_id": device_id, "voltage_level_kv": voltage}
-    if use_dga and dga:
+    _dga_for_run: Dict[str, Any] | None = None
+    if example in EXAMPLE_DGA:
+        _dga_for_run = dict(EXAMPLE_DGA[example])
+        st.caption("已按演示案例设置 DGA 缺失项：" + ", ".join(f"{k}={'未检测' if v is None else v}" for k, v in _dga_for_run.items()))
+    elif use_dga and dga:
+        _dga_for_run = dict(dga)
+    if _dga_for_run:
         # 显式进入 Planner 输入：模型必须能看到前端填写的数据，才能被要求填对 dga_data
-        context["dga"] = dict(dga)
-    mcp = build_mcp(kb_mode=kb_mode, user_dga=dga if use_dga else None, rag_mode=rag_mode)
+        context["dga"] = _dga_for_run
+    mcp = build_mcp(kb_mode=kb_mode,
+                    user_dga={k: v for k, v in (_dga_for_run or {}).items() if v is not None} or None,
+                    rag_mode=rag_mode)
 
     with st.spinner(f"多智能体协同诊断中…（{_spec.label}）"):
         final, elapsed, err = run_workflow(user_query, context, run_cfg, mcp,
                                            reflection_mode=reflection_mode, planner_mode=planner_mode,
-                                           allowed_tools=allowed_tools)
+                                           allowed_tools=allowed_tools,
+                                           planner_strategy=planner_strategy, planner_decision=planner_decision,
+                                           max_inquiry_rounds=max_inquiry_rounds, attribution_mode=attribution_mode)
 
     if err:
         st.error("工作流执行失败：")
@@ -621,6 +750,40 @@ if run_clicked:
     st.session_state["final"] = final
     st.session_state["elapsed"] = elapsed
     st.session_state["system_mode"] = _spec.to_dict()
+
+
+# ── 追问交互（active 策略遇 ask 中断）────────────────────────────────────────
+_pending: AgentState | None = st.session_state.get("final")
+if _pending is not None and _pending.pending_questions and _pending.final_answer is None:
+    q = _pending.pending_questions[0]
+    st.divider()
+    st.subheader(f"❓ 系统追问（第 {_pending.inquiry_rounds + 1}/{_pending.max_inquiry_rounds} 轮）")
+    st.markdown(f"**{q.get('question')}**")
+    st.caption(f"为什么问：{q.get('rationale', '')}　|　征兆 `{q.get('symptom')}`"
+               + (f"　|　EIG {q['eig']:.3f} bit，成本 {q.get('cost', 0):.0f}" if q.get("eig") is not None else ""))
+    unc_now = (_pending.context or {}).get("uncertainty") or {}
+    if unc_now:
+        with st.expander("当前后验与候选征兆", expanded=False):
+            _render_uncertainty(unc_now)
+    ca, cb, cc = st.columns(3)
+    ans: bool | None = None
+    clicked = False
+    if ca.button("✅ 是 / 存在该现象", use_container_width=True):
+        ans, clicked = True, True
+    if cb.button("❌ 否 / 已排除", use_container_width=True):
+        ans, clicked = False, True
+    if cc.button("🤷 不知道 / 无法提供", use_container_width=True):
+        ans, clicked = None, True
+    if clicked:
+        with st.spinner("已纳入回答，重新归因中…"):
+            final, elapsed2, err = resume_workflow(_pending, q["symptom"], ans)
+        if err:
+            st.error("续跑失败：")
+            st.code(err)
+            st.stop()
+        st.session_state["final"] = final
+        st.session_state["elapsed"] = st.session_state.get("elapsed", 0.0) + elapsed2
+        st.rerun()
 
 
 # ── 结果展示 ──────────────────────────────────────────────────────────────────
@@ -634,6 +797,7 @@ if final is not None:
         "📋 诊断结论",
         "✅ 质量验证",
         "🧭 规划计划",
+        "🎯 追问轨迹",
         "🔧 工具调用",
         "📚 检索知识",
         "🕸️ 图谱链路",
@@ -643,6 +807,8 @@ if final is not None:
     ])
 
     with tabs[0]:
+        if final.pending_questions and final.final_answer is None:
+            st.info("系统仍在追问中，请在上方回答后查看结论。")
         st.markdown(final.final_answer or final.draft_answer or "（无结果）")
 
     with tabs[1]:
@@ -673,23 +839,26 @@ if final is not None:
         st.markdown(f"```\n{final.plan or '（LLM 未启用或未生成计划）'}\n```")
 
     with tabs[3]:
+        _render_inquiry(final)
+
+    with tabs[4]:
         _render_trajectory(final)
         st.divider()
         render_tool_calls(final)
 
-    with tabs[4]:
+    with tabs[5]:
         _render_rag(final.retrieved_knowledge)
 
-    with tabs[5]:
+    with tabs[6]:
         _render_kg(final)
 
-    with tabs[6]:
+    with tabs[7]:
         _render_reflection(final)
 
-    with tabs[7]:
+    with tabs[8]:
         render_trace(final)
 
-    with tabs[8]:
+    with tabs[9]:
         if final.errors:
             for e in final.errors:
                 st.error(f"[{e.get('agent', '?')}{('/' + e['tool']) if e.get('tool') else ''}] {e.get('error', '')}")

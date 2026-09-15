@@ -85,12 +85,17 @@ class _LazyTemplateLoader:
                 self._loader = None
         return self._loader
 
-    def get_system(self, agent: str) -> str:
+    def get_system(self, agent: str, variant: Optional[str] = None) -> str:
         loader = self._get_loader()
         if loader:
-            content = loader.load_system(agent)
+            content = loader.load_system(agent, variant) if variant else loader.load_system(agent)
             if content:
                 return content
+            if variant:
+                # 变体缺失时回退到基础模板
+                content = loader.load_system(agent)
+                if content:
+                    return content
         # 回退到默认值
         fallbacks = {
             "planner": _PLANNER_SYSTEM,
@@ -109,14 +114,15 @@ class _LazyTemplateLoader:
 _loader = _LazyTemplateLoader()
 
 
-def PLANNER_SYSTEM_PROMPT(allowed_tools: Optional[list] = None) -> str:
+def PLANNER_SYSTEM_PROMPT(allowed_tools: Optional[list] = None, variant: Optional[str] = None) -> str:
     """
     返回 Planner 系统提示词，并将模板中的 {{tools}} 占位符替换为工具注册表的清单文本。
 
     工具清单来自 src.tools.tool_registry（单一数据源），新增工具无需改动本提示词。
     allowed_tools 非 None 时只渲染名单内的工具（P6 五级模式）。
+    variant="active" 时加载 templates/planner/system_active.txt（B-4 主动追问变体；缺失则回退基础模板）。
     """
-    template = _loader.get_system("planner")
+    template = _loader.get_system("planner", variant)
     if "{{tools}}" in template:
         try:
             from src.tools.tool_registry import render_tools_for_prompt
