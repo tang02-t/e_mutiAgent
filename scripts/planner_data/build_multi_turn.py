@@ -65,11 +65,11 @@ def _tool_fns() -> Dict[str, Any]:
     from src.tools.kg_search import kg_search
     from src.tools.ett_forecasting import ett_forecast
     from src.tools.local_kb import local_kb_search
-    from scripts.eval_end2end import mock_timeseries_anomaly
+    from src.tools.timeseries import timeseries_anomaly
     return {"fault_attribution": lambda **kw: fault_attribution(dga_data=kw.get("dga_data"), query=kw.get("query", ""),
                                                                  **({"evidence": kw["evidence"]} if kw.get("evidence") else {})),
             "kg_search": kg_search, "ett_forecast": ett_forecast, "rag_search": local_kb_search,
-            "timeseries_anomaly": mock_timeseries_anomaly}
+            "timeseries_anomaly": timeseries_anomaly}
 
 
 def _compact_result(tool: str, r: Any) -> Dict[str, Any]:

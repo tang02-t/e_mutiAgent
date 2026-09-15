@@ -4,7 +4,7 @@
 集中声明所有可供智能体调用的工具元信息，作为「单一数据源」同时服务于：
 1. Planner 的提示词 —— 让大模型清楚知道有哪些工具、各自的用途、参数与适用场景；
 2. LLM 原生 Function Calling —— 直接把 `to_openai_tools()` 的结果传给 `chat(tools=...)`；
-3. Retriever 的参数校验与默认值填充 —— 通过 `validate_arguments()` 规范模型给出的参数。
+3. Planner / Retriever 的参数严格校验 —— 通过 `validate_arguments_strict()` 标注模型参数错误，不做静默修正。
 
 新增工具时，只需在 `TOOL_SPECS` 中追加一条声明，Planner / Retriever 即可自动感知，
 无需再到各处修改 if/elif 分支或手写提示词。
@@ -282,7 +282,7 @@ def validate_arguments_strict(name: str, arguments: Dict[str, Any]) -> Dict[str,
     """
     依据工具的 JSON Schema 对参数做严格校验（不修正、不填默认值）。
 
-    与旧版 validate_arguments 的区别：
+    设计口径：
     - 不静默丢弃/修正任何值；所有问题都以错误条目形式返回；
     - 保留模型给出的原始参数，便于评测时区分「模型错误」与「程序修正」。
 
@@ -358,29 +358,3 @@ def validate_arguments_strict(name: str, arguments: Dict[str, Any]) -> Dict[str,
                     })
 
     return {"valid": not errors, "arguments": raw, "errors": errors}
-
-
-def validate_arguments(name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    【已弃用】旧版宽松清洗：丢弃未声明键、丢弃非法枚举值。
-
-    该行为会掩盖模型的参数错误，不应再用于 Planner / Retriever 主路径。
-    仅为向后兼容保留；新代码请使用 validate_arguments_strict()。
-    """
-    spec = get_tool_spec(name)
-    if spec is None:
-        return dict(arguments or {})
-
-    props: Dict[str, Any] = spec.get("parameters", {}).get("properties", {})
-    cleaned: Dict[str, Any] = {}
-
-    for key, value in (arguments or {}).items():
-        if key not in props:
-            continue
-        pdef = props[key]
-        enum = pdef.get("enum")
-        if enum and value not in enum:
-            continue
-        cleaned[key] = value
-
-    return cleaned

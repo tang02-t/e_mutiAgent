@@ -462,10 +462,10 @@ def execute_all(seeds: List[Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], List
     from src.tools.kg_search import kg_search
     from src.tools.ett_forecasting import ett_forecast
     from src.tools.local_kb import local_kb_search
-    from scripts.eval_end2end import mock_timeseries_anomaly
+    from src.tools.timeseries import timeseries_anomaly
 
     fns = {"fault_attribution": fault_attribution, "kg_search": kg_search, "ett_forecast": ett_forecast,
-           "rag_search": local_kb_search, "timeseries_anomaly": mock_timeseries_anomaly}
+           "rag_search": local_kb_search, "timeseries_anomaly": timeseries_anomaly}
     bad_status = {"error", "no_data", "failed", "no_match", "no_relation"}
     ok, bad = [], []
     cache: Dict[str, Any] = {}

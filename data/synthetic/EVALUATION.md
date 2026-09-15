@@ -52,12 +52,12 @@ python3 scripts/eval_end2end.py --no-llm --limit 10
 # 2) 真实诊断能力评测（需 config.yaml 中 LLM 可用）
 python3 scripts/eval_end2end.py --limit 20
 
-# 3) 接入真实 Milvus RAG（需 collection 已建好并导入数据）
-python3 scripts/eval_end2end.py --real-rag --limit 20
+# 3) 用合成案例 mock 替代本地知识库（仅流程调试）
+python3 scripts/eval_end2end.py --kb-mode mock --limit 20
 
 # 全量评测
 python3 scripts/eval_end2end.py
-# 报告输出：data/synthetic/eval/report_end2end.md
+# 报告输出：data/synthetic/eval/report_end2end_dev.md（合成数据只允许 dev_regression）
 ```
 
 ### 指标体系
@@ -89,14 +89,12 @@ python3 scripts/eval_end2end.py
 1. **先跑评测一**（无依赖，秒级）：确认归因引擎基线，记录 Top-1/F1。
 2. **跑评测二 `--no-llm`**：确认全流程连通性（完成率应 100%）。
 3. **修复 LLM 配额** → 跑评测二真实模式：得到系统真实诊断指标。
-4. **建好 Milvus 后** → 跑 `--real-rag`：评估知识检索对诊断的增益。
-5. **用真实数据替换** `data/synthetic/` 下对应文件（保持 schema 不变），重跑全部脚本，
+4. **用真实数据替换 `data/synthetic/` 下对应文件（保持 schema 不变），重跑全部脚本，
    对比模拟 vs 真实的指标差异，并据此校准贝叶斯 CPT、优化提示词。
 
 ## 脚本清单
 | 脚本 | 作用 |
 |------|------|
 | `scripts/generate_synthetic_data.py` | 生成 4 类模拟数据 |
-| `scripts/validate_dga_data.py` | DGA 数据快速质量自检 |
 | `scripts/eval_fault_attribution.py` | 评测一：归因引擎 |
 | `scripts/eval_end2end.py` | 评测二：端到端多智能体 |

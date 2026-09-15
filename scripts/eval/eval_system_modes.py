@@ -52,6 +52,7 @@ from src.tools.mcp_client import MCPClient                      # noqa: E402
 from src.tools.fault_attribution import fault_attribution       # noqa: E402
 from src.tools.kg_search import kg_search                       # noqa: E402
 from src.tools.ett_forecasting import ett_forecast              # noqa: E402
+from src.tools.timeseries import timeseries_anomaly             # noqa: E402
 from src.utils.config import load_config                        # noqa: E402
 from src.utils.data_guard import assert_not_synthetic           # noqa: E402
 from src.utils.llm import USAGE                                 # noqa: E402
@@ -62,17 +63,6 @@ REPORT = ROOT / "docs/end2end_eval.md"
 
 ASK_PATTERNS = ["请提供", "请补充", "需要您", "需要你", "缺少", "请告知", "请说明", "能否提供", "麻烦提供", "请问", "是否可以提供"]
 TREND_WORDS = ["上升", "下降", "平稳", "趋势", "预测", "℃", "°C"]
-
-
-def timeseries_anomaly(signal=None) -> Dict[str, Any]:
-    if not isinstance(signal, (list, tuple)) or len(signal) < 3:
-        return {"status": "error", "message": "timeseries_anomaly 需要至少 3 个点的 signal 序列"}
-    ot = [float(x) for x in signal]
-    mean = sum(ot) / len(ot)
-    var = sum((v - mean) ** 2 for v in ot) / max(len(ot) - 1, 1)
-    std = var ** 0.5
-    anomalies = [i for i, v in enumerate(ot) if std and abs(v - mean) > 3 * std]
-    return {"status": "ok", "n": len(ot), "mean": mean, "std": std, "anomaly_indices": anomalies}
 
 
 def build_mcp(spec: SystemModeSpec) -> tuple[MCPClient, str]:

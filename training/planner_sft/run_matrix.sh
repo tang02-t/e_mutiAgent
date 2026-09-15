@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# P5-3：对照实验矩阵一键运行（M1/M2/M3 × 2 seeds）+ 推理 + 离线评测
+# [v1 路线，已降级为备选] P5-3：对照实验矩阵一键运行（M1/M2/M3 × 2 seeds）+ 推理 + 离线评测
+# v2 计划（PLAN_优化计划清单.md D 阶段）主路线为百炼 SFT + DPO，M2/M3 加权 SFT 不再作为论文对照；
+# 本脚本与 plugin_loss_scale.py 仅在百炼 DPO 不可用时作为魔搭本地训练备选。
 #
 # 用法：
 #   bash training/planner_sft/run_matrix.sh                 # 全矩阵

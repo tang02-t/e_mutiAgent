@@ -1,385 +1,388 @@
-# 变压器多智能体故障分析系统 优化计划清单
+# 证据可信的变压器故障诊断多智能体系统 优化计划清单（v2）
 
-> 制定日期：2026-09-14
-> 依据：叶金涛论文（工具调用损失加权微调）、梁亨源论文（Agentic RAG：多模态知识库、故障图谱、查询分解、反思）以及本项目现状核对结果。
-> 使用方式：每项任务前的 `[ ]` 用于勾选进度；"验收标准"未满足不进入下一阶段。
+> 制定日期：2026-09-15（v2 重写；v1 为 2026-09-14「复现两篇论文并组合」版本，已完成项归档于附录 D）
+> 主叙事：**证据可信的诊断智能体**——不确定性驱动的主动规划（主线一）、声明级证据约束验证（主线二）、以验证信号为偏好的 Planner 优化（主线三）。
+> 使用方式：每项任务前的 `[ ]` 用于勾选进度；「验收标准」未满足不进入下一阶段。任务编号 `A-1`、`B-2` 等在论文、commit message、docs 报告中统一引用。
 
 ---
 
-## 0. 总览
+## 0. 决策记录与总览
 
-| 阶段 | 名称 | 目标 | 前置依赖 | 核心产出 | 预估工时 | 是否需要 GPU |
+### 0.1 已拍板的四项决策（2026-09-15）
+
+| 编号 | 决策 | 对计划的影响 |
+|---|---|---|
+| D-1 | 主叙事由「复现叶金涛 + 梁亨源两篇论文并组合」改为「证据可信的诊断智能体」，三章分别对应主动规划、声明验证、偏好优化 | 知识库 / 图谱 / 反思 / 两路检索降级为工程基座，不再作为论文贡献；五级模式按三条主线重定义 |
+| D-2 | 主线三采用 DPO（偏好对来自 Validator 判定 + 真实工具执行结果），不做 GRPO | 不需要在线 rollout 环境；偏好对离线构造；训练可全部在百炼平台完成 |
+| D-3 | 训练与部署仍用百炼平台 | 优先走百炼内置「模型调优」（SFT + DPO）→ 直接部署；魔搭 ms-swift + OSS + 自定义模型导入降为备选路线；基座由 Qwen3-VL-8B 改为纯文本 `qwen3-8b`（Planner 无视觉输入） |
+| D-4 | 不复现林金山三智能体流程作为对照基线 | 相关工作中定性对比即可；对照组改为本系统内部的能力开关（五级模式）与通用方法基线（LLM 自由追问、固定顺序问询、现有 Validator） |
+
+### 0.2 论文章节 ↔ 主线 ↔ 阶段映射
+
+| 论文章节 | 研究问题 | 主线 | 计划阶段 | 核心对照 |
+|---|---|---|---|---|
+| 第 3 章 | 后验不确定时，下一步该问什么 / 调什么工具 | 主线一：不确定性驱动的主动诊断规划 | B | LLM 自由追问 / 固定顺序 / 随机 vs 贝叶斯 EIG 贪心 |
+| 第 4 章 | 诊断结论中的每条声明是否有证据支撑、是否违反工程约束 | 主线二：声明级证据约束验证 | C | 现有整体评分 Validator vs 声明级核查 vs 核查 + 补证重规划 |
+| 第 5 章 | 用验证信号优化 Planner，是否比 SFT 更能减少无依据结论与无效调用 | 主线三：偏好优化 Planner | D | M0 基座 / M1 SFT / M4 SFT+DPO，以及偏好来源消融 |
+| 第 6 章 | 三项能力各贡献多少 | 系统级增量评测 | E | 五级模式（重定义） |
+
+### 0.3 阶段总览
+
+| 阶段 | 名称 | 目标 | 前置 | 核心产出 | 预估工时 | 资源 |
 |---|---|---|---|---|---:|---|
-| P0 | 现有系统修复与基线冻结 | 消除会污染实验的缺陷，冻结可比较的基线 | 无 | 修复后的代码、基线数字 | 3-4 天 | 否 |
-| P1 | 知识库升级 | 多模态处理、动态分块、多层索引、两路检索、重排序 | P0 | 新知识库、Recall@k 消融表 | 8-10 天 | 否（调用 API） |
-| P2 | 故障关系链路图谱 | 新增 `kg_search` 工具，支持多跳故障推理 | P1 中的 D1 | 图谱、`kg_search`、对比评测 | 6-8 天 | 否 |
-| P3 | 反思模块 | 检索结果质量评分 + 上下文补召回 | P1 | 反思模块、人工一致性报告 | 3-4 天 | 否 |
-| P4 | 规划模块数据构建 | 简单查询集、查询分解集、工具调用集 | P1、P2 | D6/D7/D8 三套数据 | 6-8 天 | 否 |
-| P5 | 规划模块微调与部署 | 训练两个 LoRA 适配器并部署 | P4 | 微调模型、离线评测报告 | 5-7 天 | 是 |
-| P6 | 系统级评测与原型 | 五级模式对比、端到端评测、消融 | P1-P5 | 端到端结果、前端多模式 | 4-5 天 | 否 |
-| P7 | 成果固化 | 文档、复现脚本、数据卡片 | P6 | 可复现的实验包 | 2-3 天 | 否 |
+| A | 基础设施收口与基线 | 关闭 v1 遗留、跑出基线数字、封存数据 | 无 | `docs/baseline.md`、改写后的训练集、人工标注 | 2 周（与 B 并行） | 少量 LLM 调用 |
+| B | 主线一：主动诊断规划 | 校准的贝叶斯归因 + EIG 推荐 + Planner 接入 + 部分观测模拟评测 | A-1 | `eig.py`、模拟器、`docs/active_planning_eval.md` | 4-5 周 | 纯 CPU + 少量 LLM |
+| C | 主线二：声明级验证 | claim-evidence 输出、约束核查器、故障注入评测集 D11 | A-1 | `claim_checker.py`、D11、`docs/validator_eval.md` | 4 周 | 少量 LLM 调用 |
+| D | 主线三：DPO Planner | 百炼 SFT 基线 → 偏好对构造 → 百炼 DPO → 部署 | A-2、C-3 | D13 偏好对、部署模型 ID、`docs/planner_dpo_eval.md` | 5-6 周 | 百炼训练 + 调用 |
+| E | 系统级增量评测 | 五级模式重定义、正式跑数、LLM 裁判 + 人工复核 | B、C、D | `docs/system_modes_eval.md` | 3 周 | LLM 调用 |
+| F | 成果固化 | 报告、复现脚本、tag、论文实验章节初稿 | E | `v2-final` tag、六份报告 | 2-3 周 | 否 |
 
-合计约 37-49 个工作日。P1、P2 可部分并行；P3 可与 P2 并行。
+合计约 20-23 周。B 与 C 可并行（不同文件、不同数据）；D 的 D-1（百炼 SFT 基线）可在 A 结束后立即启动，不必等 B、C。
 
-### 进度状态（更新于 2026-09-15，第二次）
+### 0.4 时间线（截至 2027-07 毕业）
 
-接口状态：`qwen3.7-flash` 专属网关可用（冒烟 3/3 通过）；按用户要求「非必要不调用模型」，以下阻塞项均为需批量调用 LLM 或魔搭 GPU 环境的事项。
+| 时间窗 | 里程碑 |
+|---|---|
+| 2026-09-15 ~ 09-26 | A 收口；D-1 百炼 SFT 基线提交训练 |
+| 2026-09-22 ~ 10-30 | B 主线一全部数字 |
+| 2026-10-13 ~ 11-13 | C 主线二全部数字 |
+| 2026-11-09 ~ 12-18 | D 主线三：偏好对、DPO 训练、部署、离线评测 |
+| 2026-12-14 ~ 2027-01-15 | E 五级模式正式评测 |
+| 2027-01-18 ~ 02-05 | F 固化，`v2-final` tag，实验章节初稿 |
+| 2027-02 ~ 04 | 论文写作、补实验 |
+| 2027-05 | 预答辩 |
 
-| 阶段 | 状态 | 已完成（离线） | 阻塞项（需批量 LLM / GPU 环境） |
+### 0.5 五级系统模式（重定义，替换 [system_modes.py](/Users/ts/Desktop/thu/multi_Agent/src/graph/system_modes.py) 现有定义）
+
+每级只在上一级基础上打开一项能力。知识库两路检索、`kg_search`、词法反思属于工程基座，从模式 2 起全部开启且不再单独归因。
+
+| 模式 | 名称 | 新增能力 | 对应主线 |
 |---|---|---|---|
-| P0 | 代码修复完成，基线未跑 | 缺陷修复、严格参数校验、`exec/business_success` 分离、轨迹日志、`assert_not_synthetic` 数据守卫、数据清单与角色标注、`baseline-v0` tag、87 项回归测试 | P0-3 三组基线数字（`docs/baseline.md`） |
-| P1 | 离线部分完成 | MinerU → units → DP 分块（5404 块）→ 子块 / 锚点两路 + RRF、`local_kb` `mode` 参数（naive / two_way）、retrieval_seed 1209 条、α 网格与切分方式对照、消融表 `docs/kb_ablation_test.md` | 图片描述 / LLM 摘要、评测集 LLM 改写与新手过滤、稠密向量 + Qwen3-Reranker、Milvus 四层集合 |
-| P2 | 离线部分完成 | 8 实体 / 7 关系 schema、规则抽取（90 节点 / 190 边）、`kg_search` 工具与三智能体接入、P2-5 忠实度评测（304 条，HitAll 100%）、56 条精度抽检 AI 预标注（83%） | 阶段 2 LLM 抽取（1677 候选句）、LightRAG 对比与 LLM 裁判胜率 |
-| P3 | 离线部分完成 | `ReflectionModule`、`LexicalScorer` 基线、`LLMScorer` 占位、工作流 / 前端 / 评测 `--reflection` 开关、D9 298 对、有 / 无反思对比 `docs/reflection_eval.md`（词法评分器版本） | LLMScorer 评分与人工 Kappa（需 D9 人工分） |
-| P4 | 离线部分完成 | 3482 条单轮种子 + 多轮 / 错误恢复轨迹（`multi_turn_seeds.jsonl`，工具返回真实执行），分组切分 2311/439/732，泄漏 0；导出 ms-swift 单轮 + 多轮 / LLaMA-Factory / JSON 文本三格式与数据卡片；错误恢复的刻意错误首调不作训练目标 | P4-2 口语化「模拟用户」改写、复合问题连贯性判断、D7 查询分解集 |
-| P5 | 离线部分完成 | 路线 A 定案与百炼约束核对 `docs/planner_training.md`；`training/planner_sft/`：`train.sh`（LoRA rank 8 / alpha 32 / lr 5e-5 / epoch≤5 早停）、`plugin_loss_scale.py`（结构 2 / 领域 3 加权 + 归一化加权 CE）、`domain_terms.json`（609 项）、`predict.py`、`run_matrix.sh`（M0–M3 × 2 seeds）；`scripts/eval/eval_planner_offline.py`（7 指标 × 8 类别，自检通过）；`planner_mode` 开关与 `provider: dashscope` | 魔搭训练（50 条小闭环 + 正式矩阵）、OSS 上传、百炼导入部署、`docs/planner_eval.md` 正式数字、Q0/Q1 |
-| P6 | 脚本与前端完成 | D10 评测集 196 条 + 数据卡片；`system_modes.py` 五级模式（allowed_tools 守卫）；`eval_system_modes.py`（任务成功率四要素、Token 成本，OraclePlanner 校验 task_success 88.8%）；前端五级模式下拉、轨迹 / 图谱 / 反思展示、5 个演示案例 | 五级模式正式评测（需 Planner 真实调用）、LLM 裁判 + 10% 人工复核 |
-| P7 | 部分完成 | 数据卡片齐全（kb / kg / planner / d10）、六份报告中的知识库消融、图谱评测、反思、端到端（框架）已有文件 | 基线与规划评测正式数字、README 一键复现、`v1-final` tag（待训练完成） |
+| mode1 | `llm_only` | 无任何工具，LLM 直接回答 | 参照 |
+| mode2 | `tool_base` | 全部五个工具 + 两路检索 + 图谱 + 词法反思；归因引擎用专家默认参数、不输出不确定性；Validator 为现有整体评分版；Planner 为通用基座 | 工程基座 |
+| mode3 | `active_plan` | 归因引擎切换为校准参数并输出 EIG 推荐；Planner 提示词启用主动问询 / 补证策略 | 主线一 |
+| mode4 | `claim_verify` | Generator 输出 claim-evidence 结构；Validator 切换为声明级约束核查 + 补证重规划路由 | 主线二 |
+| mode5 | `dpo_planner` | Planner 切换为百炼部署的 DPO 模型 | 主线三 |
+
+`resolve_mode` 的显式覆盖参数保留（`--planner-mode`、`--validator-mode`、`--attribution-mode`），用于交叉对照（例如 mode4 + baseline planner）。
 
 ---
 
-## P0 现有系统修复与基线冻结
+## A 基础设施收口与基线
 
-目标：先把已知会干扰实验的缺陷修掉，再冻结一个"改进前"的基线，后面所有改进都与它比较。
+目标：关闭 v1 遗留的低成本事项，产出所有后续对照都要用的基线数字，把评测集彻底封存。
 
-### P0-1 代码缺陷修复
+### A-1 基线数字（原 P0-3）
 
-- [x] `timeseries_anomaly` 分支改为使用模型传入的 `signal` 参数，删除固定示例序列；参数缺失时返回明确错误而不是默认数据。
-- [x] 取消"空计划自动执行固定检索与异常检测"的逻辑；空计划就是"不调用工具"，需原样记录。
-- [x] 参数校验从"静默修正非法枚举值"改为"记录错误并返回校验失败"，保留原始非法值用于评测。
-- [x] 工具执行结果区分"调用成功"与"业务成功"，工具返回业务错误时 `success=False` 并附错误码。
-- [x] `FAULT_ATTR_PARAMS` 在启动脚本中显式设置，确保诊断引擎加载 5143 条 DGA 学习到的参数；同时保留一个"不加载"的开关用于对比。
-- [x] 前端时序异常检测改为读取真实数据源或明确标注"模拟"，不再混用。
-- [x] 所有工具调用写入统一的轨迹日志（任务 id、轮次、工具名、参数、返回、耗时、成功标志），作为后续造数和评测的原始记录。
+- [ ] 用 `qwen3.7-flash`（未微调）在 [retrieval_seed.jsonl](/Users/ts/Desktop/thu/multi_Agent/data/kb/eval/retrieval_seed.jsonl) test 切分上记录 Recall@1/3/5（two_way 与 naive 两档）。
+- [ ] 用未微调 Planner 在 D8 test 切分抽 100 条（分层覆盖 8 类）跑 [eval_planner_offline.py](/Users/ts/Desktop/thu/multi_Agent/scripts/eval/eval_planner_offline.py) 7 项指标。
+- [ ] 用 mode2（工程基座）在 D10 抽 50 条跑 [eval_system_modes.py](/Users/ts/Desktop/thu/multi_Agent/scripts/eval/eval_system_modes.py)，记录任务成功率、平均工具调用次数、平均轮次、Token 成本。
+- [ ] 写入 `docs/baseline.md`，与 `baseline-v0` tag 对应。
 
-验收标准：用 20 条手工任务跑一遍，轨迹日志中不出现默认信号、被静默修正的参数或伪成功记录。
+验收标准：三组数字齐全，任何人按 README 可复现。
 
-### P0-2 现有数据盘点与整理
+### A-2 训练问法口语化改写（原 P4-2 保留项）
 
-- [x] 输出数据清单文档：DGA 三份原始文件、合并后 5143 条、ETT 四份、182 篇文献解析目录、厂商手册、200 条合成案例、120 条评测样本，逐项记录路径、条数、来源、许可与已知问题。 → `docs/data_inventory.md`
-- [x] 标注每类数据的角色：训练监督 / 执行环境 / 评测标签 / 演示数据，避免后续混用。 → `docs/data_inventory.md` 角色列
-- [x] 对合成数据（3000 条 DGA、20 台设备时序、200 案例）加"synthetic" 标记，禁止进入任何评测集。
+- [ ] 执行 [rewrite_queries.py](/Users/ts/Desktop/thu/multi_Agent/scripts/planner_data/rewrite_queries.py) 去掉 `--dry-run`（估算约 1.2 元），产出 `task_seeds_rewritten.jsonl`。
+- [ ] 人工抽 50 条确认数字 / 实体守卫生效（气体浓度、设备号、数据集名未被改写）。
+- [ ] `export_sft.py --seeds task_seeds_rewritten.jsonl` 重导出；同时新增 `--format bailian` 导出百炼 ChatML（messages 多轮，含 tool 角色消息按百炼模板处理）。
+- [ ] test 切分封存：写入 `data/planner/sft/SEALED.md` 记录 sha256，训练结束前不读取。
 
-验收标准：数据清单文档完成，每条数据都有明确角色。
+验收标准：改写后训练 / 验证集重导出完成，泄漏检查仍为 0，百炼格式文件通过控制台数据校验。
 
-### P0-3 基线冻结
+### A-3 人工标注（与 B、C 并行，不阻塞代码）
 
-- [ ] 用当前 Milvus 知识库和现有分块，记录 Recall@1/3/5（评测集见 P1-3，可先用 200 条临时集）。
-- [ ] 用未微调的 Planner 在 50 条手工任务上记录工具选择正确率、参数正确率、格式合法率。
-- [ ] 记录当前系统在 30 条端到端任务上的成功率与平均工具调用次数。
-- [x] 把代码打 tag `baseline-v0`，把基线数字写入 `docs/baseline.md`。 （tag 已打；基线数字待 LLM）
+- [ ] D9 反思校验集 298 对填 `human_score`（两人标注，争议第三人裁定），计算 LexicalScorer 与人工的加权 Kappa。
+- [ ] 图谱 [precision_sample.jsonl](/Users/ts/Desktop/thu/multi_Agent/data/kg/eval/precision_sample.jsonl) 56 条精度抽检人工确认（当前 AI 预标注 83%）。
+- [ ] D10 196 条 `reference_points` 人工复核，`status` 由 `auto` 改为 `reviewed`。
+- [x] 2026-09-15 核实数据来源与许可：R1 非 Kaggle（字段不符，改写为「来源未核实的 IEC 60599 标签 DGA 汇编」）；R3 589 条为公开基准并已知含重复/冲突；ETT 许可统一为 CC BY-ND 4.0（原仓库为准，脚注说明 HF 镜像差异）；R8 公开站点检索未匹配。已同步 `docs/data_inventory.md`、`docs/data_and_evaluation.md`。
+- [ ] R8 `power_transformer_fault.csv` 若在 F 阶段前仍无法核实来源，从仓库移除并登记附录 B。
+- [ ] B-1 校准实验增加「R3 589 公开基准子集」单列结果；视时间补 IEC TC 10 案例库（IEEE DataPort, DOI 10.21227/h8g0-8z59）外部检验。
 
-验收标准：基线数字与 tag 可对应，任何人能复现。
+验收标准：四项标注 / 核实结果写入对应数据卡片。
 
----
+### A-4 安全与仓库
 
-## P1 知识库升级
+- [ ] 阿里云 AccessKey `LTAI5t7f…` 到控制台撤销重建；GitHub 推送 token 撤销重建。
+- [x] `.gitignore` 增加 `config.yaml`、`*.key`、`output/`、`data/planner/dpo/candidates/`。（2026-09-15）
+- [ ] 87 项回归测试保持通过；新增测试文件命名 `tests/test_<阶段>_<模块>.py`。
 
-目标：把 182 篇文献从"按标题切 Markdown"升级为论文第 2 章的多模态、多层索引知识库。
+### A-5 砍掉项落地
 
-### P1-1 内容单元清洗（数据 D1）
-
-- [x] 改用 `content_list_v2.json` 作为入库源，保留单元类型、页码、bbox、图片标题等元信息。
-- [x] 过滤页眉、页脚、页码、目录、参考文献等噪声单元（约 5300 个）。
-- [ ] 文档级去重：先按标题归一化匹配，再对正文前 2000 字做向量相似度（阈值 0.95）判重，保留解析质量最好的版本。
-- [x] 输出统一内容单元格式：`doc_id, unit_id, type, page, section_path, text, html, image_path, caption, prev_unit_id, next_unit_id`。
-- [x] 统计清洗前后文档数、单元数、各模态数量，写入数据卡片。
-
-验收标准：去重后文档数约 150 篇；随机抽 30 个单元人工核对类型与章节归属正确率不低于 95%。
-
-### P1-2 多模态单元转文本
-
-- [ ] 图片分类：定义类别（油色谱曲线、结构剖面图、接线原理图、试验波形、现场照片、流程图、表格截图、无信息图），用 Qwen3-VL 先分类，再按类别使用专用提示词生成描述。
-- [ ] 图片描述输入包含：图片本身、`image_caption`、所在章节标题、前后各两个文本单元；输出限制 100-300 字。
-- [ ] 图片描述质量复核：第二次调用模型判断"描述是否与图片一致且不含臆造"，不合格重生成一次，仍不合格标记为低质量。
-- [ ] 表格改写：HTML 表格 + 推断的表格标题（取前一文本单元）+ 所在章节标题 → 自然语言段落；保留原 HTML 供追溯。
-- [ ] 公式合并：将相邻公式与以"其中/式中/式(x)"开头的解释段落合并为一个单元。
-- [ ] 所有转写单元记录 `source_unit_ids`，保证可回溯到原始图片或表格。
-
-验收标准：抽样 50 张图片、50 张表格，人工判定描述可用率不低于 85%。
-
-### P1-3 检索评测集构建（数据 D3）
-
-- [ ] 从清洗后的文本块中随机抽取 2500 个块，每块生成 1 条自然语言查询，记录金标块 uuid。
-- [ ] 向量去重：查询间相似度大于 0.95 的只保留一条。
-- [ ] "新手用户"过滤：用模型判断该查询是否是不了解原文的用户会提出的问题，剔除过于依赖原文措辞的查询。
-- [ ] 目标规模 1500-2000 组，按文档分层抽样，保证覆盖图片、表格、公式来源块各不少于 150 组。
-- [ ] 抽 100 组人工复核查询与金标块对应正确率。
-
-验收标准：人工复核正确率不低于 90%；评测集封存，只读。
-
-### P1-4 动态规划分块
-
-- [x] 实现论文算法 2.1：代价函数 = α × 相邻单元语义相似度惩罚 + (1-α) × 长度偏差惩罚，目标长度 400-600 token，最长 1024 token。
-- [x] α 取 0.3、0.5、0.7 三档做网格实验。 → `docs/kb_ablation_test.md`
-- [x] 与当前"按标题切分"、固定窗口切分（512 / 128 重叠）做对比，指标 Recall@1/3/5。 → `docs/kb_ablation_test.md`
-- [x] 分块结果保留 `section_path`，供多层索引使用。
-
-验收标准：动态规划分块在 D3 上的 Recall@3 不低于两种对照方法。
-
-### P1-5 多层索引与摘要生成（数据 D2）
-
-- [x] 章节层：每章记录标题路径、章节摘要、包含的文本块列表。 （章节摘要为规则生成，LLM 摘要待接口）
-- [x] 文本块层：分块结果本体。
-- [ ] 摘要层：每个文本块生成 50-100 字摘要，单独向量化。
-- [x] 子文本块层：文本块按句切分为 100-150 token 子块，父指针指向文本块。
-- [ ] 为反思模块预生成"章节内段落摘要列表"（每章内每个文本块一句话）。
-- [ ] Milvus 集合设计：扩展现有 parent/child 结构为四层，字段包括 `layer, doc_id, section_path, parent_id, text, summary, embedding`。
-
-验收标准：四层集合入库完成，任意子块可在一次查询内回溯到章节摘要。
-
-### P1-6 两路检索与重排序
-
-- [x] 路一：子文本块向量召回 top-20，映射回父文本块。 （离线用 BM25 子块通道代替向量）
-- [x] 路二：摘要层向量召回 top-20，映射回文本块。 （离线用标题/摘要锚点通道代替向量）
-- [ ] 合并去重后用 Qwen3-Reranker-0.6B 重排，取 top-k（k 默认 5）。
-- [x] 增加 BM25 关键词路作为可选第三路（变压器领域有大量型号、气体符号等精确匹配需求）。
-- [x] `rag_search` 工具接口保持不变，新增 `mode` 参数用于消融（naive / two_way / two_way_rerank）。
-
-验收标准：two_way_rerank 在 D3 上的 Recall@3 相对基线提升可量化，写入消融表。
-
-### P1-7 知识库消融实验
-
-- [ ] 按论文表 2.7 设计 8 组：模态处理（有/无）× 分块方式（标题/动态规划）× 检索方式（单路/两路+重排），固定其他条件。
-- [x] 每组记录 Recall@1/3/5、平均延迟、索引体积。 → `docs/kb_ablation_test.md`
-- [x] 输出消融表和结论，写入 `docs/kb_ablation.md`。 → 实际文件 `docs/kb_ablation_test.md`（离线通道版本）
-
-验收标准：8 组结果齐全，最优配置确定并设为默认。
+- [x] `run_matrix.sh` 顶部标注 v1 备选路线（保留脚本）。（2026-09-15）
+- [ ] `system_modes.py` 旧五级定义由 E-1 替换。
+- [x] 仓库清理（2026-09-15）：删除无引用的 Milvus 路线（`rag_engine.py`、`milvus_setup.py`、`utils/embedding.py`）、`remove_references.py`、`validate_dga_data.py`、两份早期 PPT 脚本、`data/rag.txt`、旧合成端到端报告；`timeseries.py` 收敛为唯一 3σ 实现，`app.py` / 两份评测脚本改为导入；`tool_registry.py` 移除已弃用的宽松 `validate_arguments`；`config.example.yaml` 移除 `knowledge_base` / `embedding` / `retriever` LLM / 未被读取的 `tools` 段；前端下线 Milvus 选项；`PROJECT_OVERVIEW.md` 按当前架构重写。
+- [x] `docs/planner_training.md` 顶部加「v1 路线，见 v2 计划 D 阶段」提示，不删除。（2026-09-15）
+- [ ] 在本文件附录 B 登记全部砍掉 / 降级项及理由。
 
 ---
 
-## P2 故障关系链路图谱
+## B 主线一：不确定性驱动的主动诊断规划
 
-目标：新增 `kg_search` 工具，把文献中"指标 → 故障 → 原因 → 试验 → 措施"的链路结构化，与 DGA 诊断工具联动。
+目标：让归因引擎不只给出后验，还给出「下一个最值得观测的征兆」；Planner 据此决定追问用户、调用工具补证，还是直接给结论。核心指标是同等准确率下更少的问询与调用。
 
-### P2-1 约束模式定义
+涉及文件：[fault_attribution.py](/Users/ts/Desktop/thu/multi_Agent/src/tools/fault_attribution.py)（`FaultBayesianNetwork`）、[learn_cpt.py](/Users/ts/Desktop/thu/multi_Agent/scripts/learn_cpt.py)、[learned_params.json](/Users/ts/Desktop/thu/multi_Agent/data/real/dga/learned_params.json)、[planner.py](/Users/ts/Desktop/thu/multi_Agent/src/agents/planner.py)、[templates/planner/system.txt](/Users/ts/Desktop/thu/multi_Agent/templates/planner/system.txt)、[state.py](/Users/ts/Desktop/thu/multi_Agent/src/graph/state.py)。
 
-- [x] 实体类型：EQUIPMENT、COMPONENT、INDICATOR、FAULT、SYMPTOM、TEST、MEASURE、STANDARD。
-- [x] 关系类型：CAUSE、INFLUENCE、INCLUDE、MONITOR、INDICATE、DETECTED_BY、HANDLED_BY、SYNONYMOUS_WITH、DEFINED_IN。
-- [ ] 为每类实体和关系写定义、正例、反例，形成抽取提示词的模式说明。
-- [x] 规定 CAUSE 只在原文有明确因果表述（导致、引起、造成、由于）时抽取，避免论文中"逻辑合理性偏低"的问题。
+### B-1 归因引擎补全与校准
 
-验收标准：模式文档完成，两人独立按模式标注 20 段文本，实体一致率不低于 80%。
+- [ ] `_compute_posterior` 支持负观测：`evidence[s] == False` 时乘 `1 - p_true`（当前跳过 False，导致「已排除的征兆」不进入推理）。
+- [ ] 新增 `posterior_only(evidence)` 公开方法，返回归一化后验、熵 `H(F|E)`、Top-1 与 Top-2 概率差。
+- [ ] 5 折交叉验证学习 CPT / 先验（扩展 `learn_cpt.py --kfold 5`），报告每折 Top-1 / Top-3 准确率、对数似然。
+- [ ] 置信度校准：在验证折上做温度缩放（对后验取幂后归一化），网格搜索 T，报告校准前后 ECE（15 桶）、Brier、可靠性图；校准参数写入 `learned_params.json` 的 `calibration` 字段。
+- [ ] 规则 / 贝叶斯融合权重 `_fuse_results` 改为按故障类别在验证折上学习（当前为固定权重），与固定权重对照。
+- [ ] 输出 `docs/attribution_calibration.md`：5143 条数据上的准确率、ECE、可靠性图（`docs/figures/fig_b1_reliability.png`）。
 
-### P2-2 文本块筛选与抽取（数据 D4）
+验收标准：校准后 ECE 相对校准前下降可量化；Top-1 准确率不下降超过 1 个点；单元测试覆盖负观测与温度缩放。
 
-- [ ] 用 LLM 对清洗后的文本块做二分类：是否包含故障分析相关知识；只对相关块抽取。
-- [ ] 分两步抽取：先抽实体（含类型、别名、所在块 uuid），再在实体列表约束下抽关系（含关系类型、置信度、原文片段）。
-- [x] 每条关系必须带 `source_unit_id` 与原文片段，不允许无出处关系。
-- [ ] 输出三元组 JSONL，目标节点 1000 以上、边 1500 以上。
+### B-2 期望信息增益（EIG）模块
 
-验收标准：随机抽 100 条关系人工核对，正确率不低于 85%。
+- [ ] 新建 `src/tools/eig.py`：对每个未观测征兆 `s`，计算 `EIG(s) = H(F|E) - Σ_v P(s=v|E)·H(F|E, s=v)`，其中 `P(s=v|E) = Σ_F P(s=v|F)·P(F|E)`。
+- [ ] 征兆获取成本表 `data/real/dga/symptom_cost.json`：已由 DGA 数值推出的征兆成本 0；需追问用户的现场征兆（声响、油位、温度）成本 1；需额外试验（局放、绕组变形）成本 3。`VoI(s) = EIG(s) - λ·cost(s)`，λ 为可配置参数（默认 0.05）。
+- [ ] 停止准则：`H(F|E) < τ_H` 或 `max VoI < ε` 或已达最大问询轮数 `K`（默认 τ_H=0.8 bit、ε=0.02、K=3），三者可配置。
+- [ ] `fault_attribution` 工具返回新增 `uncertainty` 块：`{entropy, top1_top2_gap, calibrated: bool, recommendations: [{symptom, eig, cost, voi, how_to_obtain: ask_user | call_tool:<tool_name>}], suggested_action: ask | call_tool | conclude}`。`how_to_obtain` 由征兆 → 工具映射表给出（例如「油温持续上升」→ `ett_forecast`，「负载异常波动」→ `timeseries_anomaly`）。
+- [ ] 与 [kg_search.py](/Users/ts/Desktop/thu/multi_Agent/src/tools/kg_search.py) 联动：推荐征兆附带图谱中 `INDICATE` / `DETECTED_BY` 边的原文片段，供 Planner 生成可解释的追问话术。
+- [ ] 单元测试：EIG 非负、观测全部征兆后 EIG 为 0、成本单调性。
 
-### P2-3 实体消歧与合并
+验收标准：对 20 条手工部分观测样例，推荐征兆与领域专家直觉一致率不低于 80%（人工判定）。
 
-- [x] 同名合并：归一化后字面相同的实体直接合并。
-- [ ] 模糊合并：名称向量相似度大于 0.9 的候选对，交给 LLM 判断是否同一实体（如"乙炔"与"C2H2"、"匝间短路"与"绕组匝间短路"）。
-- [ ] 合并后保留别名列表，`SYNONYMOUS_WITH` 边转为别名属性。
-- [ ] 输出合并前后节点数、边数统计。
+### B-3 部分观测诊断模拟器（数据 D12）
 
-验收标准：抽 50 组合并结果人工判定误合并率低于 5%。
+- [ ] 新建 `scripts/sim/partial_obs_sim.py`：从 5143 条真实 DGA 记录抽样，随机遮蔽 1-3 种气体或全部现场征兆，构造「初始观测 + 隐藏观测 + 真实标签」三元组。
+- [ ] 模拟器接口：`reveal(symptom) -> bool | None`（None 表示该记录无此字段）；记录每次揭示的成本。
+- [ ] 按遮蔽比例分三档（轻 / 中 / 重）各 500 条，按故障类别分层；只用真实 DGA 派生，合成数据不入。
+- [ ] 数据卡片 `data/eval/d12/DATA_CARD.md`。
 
-### P2-4 图存储与 `kg_search` 工具
+验收标准：1500 条模拟样例可复现（固定 seed），标签分布与原始数据一致。
 
-- [x] 存储选型：NetworkX + 序列化文件（轻量、够用）或 Neo4j（需要可视化时）；先用 NetworkX。
-- [x] 检索流程：查询 → 抽取查询中的实体 → 向量匹配图中节点（top-3）→ 从每个头实体做 BFS（深度 2-3，按关系置信度剪枝）→ 返回链路 + 每条边的原文片段。
-- [x] 工具参数：`query, head_entities(optional), max_depth(1-3), relation_types(optional), top_k`。
-- [x] 注册到 `tool_registry`，补齐工具描述与参数 schema。
-- [x] 与 `fault_attribution` 联动：诊断结果中的故障类型自动作为 `kg_search` 头实体候选。
+### B-4 Planner 接入主动策略
 
-验收标准：对"C2H2 升高的可能原因及处理"类 20 条问题，返回链路可解释且每条边可追溯原文。
+- [ ] `state.py` 增加 `pending_questions`、`asked_symptoms`、`user_answers` 字段；`workflow.py` 增加「追问 → 用户回答 → 重新归因」的有限循环（最多 K 轮），评测时用模拟器代替用户。
+- [ ] `templates/planner/system.txt` 新增 `active` 变体：说明 `uncertainty` 块含义、三种动作的选择规则、追问话术要求（一次只问一个征兆、给出为什么问）。
+- [ ] Planner 输出增加 `action: ask | call_tool | conclude` 与 `rationale`；`_validate_steps` 校验 `ask` 时必须携带 `symptom` 字段且属于推荐列表。
+- [ ] 配置开关 `attribution_mode: expert | calibrated` 与 `planner_strategy: free | active`。
+- [ ] 前端 [app.py](/Users/ts/Desktop/thu/multi_Agent/app.py)：展示后验分布、熵、推荐征兆与追问话术；演示案例新增 2 个「信息不足 → 追问 → 确诊」流程。
 
-### P2-5 图谱评测集与评测（数据 D5）
+验收标准：mode3 在 D12 抽 30 条上能完整走通追问循环，轨迹日志记录每轮 EIG 与动作。
 
-- [ ] 随机抽取实体对，LLM 判断能否在图中串联成合理链路；可串联的生成查询，不可串联的作为负样本（约 20%）。
-- [ ] 目标 300-400 条，每条经第二次模型复核合理性。
-- [ ] 对比对象：朴素文本块检索、LightRAG（或 GraphRAG）、本图谱。
-- [ ] 指标：信息丰富性、相关性、逻辑合理性的两两胜率（LLM 裁判）；抽 10% 人工复核裁判一致率。
+### B-5 对照实验与评测
 
-验收标准：评测报告完成，包含人工一致率；负样本上的"拒答/无关联"正确率单独报告。
+- [ ] 新建 `scripts/eval/eval_active_planning.py`，在 D12 上运行以下策略：`random`（随机问）、`fixed`（按 IEC 60599 常规顺序问）、`llm_free`（当前 Planner 自由追问）、`eig_greedy`（本文）、`eig_cost`（EIG 减成本）；可选 `llm_sampled_eig`（让 LLM 采样估计后验再算 EIG，对标 BED-LLM 思路）。
+- [ ] 指标：停止时 Top-1 / Top-3 准确率、平均问询次数、平均获取成本、追问命中率（问的是否在最高 VoI 前 2）、每轮后验熵曲线、校准 ECE。
+- [ ] 消融：有 / 无校准（B-1）、有 / 无成本项、不同 τ_H。
+- [ ] LLM 相关策略每条固定 seed 跑 2 次取均值；EIG 策略确定性。
+- [ ] 结果写入 `docs/active_planning_eval.md`，图表：准确率-问询次数曲线（`fig_b5_acc_vs_queries.png`）、熵下降曲线。
 
----
+验收标准：`eig_greedy` 在同等 Top-1 下平均问询次数低于 `llm_free` 与 `fixed`，差异有配对检验 p 值；结论写入报告。
 
-## P3 反思模块
+### B-6 章节素材
 
-目标：在 Retriever 返回后增加质量评分和上下文补召回。
-
-### P3-1 质量评分器
-
-- [x] 采用论文表 2.2 的 0-3 分标准：0 无关、1 弱相关、2 部分回答、3 直接回答。
-- [x] 提示词包含查询、文本块、文本块所在章节标题。
-- [x] 评分低于 2 的块丢弃；若全部丢弃则触发改写查询重检索（最多 1 次）。
-
-### P3-2 上下文补召回
-
-- [x] 对评分不低于 2 的块，读取其章节内段落摘要列表，LLM 判断是否需要补充前后相邻块。
-- [x] 补召回后重新评分，最多迭代 2 轮。
-- [x] 记录每次反思的输入、决策、耗时，供成本分析。
-
-### P3-3 评分校验集（数据 D9）
-
-- [ ] 人工对 300 对（查询，文本块）打 0-3 分，两人标注，争议由第三人裁定。
-- [ ] 计算 LLM 评分与人工评分的一致率、加权 Kappa。
-- [x] 在 D3 上对比"有反思/无反思"的 Recall@k 和回答忠实度。 → `docs/reflection_eval.md`（LexicalScorer 版本）
-
-验收标准：加权 Kappa 不低于 0.6；反思带来的延迟增加有量化数字。
+- [ ] 整理算法伪代码（EIG 计算、停止准则、动作选择）与符号表。
+- [ ] 与 Active Task Disambiguation、BED-LLM、When Should AI Ask、InfoGatherer 的差异说明：本文用领域概率模型精确计算 EIG，而非 LLM 采样估计；引入工程获取成本。
 
 ---
 
-## P4 规划模块数据构建
+## C 主线二：声明级证据约束验证
 
-目标：为查询分解智能体和工具调用智能体各构建一套训练集，并保证评测集独立。
+目标：Validator 从「给草案打整体分」升级为「逐条核对声明与证据、判定违反哪类工程约束」，并驱动补证或重规划。
 
-### P4-1 简单查询集（数据 D6）
+涉及文件：[generator.py](/Users/ts/Desktop/thu/multi_Agent/src/agents/generator.py)、[validator.py](/Users/ts/Desktop/thu/multi_Agent/src/agents/validator.py)、[templates/generator/](/Users/ts/Desktop/thu/multi_Agent/templates/generator/)、[prompts.py](/Users/ts/Desktop/thu/multi_Agent/src/utils/prompts.py)、[workflow.py](/Users/ts/Desktop/thu/multi_Agent/src/graph/workflow.py)。
 
-- [x] 事实类：从文本块提炼，每块 1-2 条，答案可由该块回答，记录金标块。
-- [x] 推理类：从图谱实体对生成，需要多跳链路才能回答，记录金标链路。
-- [x] 数值工具类：从 DGA 记录生成"给定气体浓度→诊断"查询，从 ETT 生成"给定站点、时间、步长→预测"查询，从时序片段生成异常检测查询；记录金标工具与参数。
-- [x] 无需工具类：常识、闲聊、可由系统提示直接回答的问题。
-- [x] 信息不足类：缺少关键参数需追问的查询。
-- [x] 目标 3000-4000 条，五类比例约 35/15/30/10/10。
-- [x] 每条带 `seed_source`（块 uuid / 实体对 / DGA 记录 id / ETT 片段 id），用于后续分组切分。
+### C-1 声明与证据的输出规范
 
-验收标准：每类抽 50 条人工复核标注正确率不低于 90%。
+- [ ] 定义 `docs/claim_schema.md`：`claims: [{id, text, type: observation | inference | recommendation | safety, evidence: [{source: tool | kb | kg | user, ref, span}]}]`，`ref` 为工具调用 id / 文本块 uuid / 图谱边 id / 用户轮次号；`span` 为证据原文片段。
+- [ ] 约束类型定义：`DATA`（数值与工具输出不一致、单位错误、比值编码错误）、`EVIDENCE`（引用不存在、片段不含该内容、历史案例冒充当前检测）、`APPLICABILITY`（证据设备 / 数据集 / 时间窗与当前任务不匹配）、`SAFETY`（处置建议缺少前提条件、与检测结果矛盾）。每类给正例、反例各 3 条。
+- [ ] Generator 新增 `templates/generator/system_claims.txt`，要求先输出 JSON 声明列表再渲染自然语言答案；`_llm_generate` 增加 `output_mode: text | claims`。
+- [ ] 模板回退 `_template_generate` 同步产出声明（规则拼装，保证 LLM 不可用时链路不断）。
 
-### P4-2 查询分解训练集（数据 D7）
+验收标准：D10 抽 30 条，Generator 在 `claims` 模式下 JSON 合法率不低于 95%，每条 claim 至少一条 evidence 引用。
 
-- [ ] 从 D6 中选取共享实体或同一设备语境的 2-3 条简单查询，合并为复合问题。
-- [ ] LLM 判断合并后是否逻辑连贯，不连贯的丢弃。
-- [ ] "模拟用户"改写：口语化、省略主语、夹杂现场描述、混用术语与俗称（如"乙炔涨了""有响声""瓦斯动了"）。 → 脚本 `scripts/planner_data/rewrite_queries.py` 就位（数字/实体守卫、断点续跑；dry-run 估算 2750 条约 1.2 元），待执行
-- [ ] 加入术语规范化样本：俗称、缩写、符号（C2H2、总烃、TDCG）映射为标准术语。
-- [ ] 金标输出：规范化后的子查询列表，顺序与依赖关系。
-- [ ] 目标 2000-3000 组；单查询无需分解的样本占 20%。
-- [ ] 抽 100 组人工复核。
+### C-2 约束核查器
 
-验收标准：人工复核合格率不低于 90%。
+- [ ] 新建 `src/agents/claim_checker.py`，两层核查：
+- [ ] 确定性层（无 LLM）：数值一致性（声明中的气体浓度、概率、预测值、horizon 与 `state.tool_results` 逐项比对，容差可配）；引用存在性（`ref` 在本轮工具返回中可找到，`span` 为其子串）；适用性（声明中的设备号、数据集名、时间范围与工具入参一致）；安全前提（推荐类声明若涉及停电 / 吊罩 / 更换，必须存在对应 `observation` 声明支撑）。
+- [ ] 语义层（LLM）：对通过确定性层的 `inference` 声明做 NLI 判定 `entail | contradict | unsupported`，提示词只给该声明与其引用的证据片段，不给全文。
+- [ ] 输出 `ValidationResult` v2：新增 `claim_verdicts: [{claim_id, verdict, violated_constraints: [...], detail}]`、`unsupported_ratio`、`violation_counts`；保留旧字段兼容前端。
+- [ ] 判定规则：任一 `SAFETY` 或 `DATA` 违反 → `REVISION`；`unsupported_ratio > 0.3` → `REVISION`；两轮修订仍不通过 → `ABSTAIN`（输出「证据不足，建议补充 X」而非强行结论）。
+- [ ] 单元测试：四类约束各 5 个构造样例。
 
-### P4-3 工具调用训练集（数据 D8）
+验收标准：确定性层对构造样例检出率 100%，误报 0；语义层在 30 条人工标注声明上与人工一致率不低于 85%。
 
-- [x] 每条 D6 或 D7 子查询标注：工具名、参数、或"直接回答"、或"追问缺失参数"。
-- [x] 在修复后的真实执行环境中运行金标动作，记录工具返回，失败的样本剔除或修正。
-- [x] 加入对比样本：相近问题、不同动作（ETTh1 预测 6 小时 → horizon=6；ETTm1 预测 6 小时 → horizon=24；"油温会不会涨"→预测 vs "油温现在正常吗"→异常检测）。
-- [x] 加入多轮样本：工具返回后继续调用第二个工具或给出最终回答（最多 3 轮决策、6 次工具调用）。 → `multi_turn_seeds.jsonl`（composite_2step / single_then_finish）
-- [x] 加入错误恢复样本：工具返回业务错误时改参数重试或如实告知。 → ett_bad_dataset / ett_bad_range / kg_colloquial_to_std / ts_unrecoverable_ask
-- [x] 目标 3000 条任务级样本；动作分布约：单工具 45%、多工具 20%、不调用 12%、追问 12%、错误恢复 11%。 （3482 单轮 + 多轮轨迹；分布见 `data/planner/sft/DATA_CARD.md`）
-- [x] 输出格式同时导出 ms-swift 工具调用格式与 LLaMA-Factory function-calling 格式，便于切换平台。
+### C-3 补证与重规划路由
 
-验收标准：所有样本在真实环境执行通过；分布统计写入数据卡片。
+- [ ] `workflow.py` 路由新增：`unsupported` 且证据可补 → 回 Planner 并携带 `missing_evidence: [{claim_id, suggested_tool, suggested_query}]`；`contradict` → 回 Generator 修订；`ABSTAIN` → 结束。
+- [ ] Planner `active` 模板增加对 `missing_evidence` 的处理规则（优先调用建议工具，最多补证 1 轮）。
+- [ ] 每次路由记录到轨迹日志：触发原因、补证工具、额外 Token 与耗时。
 
-### P4-4 数据切分与封存
+验收标准：D10 抽 30 条，补证路由触发的调用中不出现重复调用同一工具同一参数。
 
-- [x] 按 `seed_source` 分组切分，同一来源派生的样本只进入一个集合。
-- [x] 训练 70% / 验证 10% / 测试 20%；测试集封存，训练结束前不查看。
-- [x] 对训练集与测试集做查询相似度检查，相似度大于 0.9 的跨集对报告数量并剔除。
-- [x] 为每套数据写数据卡片：规模、来源、构造流程、已知偏差、许可。
+### C-4 故障注入评测集（数据 D11）
 
-验收标准：泄漏检查报告为零跨集高相似对。
+- [ ] 新建 `scripts/eval/build_d11_fault_injection.py`：以 [oracle_mode5.jsonl](/Users/ts/Desktop/thu/multi_Agent/data/eval/d10/results/oracle_mode5.jsonl) 中 196 条正确草案为底，自动注入四类错误各 50 条：篡改数值（气体浓度 ±30%、概率互换）、伪造引用（不存在的 chunk uuid / 编造片段）、换设备或换数据集（ETTh1 → ETTm1、设备号错位）、删安全前提（保留「立即停电吊罩」删去支撑它的高乙炔观测）。
+- [ ] 加 100 条未注入的干净草案作为负样本（考察误报）。
+- [ ] 每条记录 `injected: bool, type, location, original`；人工抽 40 条确认注入确实构成错误。
+- [ ] 数据卡片 `data/eval/d11/DATA_CARD.md`。
 
----
+验收标准：300 条（200 注入 + 100 干净），人工抽检注入有效率不低于 95%。
 
-## P5 规划模块微调与部署
+### C-5 对照实验与评测
 
-目标：训练查询分解、工具调用两个 LoRA 适配器，并在实际系统中接入。
+- [ ] 新建 `scripts/eval/eval_validator.py`，三组对照：`v1`（现有整体评分 Validator）、`v2_check`（声明级核查，不路由）、`v2_route`（核查 + 补证重规划）。
+- [ ] 指标：错误通过率（注入样本被判 PASS 的比例）、分类型检出率、干净样本误报率、无依据结论率（最终答案中 `unsupported` 声明占比）、约束违反率、弃答率、额外调用次数与 Token 成本。
+- [ ] 语义层 LLM 判定抽 10% 人工复核一致率。
+- [ ] 结果写入 `docs/validator_eval.md`，图表：分类型检出率柱状图、通过率-成本散点。
 
-### P5-1 平台与基座定案
+验收标准：`v2_check` 相对 `v1` 错误通过率显著下降且干净样本误报率不高于 10%；`v2_route` 的无依据结论率进一步下降。
 
-- [x] 二选一并记录理由：路线 A 魔搭 A10 + Qwen3-VL-8B-Instruct + ms-swift + 百炼部署（沿用叶金涛论文）；路线 B 双 4090 + Qwen3-8B + LLaMA-Factory + 本地 transformers 部署（沿用梁亨源论文）。 → 路线 A，理由见 `docs/planner_training.md`
-- [x] 若选路线 A，核对百炼 LoRA 导入约束：rank 为 8/16/32/64、不修改词汇表和对话模板、冻结视觉编码器。 → `docs/planner_training.md` §2（基座支持列表需在控制台再核对）
-- [ ] 部署前先用 50 条数据做一次"训练→导出→部署→调用"全流程小闭环。
+### C-6 章节素材
 
-验收标准：小闭环成功，API 返回可被系统解析。
-
-### P5-2 训练配置
-
-- [x] 公共配置：LoRA rank 8、alpha 32、dropout 0.05、lr 5e-5、AdamW、warmup 20 步、cosine、bf16、seq_len 2048、有效 batch 16。 → `training/planner_sft/train.sh`
-- [x] epoch：3-5 个，按验证集指标早停；不照抄 20 个 epoch。 → `train.sh`（上限 5，early_stop_interval 2）
-- [x] 损失加权（可选实验组）：输入与工具返回权重 0、普通文本 1、工具调用结构 2、领域关键标识 3，归一化加权交叉熵。 → `training/planner_sft/plugin_loss_scale.py` + `weighting.py` + `domain_terms.json`
-- [x] 保存每个 epoch 的验证指标曲线。 → `--eval_strategy epoch --report_to tensorboard`（训练时产生）
-
-### P5-3 对照实验矩阵
-
-- [ ] M0：未微调基座。
-- [ ] M1：普通 LoRA-SFT。
-- [ ] M2：结构 Token 加权。
-- [ ] M3：结构 + 领域 Token 加权。
-- [ ] Q0/Q1：查询分解智能体 未微调 / 微调。
-- [x] 每组固定随机种子跑 2 次取均值。 → `training/planner_sft/run_matrix.sh`（seeds 42/2026，脚本就位，训练待环境）
-
-### P5-4 离线评测
-
-- [x] 工具调用智能体：格式合法率、工具选择正确率、参数正确率、完整调用率、不必要调用率、追问正确率、错误恢复成功率。 → `scripts/eval/eval_planner_offline.py`（自检通过）
-- [ ] 查询分解智能体：子查询数量准确率、LLM 裁判胜率（准确性/完整性/规范性）、人工抽检 10%。
-- [x] 分类别报告（事实 / 推理 / 数值工具 / 无需工具 / 信息不足）。 → 同上，8 类别
-- [x] 写入 `docs/planner_eval.md`。 （脚本 `--write-report` 生成，待模型预测）
-
-验收标准：M1-M3 相对 M0 的提升可量化，最优模型确定。
-
-### P5-5 系统接入
-
-- [x] [llm.py](/Users/ts/Desktop/thu/multi_Agent/src/tools/llm.py) 增加规划模型独立配置（base_url、model_name、api_key_env），Generator 与 Validator 继续使用原模型。 → `llms.planner_finetuned`，新增 `provider: dashscope`
-- [ ] Planner 拆分为查询分解 + 工具调用两个调用步骤，支持有限反馈循环。
-- [x] 增加配置开关：`planner_mode = baseline | finetuned`，用于 P6 对比。
-
-验收标准：系统在两种模式下都能跑通 P0-3 的 30 条端到端任务。
+- [ ] 整理约束类型定义表、核查流程图（Mermaid）、路由状态机。
+- [ ] 与 MAST「验证失效」分类、RT4CHART 声明级核查的差异说明：本文证据源为异构工具输出 + 文献 + 图谱，约束类型面向电力工程。
 
 ---
 
-## P6 系统级评测与原型
+## D 主线三：以验证信号为偏好的 Planner 优化（百炼 SFT + DPO）
 
-### P6-1 端到端评测集（数据 D10）
+目标：把主线二 Validator 的声明判定与真实工具执行结果转成偏好对，在百炼平台对 Planner 做 SFT → DPO 两阶段训练，验证「验证信号驯化 Planner」是否比 SFT 更能减少无效调用与无依据结论。
 
-- [x] 从 D7/D8 封存测试集分层抽取 150-200 条，覆盖单工具、多工具、图谱推理、数值诊断、追问。 → `data/eval/d10/end2end_eval.jsonl`（196 条）
-- [x] 每条标注：必要动作、关键参数、期望证据来源、参考答案要点。 （自动标注 status=auto，待人工复核）
+基座：`qwen3-8b`（百炼支持 `efficient_sft` 与 `dpo_lora`；Planner 无视觉输入，不再用 Qwen3-VL）。若控制台列表变化，按「文本 8B 级、同时支持 SFT 与 DPO LoRA」原则替换并记录。
 
-### P6-2 五级模式对比
+### D-1 百炼 SFT 基线（M1）
 
-- [x] 模式 1 无 RAG；模式 2 朴素 RAG；模式 3 加规划微调；模式 4 加图谱；模式 5 加反思（完整系统）。 → `src/graph/system_modes.py`
-- [x] 指标：任务成功率（动作正确 + 参数正确 + 工具结果有效 + 答案忠实于证据 四项同时满足）、证据忠实度、平均工具调用次数、平均延迟、Token 成本。 → `scripts/eval/eval_system_modes.py`（OraclePlanner 校验通过）
-- [ ] LLM 裁判 + 10% 人工复核。
+- [ ] A-2 产出的百炼 ChatML 训练集 + 验证集上传（`purpose=fine-tune`），记录 `file_id`。
+- [ ] 控制台或 API 创建任务：`training_type=efficient_sft`，`n_epochs=3`、`batch_size=16`、`max_length=4096`、`learning_rate` 取平台默认，`split` 不用（已自带验证集）。
+- [ ] 训练完成后部署，记录模型 ID 到 `config.yaml` 的 `llms.planner_finetuned`；`scripts/probe_llm_endpoint.py` 验证 `tool_calls` 能被 `_build_plan_from_tool_calls` 解析。
+- [ ] 在 D8 test 切分上跑 `eval_planner_offline.py`，与 A-1 的 M0 数字并列写入 `docs/planner_dpo_eval.md` 第一节。
+- [ ] 训练脚本、超参与 job_id 记录到 `training/planner_bailian/README.md`；新建 `training/planner_bailian/submit_job.py`（封装文件上传、任务创建、状态轮询、部署）。
 
-### P6-3 前端多模式切换
+验收标准：M1 部署可调用；离线 7 项指标相对 M0 有提升；50 条端到端任务跑通。
 
-- [x] 前端增加五级模式下拉框，替代当前"模拟/真实 Milvus"开关。
-- [x] 展示工具调用轨迹、检索块来源、图谱链路可视化、反思评分。
-- [x] 准备 5 个典型案例用于演示与论文截图。 （`app.py` EXAMPLES）
+### D-2 偏好对构造（数据 D13）
 
-验收标准：五级模式结果表完成，典型案例可稳定复现。
+- [ ] 采样 prompt：从 D8 train 切分抽 1500 条任务（分层覆盖单工具 / 多工具 / 追问 / 错误恢复 / 无需工具），加 B-3 模拟器生成的 500 条部分观测任务。
+- [ ] 候选生成：对每条 prompt 用 M1 模型（temperature 0.7 / 1.0）各采样 2 个 Planner 输出，加 M0 基座 1 个，共 5 个候选；在真实工具环境执行（复用 [retriever.py](/Users/ts/Desktop/thu/multi_Agent/src/agents/retriever.py) 的执行与 `exec/business_success` 记录）。
+- [ ] 候选打分（`scripts/planner_data/score_candidates.py`）：分项打分并加权求和，权重可配：格式合法（0/1）、工具与金标一致（0/1）、参数 Schema 通过（0/1）、工具业务成功（0/1）、下游声明忠实度（把候选轨迹送 Generator + C-2 核查器，取 `1 - unsupported_ratio`）、追问是否在推荐列表（B-2，0/1）、调用成本惩罚（`-0.1 × 多余调用数`）。
+- [ ] 配对规则：同一 prompt 内分差 ≥ 0.3 的最高与最低候选组成 `(chosen, rejected)`；分差不足则丢弃该 prompt；每 prompt 最多 1 对。
+- [ ] 偏好来源消融准备：额外导出两份子集，`D13-exec`（只用格式 + 工具 + 参数 + 业务成功打分）与 `D13-full`（加声明忠实度 + 推荐一致 + 成本），用于 D-4。
+- [ ] 人工抽 100 对复核偏好方向正确率；泄漏检查：prompt 的 `seed_source` 不得出现在 D8 test 与 D10。
+- [ ] 导出百炼 DPO 格式（`prompt / chosen / rejected` jsonl，prompt 含 system + 历史轮次）；数据卡片 `data/planner/dpo/DATA_CARD.md`。
+
+验收标准：有效偏好对不少于 1200 条；人工复核偏好方向正确率不低于 90%；泄漏 0。
+
+### D-3 百炼 DPO 训练（M4）
+
+- [ ] 以 D-1 产出的 M1 模型 ID 为 `model`，`training_type=dpo_lora`，`n_epochs=2`、`batch_size=16`、`max_length=4096`；`dpo_beta` 若控制台可配取 0.1。
+- [ ] 训练曲线：导出 reward margin / eval loss 截图归档到 `docs/figures/fig_d3_dpo_curve.png`。
+- [ ] 部署 M4，记录模型 ID；`probe_llm_endpoint.py` 验证。
+- [ ] 若百炼 DPO 对 `qwen3-8b` 不可用：备选为魔搭 A10 上 `swift rlhf --rlhf_type dpo --train_type lora --lora_rank 8`，LoRA 导出后走 OSS → 自定义模型导入（v1 路线 §7 步骤）。备选触发即在此处记录原因。
+
+验收标准：M4 部署可调用，dev 上 reward margin 为正且稳定。
+
+### D-4 对照矩阵与离线评测
+
+- [ ] 矩阵：M0 基座、M1 SFT、M4-exec（D13-exec 训练）、M4-full（D13-full 训练）；M1 与两个 M4 各跑 2 个 seed（百炼任务重复提交）取均值。
+- [ ] 离线指标：`eval_planner_offline.py` 7 项 × 8 类别；新增「追问推荐一致率」（B-2）与「平均调用次数」。
+- [ ] 端到端指标：在 D10 test 上以 mode4 配置替换 Planner，记录任务成功率、无依据结论率（C-2 核查器）、约束违反率、平均调用次数。
+- [ ] 结果写入 `docs/planner_dpo_eval.md`，关键结论：M4-full 相对 M1 是否在无依据结论率与调用次数上有增益；M4-full 相对 M4-exec 是否证明「声明忠实度信号」有效。
+
+验收标准：四组数字齐全；M4-full 相对 M1 至少在两项核心指标上显著改善，否则在报告中如实记录并分析。
+
+### D-5 章节素材
+
+- [ ] 偏好构造流程图、打分函数定义表、消融设计说明。
+- [ ] 与 ToolRL / ARTIST / Deep-DxSearch 的差异说明：本文奖励信号来自下游声明级验证器而非仅工具执行结果；采用 DPO 离线优化以适配平台约束。
 
 ---
 
-## P7 成果固化
+## E 系统级增量评测
 
-- [ ] `docs/` 下整理：基线、知识库消融、图谱评测、反思一致性、规划评测、端到端评测六份报告。
-- [x] 每套数据附数据卡片，合成数据与真实数据明确区分。
-- [ ] 复现脚本：清洗、入库、抽取、造数、训练、评测一键化，写 README。
-- [ ] 代码打 tag `v1-final`，与基线 `baseline-v0` 对照。
-- [ ] 记录已知局限：DGA 标签映射不代表真实故障部位、ETT 负载特征单位未知、评测依赖 LLM 裁判等。
+### E-1 五级模式重定义
+
+- [ ] 重写 `system_modes.py` 为 §0.5 定义；`SystemModeSpec` 新增 `attribution_mode`、`planner_strategy`、`validator_mode`、`generator_output` 字段。
+- [ ] `build_agents` 按字段构建；`eval_system_modes.py` 与 `app.py` 下拉框同步更新。
+- [ ] OraclePlanner 校验在新 mode2 上重跑一次，确认 `task_success` 校验逻辑仍成立。
+
+验收标准：五级模式各跑 D10 抽 5 条冒烟通过。
+
+### E-2 正式评测
+
+- [ ] D10（196 条，A-3 复核后）× 五级模式，LLM 相关模式各 2 次取均值。
+- [ ] 指标：任务成功率四要素、无依据结论率、约束违反率、弃答率、平均问询次数、平均工具调用次数、平均延迟、Token 成本。
+- [ ] 交叉对照：mode4 + baseline planner、mode5 + v1 validator，用于分离主线二与主线三的贡献。
+- [ ] LLM 裁判 + 10% 人工复核一致率。
+- [ ] 结果写入 `docs/system_modes_eval.md`；图表：五级模式增量柱状图、成功率-成本散点。
+
+验收标准：增量表完成，每一级新增能力的贡献可量化并附置信区间。
+
+### E-3 鲁棒性附加实验（时间允许时）
+
+- [ ] 在 D11 注入样本上跑 mode2 与 mode5 端到端，报告错误最终进入答案的比例。
+- [ ] 在 D12 重遮蔽档上跑 mode2 与 mode3，报告准确率与问询次数差异。
 
 ---
 
-## 附录 A 数据清单汇总
+## F 成果固化
 
-| 编号 | 数据 | 规模 | 所属阶段 | 用途 |
-|---|---|---:|---|---|
-| D1 | 清洗后内容单元库 | 约 150 篇 | P1-1 | 知识库入库源 |
-| D2 | 多层索引与摘要 | 随 D1 | P1-5 | 两路检索、反思 |
-| D3 | 检索评测集 | 1500-2000 组 | P1-3 | Recall@k、消融 |
-| D4 | 故障图谱三元组 | 1000+ 节点 | P2-2 | `kg_search` |
-| D5 | 图谱评测集 | 300-400 条 | P2-5 | 图谱对比评测 |
-| D6 | 简单查询集 | 3000-4000 条 | P4-1 | D7/D8 种子 |
-| D7 | 查询分解训练集 | 2000-3000 组 | P4-2 | 分解智能体 SFT |
-| D8 | 工具调用训练集 | 3000 条 | P4-3 | 工具调用智能体 SFT |
-| D9 | 反思评分校验集 | 300 对 | P3-3 | 评分器一致性 |
-| D10 | 端到端评测集 | 150-200 条 | P6-1 | 五级模式对比 |
+- [ ] 六份报告齐全：`baseline.md`、`attribution_calibration.md`、`active_planning_eval.md`、`validator_eval.md`、`planner_dpo_eval.md`、`system_modes_eval.md`。
+- [ ] 数据卡片：D11、D12、D13 新增；D8、D10 更新复核状态。
+- [ ] `reproduce.sh` 更新为 A → B → C → E 一键（D 需百炼账号，提供 `submit_job.py` 与说明）。
+- [ ] README 更新架构图与三条主线说明；`docs/figures/fig3_1_architecture.png` 重绘加入 EIG 模块与声明核查器。
+- [ ] 代码打 tag `v2-final`，与 `baseline-v0` 对照。
+- [ ] 已知局限：DGA 标签映射不代表真实故障部位；征兆成本表为专家设定；D11 为自动注入而非真实错误；评测依赖 LLM 裁判；DPO 偏好对由自动打分构造。
+- [ ] 论文第 3-6 章实验小节初稿，每章引用对应报告的表与图。
 
-## 附录 B 关键风险与对策
+---
+
+## 附录 A 数据清单（v2）
+
+| 编号 | 数据 | 规模 | 阶段 | 用途 | 状态 |
+|---|---|---|---|---|---|
+| D3 | 检索评测集 | 1209 组 | 基座 | Recall@k 基线 | 已有 |
+| D4 | 故障图谱 | 90 节点 / 190 边 | 基座 | `kg_search`、追问话术 | 已有 |
+| D8 | 工具调用训练集 | 3482 单轮 + 多轮 | A-2 / D-1 | SFT、偏好 prompt 来源 | 待改写重导出 |
+| D9 | 反思评分校验集 | 298 对 | A-3 | Kappa | 待人工分 |
+| D10 | 端到端评测集 | 196 条 | E | 五级模式 | 待人工复核 |
+| D11 | 故障注入评测集 | 300 条 | C-4 | 验证器对照 | 新建 |
+| D12 | 部分观测模拟集 | 1500 条 | B-3 | 主动规划对照 | 新建 |
+| D13 | Planner 偏好对 | ≥1200 对 | D-2 | DPO | 新建 |
+
+## 附录 B 砍掉与降级项登记
+
+| 项 | 处置 | 理由 |
+|---|---|---|
+| D7 查询分解集、Q0/Q1 双 Planner | 砍掉 | 与三条主线无关；论文范围收窄到工具调用 Planner |
+| M2 / M3 结构 / 领域 token 加权 SFT | 砍掉 | 百炼内置 SFT 不暴露 token 级权重；v2 对照改为 SFT vs DPO；`plugin_loss_scale.py` 保留在仓库作为备选路线附件 |
+| M3-random 对照 | 随 M3 砍掉 | 同上 |
+| 稠密向量 + Qwen3-Reranker、Milvus 四层 | 不做 | 检索质量非论文贡献，两路 BM25 + RRF 已满足工程基座 |
+| 图片描述 / 表格改写 / LLM 摘要 | 不做 | 同上 |
+| LLM 图谱抽取补图、模糊消歧、LightRAG 对比 | 不做 | 图谱只作追问话术与证据来源，规模够用 |
+| 林金山三智能体流程复现 | 不做（D-4） | 相关工作定性对比 |
+| 魔搭 A10 + OSS + 自定义模型导入 | 降为备选 | D-3 百炼 DPO 不可用时启用 |
+| LLMScorer 反思评分 | 降级 | 词法评分器作为基座固定配置；Kappa 仅作数据卡片附注 |
+
+## 附录 C 关键风险与对策
 
 | 风险 | 影响 | 对策 |
 |---|---|---|
-| 文献重复与解析噪声未清干净 | 检索评测虚高或虚低 | P1-1 严格去重与噪声过滤，人工抽检 |
-| 图谱 CAUSE 关系泛化 | 逻辑合理性低 | 只抽显式因果，关系带原文出处 |
-| 训练/测试数据泄漏 | 评测失真 | 按 seed_source 分组切分并做相似度检查 |
-| LLM 裁判偏差 | 结论不可信 | 每项裁判评测抽 10% 人工复核并报告一致率 |
-| 百炼导入约束不满足 | 部署失败 | P5-1 先做 50 条小闭环 |
-| epoch 过多导致过拟合 | 泛化差 | 3-5 epoch + 早停 |
-| 合成数据混入评测 | 结果不可信 | 合成数据加标记，评测集只用真实来源派生样本 |
+| 朴素贝叶斯独立假设使 EIG 高估 | 推荐征兆偏差 | B-1 交叉验证 + 校准；报告中说明假设；可选加征兆间相关性修正 |
+| 征兆成本表主观 | 成本项结论可争议 | 报告 λ 敏感性分析；`eig_greedy`（无成本）作为主结果 |
+| 声明 JSON 输出降低答案流畅度 | 用户体验 | 先 JSON 后渲染，前端只展示自然语言 + 可展开证据 |
+| 确定性核查容差设置不当 | 误报或漏报 | D11 干净样本误报率作为硬指标，容差在 dev 上调 |
+| 自动打分构造的偏好对方向错误 | DPO 学偏 | D-2 人工抽 100 对复核；分差阈值 0.3 过滤模糊对 |
+| 百炼 DPO 对目标基座不可用 / 超参不可配 | 训练受阻 | D-3 备选路线；提前在控制台核对支持列表 |
+| DPO 后模型「变平庸」（过度保守、少调用） | 端到端成功率下降 | 监控不必要调用率与追问正确率双向指标；`dpo_beta` 0.1 起步 |
+| LLM 裁判偏差 | 结论不可信 | 每项裁判抽 10% 人工复核并报告一致率 |
+| 训练 / 测试泄漏 | 评测失真 | D13 prompt 按 `seed_source` 与 D8 test、D10 隔离 |
+
+## 附录 D v1 已完成资产（归档，直接复用）
+
+| v1 阶段 | 复用资产 |
+|---|---|
+| P0 | 7 项缺陷修复、`exec/business_success` 分离、轨迹日志、`assert_not_synthetic`、数据清单、`baseline-v0` tag、87 项回归测试 |
+| P1 | MinerU 单元清洗、DP 分块 5404 块、子块 / 锚点两路 + RRF、`local_kb mode`、D3 1209 组、`docs/kb_ablation_test.md` |
+| P2 | 8 实体 / 9 关系 schema、规则抽取 90 节点 / 190 边、`kg_search` 与三智能体接入、忠实度评测 HitAll 100% |
+| P3 | `ReflectionModule`、`LexicalScorer`、D9 298 对、`docs/reflection_eval.md` |
+| P4 | 3482 单轮 + 多轮 / 错误恢复轨迹、分组切分 2311/439/732、三格式导出、数据卡片、`rewrite_queries.py` |
+| P5 | `eval_planner_offline.py`（7 指标 × 8 类别）、`planner_mode` 开关、`provider: dashscope`、`domain_terms.json`（609 项，可复用于 C-2 实体一致性核查） |
+| P6 | D10 196 条、`eval_system_modes.py`（任务成功率四要素、Token 成本）、前端轨迹 / 图谱 / 反思展示 |
+| P7 | README、`reproduce.sh`、requirements、四份数据卡片 |
+

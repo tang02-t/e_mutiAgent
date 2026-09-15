@@ -12,12 +12,14 @@
 
 | 编号 | 数据 | 规模 | 来源与许可 | 在系统中的角色 |
 |---|---|---:|---|---|
-| R1 | `data/dga/dga_dataset.csv` | 4150 行 | 项目说明标注为 Kaggle 公开 DGA 数据集，发布页未核实 | 贝叶斯故障归因参数学习；评测标签（气体 → IEC 故障性质） |
-| R2 / R3 | `data/dga/data.xlsx`、`dataset_(589).xlsx` | 2321 / 589 行 | GitHub `alan-456/transformer-fault-dataset`，文献与部分电网数据汇集，未声明许可 | 同 R1 |
-| R6 / R7 | `data/ETT-small/ETTh1/h2/m1/m2.csv` | 各 17420 / 69680 行 | ETDataset（Informer, AAAI 2021），国网两站 2016-07 至 2018-06 油温与负载，CC BY-ND 4.0 | `ett_forecast` 执行环境；未来真实油温作为评测标签；任务种子 |
+| R1 | `data/dga/dga_dataset.csv` | 4150 行 | 来源未核实的 IEC 60599 标签 DGA 汇编（五气体、PD/D1/D2/T1/T2/T3 六类）。早期记为 Kaggle，经核对与 Kaggle 上的公开变压器数据集字段不符，论文中不写作 Kaggle | 贝叶斯故障归因参数学习；评测标签（气体 → IEC 故障性质） |
+| R2 / R3 | `data/dga/data.xlsx`、`dataset_(589).xlsx` | 2321 / 589 行 | GitHub `alan-456/transformer-fault-dataset`，由数据库、多篇中国高校学位论文及部分电网数据汇编；R3（589 条）为 2024–2026 年多篇论文采用的公开基准，已有文献报告其含少量重复与跨标签冲突。仓库未声明许可，学术引用范围内使用 | 同 R1；R3 可单列为「589 公开基准子集」报告与文献可比结果 |
+| R6 / R7 | `data/ETT-small/ETTh1/h2/m1/m2.csv` | 各 17420 / 69680 行 | ETDataset（Zhou et al., Informer, AAAI 2021），北航与北京国网富达合作采集，两站 2016-07 至 2018-07 油温与负载。许可 CC BY-ND 4.0（以原仓库 LICENSE 为准；HuggingFace 镜像标注 CC BY 4.0，以原仓库为准并脚注说明） | `ett_forecast` 执行环境；未来真实油温作为评测标签；任务种子 |
 | R9 | `data/fast_md/*/` | 182 个 MinerU 解析目录 | 中文期刊 / 学位论文 PDF，学术引用范围 | 知识库入库源；图谱抽取源；事实类任务种子 |
 | R10 / R11 | `data/ele_trans/*.pdf`、`data/manuals/*.pdf` | 31 + 2 份 | 原始 PDF 与 ABB / Siemens 公开手册 | 知识源备份 |
-| R8 | `data/external_transformer/power_transformer_fault.csv` | 1866 行 / 106 台 | 来源未记录 | 未核实前不进入任何训练 / 评测集 |
+| R8 | `data/external_transformer/power_transformer_fault.csv` | 1866 行 / 106 台 | 来源未记录，公开数据站点检索未匹配 | 未核实前不进入任何训练 / 评测集；固化前仍无法核实则移除 |
+
+DGA 标签可信度声明（论文实验设置须写明）：R1–R3 的 IEC 故障标签均为文献汇编标签，多数由文献作者据事后检修给出，本研究无法逐条追溯原始检修记录；三源合并去重后 7060 → 5143 条（约 27% 重复），且无设备身份字段，因此本研究不做设备维度的泛化测试。校准结果建议另在来源清晰的 IEC TC 10 案例库（IEEE DataPort，Enwen Li，DOI 10.21227/h8g0-8z59）上做外部检验。
 
 合成数据 `data/synthetic/`（3000 条 DGA、20 台时序、200 条案例、120 条旧评测集）只用于流程回归与前端演示，由 `src/utils/data_guard.py` 的 `assert_not_synthetic` 强制阻止进入评测集与训练集。
 

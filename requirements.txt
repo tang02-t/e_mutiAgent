@@ -11,7 +11,6 @@ rich==15.0.0
 python-docx==1.2.0
 
 # 可选
-# pymilvus            # 使用 Milvus / Zilliz 知识库时（默认 local_kb 不需要）
 # dashscope           # 调用百炼导入的 LoRA 模型（config: provider: dashscope）
 # graphviz            # 前端图谱可视化 st.graphviz_chart 需要系统安装 graphviz 二进制；缺失时自动降级为表格
 # ms-swift[llm]       # 训练环境（魔搭 A10），见 docs/planner_training.md

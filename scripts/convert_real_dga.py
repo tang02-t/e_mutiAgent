@@ -5,10 +5,10 @@
 
 将以下公开真实数据源统一转换、合并为符合 data/synthetic/SCHEMA.md 的
 dga_records.csv / dga_records.jsonl，用于替换原合成“假案例”。
-下游 fault_attribution / validate_dga_data 无需改动。
+下游 fault_attribution / eval_fault_attribution 无需改动。
 
 数据源（放在 data/dga/ 下）：
-  1. dga_dataset.csv      —— Kaggle，IEC 编码标签(NF/PD/D1/D2/T1/T2/T3)，sep=';' decimal=','，4150 条
+  1. dga_dataset.csv      —— 来源未核实（非 Kaggle，见 docs/data_inventory.md R1），IEC 编码标签(NF/PD/D1/D2/T1/T2/T3)，sep=';' decimal=','，4150 条
   2. data.xlsx            —— alan-456，中文故障性质标签，含中国电网数据，2321 条
   3. dataset_(589).xlsx   —— alan-456，中文故障性质标签，论文集，589 条
 

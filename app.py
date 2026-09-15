@@ -15,7 +15,6 @@
 
 from __future__ import annotations
 
-import csv
 import json
 import sys
 import time
@@ -34,13 +33,13 @@ from src.graph.workflow import run_diagnosis_workflow        # noqa: E402
 from src.tools.mcp_client import MCPClient                   # noqa: E402
 from src.tools.fault_attribution import fault_attribution    # noqa: E402
 from src.tools.ett_forecasting import ett_forecast           # noqa: E402
+from src.tools.timeseries import timeseries_anomaly          # noqa: E402
 from src.utils.config import load_config                     # noqa: E402
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Mock 工具（无外部依赖，便于离线演示）
 # ══════════════════════════════════════════════════════════════════════════════
-TS_DIR = ROOT / "data/synthetic/timeseries"
 CASES_PATH = ROOT / "data/synthetic/cases/fault_cases.jsonl"
 
 
@@ -81,39 +80,10 @@ def mock_rag_search(query: str) -> List[Dict[str, Any]]:
     return results
 
 
-def timeseries_anomaly_tool(signal=None) -> Dict[str, Any]:
-    """
-    对传入的数值序列做 3σ 异常检测。
-
-    P0 修复：不再读取模拟设备文件 TR-0001.csv、不再使用示例序列；
-    signal 缺失时直接返回业务错误，避免「参数错了也能成功」。
-    """
-    if not isinstance(signal, (list, tuple)) or len(signal) == 0:
-        return {"status": "error", "message": "timeseries_anomaly 需要非空 signal 序列"}
-    try:
-        ot = [float(x) for x in signal]
-    except (TypeError, ValueError) as exc:
-        return {"status": "error", "message": f"signal 含非数值元素：{exc}"}
-    if len(ot) < 3:
-        return {"status": "error", "message": f"signal 长度 {len(ot)} 过短，至少需要 3 个点"}
-    mean = sum(ot) / len(ot)
-    var = sum((v - mean) ** 2 for v in ot) / max(len(ot) - 1, 1)
-    std = var ** 0.5
-    anomalies = [i for i, v in enumerate(ot) if std and abs(v - mean) > 3 * std]
-    return {
-        "status": "ok",
-        "n": len(ot),
-        "mean": mean,
-        "std": std,
-        "anomaly_indices": anomalies,
-        "series": ot,
-    }
-
-
 def build_mcp(kb_mode: str, user_dga: Dict[str, Any] | None, rag_mode: str | None = "two_way") -> MCPClient:
     """
     构造 MCP 客户端并注册工具。
-    kb_mode: local_kb | milvus | mock；rag_mode：local_kb 的检索方式 naive | two_way | two_way_rerank，
+    kb_mode: local_kb | mock；rag_mode：local_kb 的检索方式 naive | two_way | two_way_rerank，
     None 表示当前系统模式不开放文献检索（注册空桩，越权调用得到 empty_result）。
     """
     mcp = MCPClient()
@@ -125,7 +95,7 @@ def build_mcp(kb_mode: str, user_dga: Dict[str, Any] | None, rag_mode: str | Non
         return fault_attribution(dga_data=dga_data, evidence=evidence, query=query)
 
     mcp.register_tool("fault_attribution", fault_attribution_with_dga)
-    mcp.register_tool("timeseries_anomaly", timeseries_anomaly_tool)
+    mcp.register_tool("timeseries_anomaly", timeseries_anomaly)
     mcp.register_tool("ett_forecast", ett_forecast)
 
     # kg_search：故障关系链路图谱（本地 graph.json）
@@ -139,23 +109,6 @@ def build_mcp(kb_mode: str, user_dga: Dict[str, Any] | None, rag_mode: str | Non
         mcp.register_tool("rag_search", lambda query, **_: [])
         return mcp
 
-    if kb_mode == "milvus":
-        try:
-            from src.tools.rag_engine import RAGEngine
-            cfg = load_config()
-            mv = cfg["knowledge_base"]["milvus"]
-            engine = RAGEngine(
-                uri=mv.get("uri"), token=mv.get("token"),
-                host=mv.get("host"), port=mv.get("port"),
-                collection_name=mv["collection"], text_field=mv["text_field"],
-                vector_field=mv["vector_field"],
-                top_k=cfg["knowledge_base"].get("top_k", 5),
-                metric_type=mv.get("metric_type", "L2"), nprobe=mv.get("nprobe", 10),
-            )
-            mcp.register_tool("rag_search", engine.search)
-        except Exception as exc:  # noqa: BLE001
-            st.warning(f"Milvus 初始化失败，已回退到本地文献库：{exc}")
-            kb_mode = "local_kb"
     if kb_mode == "local_kb":
         try:
             from src.tools.local_kb import local_kb_search
@@ -569,10 +522,9 @@ with st.sidebar:
     with st.expander("高级：覆盖模式子开关", expanded=False):
         kb_mode = st.radio(
             "知识库来源",
-            options=["local_kb", "milvus", "mock"],
+            options=["local_kb", "mock"],
             index=0,
             format_func=lambda x: {"local_kb": "本地文献库（182 篇，多层索引）",
-                                   "milvus": "Milvus 向量库（需 embedding 接口）",
                                    "mock": "合成案例 mock（仅演示）"}[x],
             help="local_kb 由 data/kb 离线构建，不依赖网络；mock 为程序合成案例，不得用于评测。",
         )

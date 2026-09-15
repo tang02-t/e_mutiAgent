@@ -24,8 +24,9 @@ data/real/dga/dga_records.jsonl
 data/synthetic/dga/
 data/synthetic/timeseries/*.csv
 
-# 含 API Key 的配置：不入库，使用 config.example.yaml 作为模板
+# 含 API Key 的配置与密钥：不入库，使用 config.example.yaml 作为模板
 config.yaml
+*.key
 
 # IDE
 .codebuddy/
@@ -43,6 +44,7 @@ data/kb/index/sections_index.jsonl
 data/planner/sft/*.jsonl
 data/planner/sft/*.json
 
-# 训练产物与模型预测（在魔搭环境生成，体积大）
+# 训练产物、模型预测与 DPO 候选采样（体积大，可重建）
 output/
 data/planner/predictions/
+data/planner/dpo/candidates/

@@ -9,7 +9,7 @@ Planner → Retriever → Generator → Validator，评估系统整体诊断效�
 为保证可运行性，采用「可注入工具」设计：
   - fault_attribution : 始终使用真实引擎（确定性，无外部依赖）
   - kg_search         : 始终使用真实图谱（data/kg/graph.json，离线）
-  - rag_search        : --kb-mode local_kb（默认，BM25+锚点本地知识库）/ milvus / mock
+  - rag_search        : --kb-mode local_kb（默认，BM25+锚点本地知识库）/ mock
   - timeseries_anomaly: 对用户提供的 signal 做 3σ（P0 后不再读取任何示例文件）
   - LLM               : 使用 config.yaml 的真实配置；不可用时各 Agent 自动降级为模板/规则
                         （此时仍可评测：流程连通性、安全合规规则、归因命中）
@@ -31,7 +31,7 @@ Planner → Retriever → Generator → Validator，评估系统整体诊断效�
 
 用法：
   python3 scripts/eval_end2end.py --limit 20                   # 开发回归，先跑 20 条
-  python3 scripts/eval_end2end.py --kb-mode milvus             # 使用真实 Milvus RAG
+  python3 scripts/eval_end2end.py --kb-mode mock               # 用合成案例 mock 替代本地知识库（仅流程调试）
   python3 scripts/eval_end2end.py --no-llm                     # 强制不调用 LLM（仅评测流程+规则）
   python3 scripts/eval_end2end.py --eval data/real/eval/xxx.jsonl --purpose eval_set   # 正式评测
 """
@@ -53,11 +53,11 @@ from src.graph.workflow import run_diagnosis_workflow        # noqa: E402
 from src.tools.mcp_client import MCPClient                   # noqa: E402
 from src.tools.fault_attribution import fault_attribution    # noqa: E402
 from src.tools.kg_search import kg_search                    # noqa: E402
+from src.tools.timeseries import timeseries_anomaly          # noqa: E402
 from src.utils.config import load_config                     # noqa: E402
 from src.utils.data_guard import assert_not_synthetic, is_synthetic_path  # noqa: E402
 
 SAFETY_KEYWORDS = ["安全", "停电", "保护", "注意", "断电", "隔离", "防护"]
-TS_DIR = ROOT / "data/synthetic/timeseries"
 
 
 # ──────────────────────────────────────────────────────────────
@@ -99,41 +99,12 @@ def mock_rag_search(query: str) -> List[Dict[str, Any]]:
     return results
 
 
-def mock_timeseries_anomaly(signal=None) -> Dict[str, Any]:
-    """对传入 signal 做 3σ 检测；P0 修复后不再读取模拟设备文件。"""
-    if not isinstance(signal, (list, tuple)) or len(signal) < 3:
-        return {"status": "error", "message": "timeseries_anomaly 需要至少 3 个点的 signal 序列"}
-    ot = [float(x) for x in signal]
-    mean = sum(ot) / len(ot)
-    var = sum((v - mean) ** 2 for v in ot) / max(len(ot) - 1, 1)
-    std = var ** 0.5
-    anomalies = [i for i, v in enumerate(ot) if std and abs(v - mean) > 3 * std]
-    return {"status": "ok", "n": len(ot), "mean": mean, "std": std, "anomaly_indices": anomalies}
-
-
 def build_mcp(kb_mode: str = "local_kb") -> MCPClient:
-    """kb_mode: local_kb（默认）/ milvus / mock；失败时逐级回退 local_kb -> mock。"""
+    """kb_mode: local_kb（默认）/ mock；local_kb 初始化失败时回退 mock。"""
     mcp = MCPClient()
     mcp.register_tool("fault_attribution", fault_attribution)
-    mcp.register_tool("timeseries_anomaly", mock_timeseries_anomaly)
+    mcp.register_tool("timeseries_anomaly", timeseries_anomaly)
     mcp.register_tool("kg_search", kg_search)
-
-    if kb_mode == "milvus":
-        try:
-            from src.tools.rag_engine import RAGEngine
-            cfg = load_config()
-            mv = cfg["knowledge_base"]["milvus"]
-            engine = RAGEngine(
-                uri=mv.get("uri"), token=mv.get("token"), host=mv.get("host"), port=mv.get("port"),
-                collection_name=mv["collection"], text_field=mv["text_field"],
-                vector_field=mv["vector_field"], top_k=cfg["knowledge_base"].get("top_k", 5),
-                metric_type=mv.get("metric_type", "L2"), nprobe=mv.get("nprobe", 10),
-            )
-            mcp.register_tool("rag_search", engine.search)
-            return mcp
-        except Exception as exc:  # noqa: BLE001
-            print(f"[warn] Milvus RAG 初始化失败（{exc}），回退到 local_kb")
-            kb_mode = "local_kb"
 
     if kb_mode == "local_kb":
         try:
@@ -339,9 +310,8 @@ def main():
     ap.add_argument("--eval", default=str(ROOT / "data/synthetic/eval/eval_set.jsonl"))
     ap.add_argument("--out", default="", help="报告输出路径；留空则按 purpose 自动命名")
     ap.add_argument("--limit", type=int, default=0, help="只评测前 N 条，0 表示全部")
-    ap.add_argument("--kb-mode", default="local_kb", choices=["local_kb", "milvus", "mock"],
+    ap.add_argument("--kb-mode", default="local_kb", choices=["local_kb", "mock"],
                     help="rag_search 后端")
-    ap.add_argument("--real-rag", action="store_true", help="[兼容旧参数] 等价于 --kb-mode milvus")
     ap.add_argument("--no-llm", action="store_true", help="强制禁用 LLM（清空 api_key）")
     ap.add_argument("--purpose", default="dev_regression", choices=["dev_regression", "eval_set"],
                     help="dev_regression：开发回归（允许合成数据）；eval_set：正式评测（拒绝合成数据）")
@@ -351,8 +321,6 @@ def main():
                     help="Planner 实验模式（P6 对比）：baseline 通用模型；finetuned 使用 llms.planner_finetuned；"
                          "留空则读 config.workflow.planner_mode")
     args = ap.parse_args()
-    if args.real_rag:
-        args.kb_mode = "milvus"
 
     # 数据守卫：合成数据不得用于正式评测
     assert_not_synthetic(args.eval, purpose=args.purpose)
