@@ -41,8 +41,8 @@
       "preview_target_flagged": 50,
       "preview_expected_constraint_hit": 50,
       "preview_verdict": {
-        "PASS": 16,
-        "REVISION": 34
+        "REVISION": 44,
+        "PASS": 6
       }
     },
     "applicability_swap": {
@@ -56,8 +56,7 @@
       "preview_target_flagged": 50,
       "preview_expected_constraint_hit": 50,
       "preview_verdict": {
-        "REVISION": 20,
-        "PASS": 30
+        "REVISION": 50
       }
     },
     "safety_premise_removed": {

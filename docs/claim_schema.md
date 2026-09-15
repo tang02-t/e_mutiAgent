@@ -138,6 +138,7 @@ flowchart LR
 - 状态：`AgentState.draft_claims`（声明列表）、`claims_source`（`llm | rule | ""`）、`claims_json_valid`（LLM JSON 或规则声明是否通过 schema 校验）。
 - 提示词：[system_claims.txt](/Users/ts/Desktop/thu/multi_Agent/templates/generator/system_claims.txt)，`GENERATOR_SYSTEM_PROMPT("claims")` 加载，缺失回退基础模板。
 - 核查与路由：`workflow.claim_check: off | check | route`；`route` 模式下 Validator 写 `state.missing_evidence`，工作流按 §6.1 状态机补证；`claim_supplement_rounds`（默认 1）限制补证轮数。
+- 判定规则（C-2，C-5 修订）：任一硬约束违反 → REVISION，硬约束集合 `claim_hard_constraints`（默认 `[SAFETY, DATA, APPLICABILITY]`；APPLICABILITY 于 C-5 评测后纳入，此前换数据集 / 设备号错位仅记 `violated` 不触发修订）；`claim_strict_observation: true` 时 observation 声明的证据引用无效（伪造 / 不存在 / 知识库冒充检测）直接 REVISION，不再被 `unsupported_ratio` 阈值稀释；其余无依据 / 矛盾声明占比 > `claim_unsupported_threshold`（0.3）→ REVISION；第 `claim_abstain_after`（3）次评估仍不通过 → ABSTAIN。
 
 ### 6.1 C-3 补证与重规划路由状态机
 

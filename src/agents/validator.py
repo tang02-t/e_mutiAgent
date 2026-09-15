@@ -153,6 +153,8 @@ class ValidatorAgent:
                 unsupported_threshold=float(wf.get("claim_unsupported_threshold", 0.3)),
                 abstain_after=self.abstain_after,
                 llm=self.llm if wf.get("claim_semantic_layer", True) else None,
+                hard_constraints=tuple(wf.get("claim_hard_constraints") or ("SAFETY", "DATA", "APPLICABILITY")),
+                strict_observation=bool(wf.get("claim_strict_observation", True)),
             )
 
     def _parse_structured_response(self, content: str) -> Optional[ValidationResult]:

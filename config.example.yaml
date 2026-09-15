@@ -106,3 +106,7 @@ workflow:
   claim_unsupported_threshold: 0.3
   claim_abstain_after: 3
   claim_supplement_rounds: 1
+  #   claim_hard_constraints: 任一违反直接 REVISION 的约束类型（C-5 起默认含 APPLICABILITY）
+  #   claim_strict_observation: observation 声明证据引用无效（伪造 / 不存在 / 知识库冒充检测）直接 REVISION
+  claim_hard_constraints: [SAFETY, DATA, APPLICABILITY]
+  claim_strict_observation: true

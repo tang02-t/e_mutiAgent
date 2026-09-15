@@ -219,7 +219,7 @@
 - [x] 确定性层（无 LLM）：数值一致性（声明中的气体浓度、概率、预测值、horizon 与 `state.tool_results` 逐项比对，容差可配）；引用存在性（`ref` 在本轮工具返回中可找到，`span` 为其子串）；适用性（声明中的设备号、数据集名、时间范围与工具入参一致）；安全前提（推荐类声明若涉及停电 / 吊罩 / 更换，必须存在对应 `observation` 声明支撑）。（2026-09-15，容差 `claim_rel_tol` 0.02 / `claim_abs_tol` 0.05 / 百分比 ±0.15 pp；工具证据 span 按 JSON 叶值逐键比对，文本证据按去空白子串；另检三比值编码、后验熵、异常点数、故障名-概率错位、「无需处理」与高危检测矛盾、以知识库片段冒充本次检测）
 - [x] 语义层（LLM）：对通过确定性层的 `inference` 声明做 NLI 判定 `entail | contradict | unsupported`，提示词只给该声明与其引用的证据片段，不给全文。（2026-09-15，`_semantic_layer` 已实现，LLM 未启用时自动跳过；`claim_semantic_layer` 开关）
 - [x] 输出 `ValidationResult` v2：新增 `claim_verdicts: [{claim_id, verdict, violated_constraints: [...], detail}]`、`unsupported_ratio`、`violation_counts`；保留旧字段兼容前端。（2026-09-15，另加 `claim_check_verdict` / `missing_evidence`；`to_report` 附「声明级核查」段；`claim_check=off` 时 `to_dict` 与 v1 完全一致）
-- [x] 判定规则：任一 `SAFETY` 或 `DATA` 违反 → `REVISION`；`unsupported_ratio > 0.3` → `REVISION`；两轮修订仍不通过 → `ABSTAIN`（输出「证据不足，建议补充 X」而非强行结论）。（2026-09-15，`ValidatorAgent(config, claim_check=off|check|route)` 集成，配置 `workflow.claim_check`、`claim_abstain_after`；ABSTAIN 时 `final_answer` 列出未通过声明与建议补充的工具；每轮写 `state.claim_check_log`）
+- [x] 判定规则：任一 `SAFETY` 或 `DATA` 违反 → `REVISION`；`unsupported_ratio > 0.3` → `REVISION`；两轮修订仍不通过 → `ABSTAIN`（输出「证据不足，建议补充 X」而非强行结论）。（2026-09-15，`ValidatorAgent(config, claim_check=off|check|route)` 集成，配置 `workflow.claim_check`、`claim_abstain_after`；ABSTAIN 时 `final_answer` 列出未通过声明与建议补充的工具；每轮写 `state.claim_check_log`。**C-5 修订：**`APPLICABILITY` 纳入硬约束（`claim_hard_constraints`），`observation` 声明证据引用无效直接 REVISION（`claim_strict_observation`），见 C-5 验收结果）
 - [x] 单元测试：四类约束各 5 个构造样例。（2026-09-15，`tests/test_c2_claim_checker.py` 59 项：四类 × 5 违反 + 5 合规、判定规则、v2 兼容、Validator 集成）
 
 验收标准：确定性层对构造样例检出率 100%，误报 0；语义层在 30 条人工标注声明上与人工一致率不低于 85%。
@@ -249,12 +249,14 @@
 
 ### C-5 对照实验与评测
 
-- [ ] 新建 `scripts/eval/eval_validator.py`，三组对照：`v1`（现有整体评分 Validator）、`v2_check`（声明级核查，不路由）、`v2_route`（核查 + 补证重规划）。
-- [ ] 指标：错误通过率（注入样本被判 PASS 的比例）、分类型检出率、干净样本误报率、无依据结论率（最终答案中 `unsupported` 声明占比）、约束违反率、弃答率、额外调用次数与 Token 成本。
-- [ ] 语义层 LLM 判定抽 10% 人工复核一致率。
-- [ ] 结果写入 `docs/validator_eval.md`，图表：分类型检出率柱状图、通过率-成本散点。
+- [x] 新建 `scripts/eval/eval_validator.py`，三组对照：`v1`（现有整体评分 Validator）、`v2_check`（声明级核查，不路由）、`v2_route`（核查 + 补证重规划）。（2026-09-15，[eval_validator.py](/Users/ts/Desktop/thu/multi_Agent/scripts/eval/eval_validator.py)；在 D11 `snapshot` 重建的 `AgentState` 上以模拟 Generator（首轮输出注入声明，修订轮只修正被标记声明）驱动真实 `ValidatorAgent` / `supplement` / Retriever；两设定：E1 = D11 原样，E2 = 每条附加 2 条缺证声明考察补证；最终答案由独立 `ClaimChecker` 复核）
+- [x] 指标：错误通过率（注入样本被判 PASS 的比例）、分类型检出率、干净样本误报率、无依据结论率（最终答案中 `unsupported` 声明占比）、约束违反率、弃答率、额外调用次数与 Token 成本。（2026-09-15，`summarize()` 另含残留率、期望约束命中率、平均轮次、补证触发数、修订统计 `n_fixed / n_dropped / n_regrounded / n_kept`、分类型 / 分子类）
+- [ ] 语义层 LLM 判定抽 10% 人工复核一致率。（后置：需启用 LLM，本轮全部为确定性层零 Token 运行；与 C-2 语义层人工一致率一并完成）
+- [x] 结果写入 `docs/validator_eval.md`，图表：分类型检出率柱状图、通过率-成本散点。（2026-09-15，[validator_eval.md](/Users/ts/Desktop/thu/multi_Agent/docs/validator_eval.md) / `validator_eval.json`；[fig_c5_detection_by_type.png](/Users/ts/Desktop/thu/multi_Agent/docs/figures/fig_c5_detection_by_type.png)、[fig_c5_pass_vs_cost.png](/Users/ts/Desktop/thu/multi_Agent/docs/figures/fig_c5_pass_vs_cost.png)；散点因三组重叠不可读改为「错误通过率 / 无依据结论率 / 弃答率 × E1,E2」三面板柱状图，标题标注 E2 平均额外调用）
 
 验收标准：`v2_check` 相对 `v1` 错误通过率显著下降且干净样本误报率不高于 10%；`v2_route` 的无依据结论率进一步下降。
+
+验收结果（2026-09-15，`python3 scripts/eval/eval_validator.py`，D11 全量 300 条，seed 20260915，耗时 10.5 s，Token 0）：E1 错误通过率 v1 100% → v2_check 3% → v2_route 3%，分类型检出率 v2 四类均 100%，干净误报 0 / 0 / 0%，残留率 100 / 3 / 3%，无依据结论率 5.0 / 0.2 / 0.2%，约束违反率 66.7 / 2.0 / 2.0%，平均轮次 1.00 / 1.65 / 1.65；残余 3% 为 `inference / recommendation` 类伪造引用（`nonexistent_call / chunk / kg_edge`）在多声明底稿中占比未超 0.3 阈值。E2（附加缺证声明）：无依据结论率 36.4 / 18.7 / 7.2%，缺证声明仍无据 100 / 100 / 24.8%，v2_route 再落证 451 条、补证触发 264 次、额外调用 480 次（1.60 / 样本），弃答率 0 / 63 / 3%（v2_check 无补证能力只能反复修订至 ABSTAIN），约束违反率 100 / 100 / 35.7%，平均耗时 0.03 / 2.87 / 13.66 ms。`acceptance` 六项全 true。首跑 v2_check 错误通过率 23%（`dataset_swap / device_swap` 30 条与 17 条 observation 伪引用被 0.3 阈值稀释）暴露判定规则缺口，据此修订 C-2：`APPLICABILITY` 纳入硬约束（`claim_hard_constraints`，默认 `SAFETY / DATA / APPLICABILITY`）、`observation` 声明证据引用无效直接 REVISION（`claim_strict_observation`），已同步 [claim_schema.md](/Users/ts/Desktop/thu/multi_Agent/docs/claim_schema.md) §6 并重新生成 D11 预览。自检 [tests/test_c5_validator_eval.py](/Users/ts/Desktop/thu/multi_Agent/tests/test_c5_validator_eval.py) 44 项通过（判定规则、模拟 Generator、extras 构造、三组 run_one 行为、指标与验收逻辑、报告产物）；回归 p0 87 / b1 47 / b2 34 / b3 33 / b4 51 / b5 30 / c1 50 / c2 59 / c3 84 / c4 35 全绿。**验收通过。** 标注：全部为确定性层结果，语义层 LLM 判定与 10% 人工复核后置。
 
 ### C-6 章节素材
 

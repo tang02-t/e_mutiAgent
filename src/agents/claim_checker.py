@@ -12,8 +12,9 @@ C-2 声明级约束核查器（ClaimChecker）。
   提示词只给该声明与其引用的证据片段。LLM 不可用时跳过（verdict 保持确定性层结论）。
 
 输出 ClaimCheckResult：claim_verdicts / unsupported_ratio / violation_counts / verdict(PASS | REVISION | ABSTAIN)。
-判定规则（PLAN C-2）：任一 SAFETY 或 DATA 违反 → REVISION；unsupported_ratio > 0.3 → REVISION；
-两轮修订仍不通过（iteration ≥ abstain_after）→ ABSTAIN。
+判定规则（PLAN C-2，C-5 修订）：任一硬约束（SAFETY / DATA / APPLICABILITY）违反 → REVISION；
+observation 声明的证据引用无效（伪造 / 不存在 / 知识库冒充检测）→ REVISION；
+unsupported_ratio > 0.3 → REVISION；两轮修订仍不通过（iteration ≥ abstain_after）→ ABSTAIN。
 """
 
 from __future__ import annotations
@@ -157,11 +158,17 @@ def _leaf_matches(span_leaves: Dict[str, Any], source_leaves: Dict[str, Any], re
 # ──────────────────────────────────────────────────────────────
 class ClaimChecker:
     def __init__(self, *, rel_tol: float = 0.02, abs_tol: float = 0.05, pct_abs_tol: float = 0.15,
-                 unsupported_threshold: float = 0.3, abstain_after: int = 3, llm=None, nli_max_claims: int = 12) -> None:
+                 unsupported_threshold: float = 0.3, abstain_after: int = 3, llm=None, nli_max_claims: int = 12,
+                 hard_constraints: Tuple[str, ...] = ("SAFETY", "DATA", "APPLICABILITY"),
+                 strict_observation: bool = True) -> None:
         self.rel_tol = rel_tol
         self.abs_tol = abs_tol
         self.pct_abs_tol = pct_abs_tol           # 百分比声明允许 ±0.15 个百分点（四舍五入误差）
         self.unsupported_threshold = unsupported_threshold
+        # 硬约束：任一违反直接 REVISION（C-5 评测后把 APPLICABILITY 纳入：数据集 / 设备号 / 时间窗错位是确定性事实错误）
+        self.hard_constraints = tuple(k for k in hard_constraints if k in CONSTRAINT_TYPES)
+        # observation 声明的证据被判伪造（ref 不存在 / span 不符 / 知识库冒充检测）→ 直接 REVISION，不走占比阈值
+        self.strict_observation = strict_observation
         self.abstain_after = abstain_after       # iteration ≥ 此值且仍不通过 → ABSTAIN（两轮修订 = 第 3 次评估）
         self.llm = llm
         self.nli_max_claims = nli_max_claims
@@ -194,10 +201,14 @@ class ClaimChecker:
         reasons: List[str] = []
         if n == 0:
             reasons.append("草案未产出任何声明")
-        if counts["SAFETY"]:
-            reasons.append(f"SAFETY 违反 {counts['SAFETY']} 条")
-        if counts["DATA"]:
-            reasons.append(f"DATA 违反 {counts['DATA']} 条")
+        for k in self.hard_constraints:
+            if counts.get(k):
+                reasons.append(f"{k} 违反 {counts[k]} 条")
+        if self.strict_observation:
+            n_obs_fab = sum(1 for c, v in zip(claims, verdicts)
+                            if c.get("type") == "observation" and "EVIDENCE" in v.violated_constraints)
+            if n_obs_fab:
+                reasons.append(f"observation 声明证据引用无效 {n_obs_fab} 条")
         if ratio > self.unsupported_threshold:
             reasons.append(f"无依据 / 矛盾声明占比 {ratio:.0%} > {self.unsupported_threshold:.0%}")
         if any(v.nli == "contradict" for v in verdicts):
