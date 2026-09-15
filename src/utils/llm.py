@@ -112,6 +112,23 @@ class LLMClient:
                     max_retries=0,  # 重试由 chat() 自行控制，避免双重退避
                 )
                 self._enabled = True
+        elif cfg.provider.lower() == "dashscope":
+            # 百炼「模型调优 / 自定义模型导入」产出的模型只能以 DashScope 原生方式调用（不支持 OpenAI 兼容模式）
+            api_key = cfg.api_key or os.getenv(cfg.api_key_env or "DASHSCOPE_API_KEY")
+            try:
+                import dashscope  # type: ignore
+            except Exception:  # pragma: no cover - optional dependency
+                dashscope = None  # type: ignore
+            if dashscope is None:
+                logger.warning("未安装 dashscope 包（pip install dashscope），LLM 调用将被禁用。")
+                self._enabled = False
+            elif not api_key:
+                logger.warning("DashScope API Key 未设置，LLM 调用将被禁用。")
+                self._enabled = False
+            else:
+                self._client = dashscope
+                self._dashscope_api_key = api_key
+                self._enabled = True
         else:
             if cfg.provider.lower() == "openai":
                 logger.warning("未安装 openai 包，LLM 调用将被禁用。")
@@ -187,7 +204,58 @@ class LLMClient:
             # 所有重试均失败，向上抛出由调用方降级处理
             raise RuntimeError(f"LLM 调用在 {attempts} 次尝试后仍失败: {last_exc}") from last_exc
 
+        if self.cfg.provider.lower() == "dashscope":
+            return self._chat_dashscope(messages, tools)
+
         raise NotImplementedError(f"暂不支持的 provider: {self.cfg.provider}")
+
+    def _chat_dashscope(self, messages: List[Dict[str, str]], tools: Optional[List[Dict[str, Any]]]) -> Dict[str, Any]:
+        """DashScope 原生调用（百炼调优 / 导入模型专用），返回结构与 openai 分支一致。"""
+        from types import SimpleNamespace
+
+        call_kwargs: Dict[str, Any] = {
+            "api_key": self._dashscope_api_key,
+            "model": self.cfg.model_name,
+            "messages": messages,
+            "result_format": "message",
+            "temperature": self.cfg.temperature,
+            "max_tokens": self.cfg.max_tokens,
+        }
+        if self.cfg.enable_thinking is False:
+            call_kwargs["enable_thinking"] = False
+        if tools:
+            call_kwargs["tools"] = tools
+        if self.cfg.base_url:
+            self._client.base_http_api_url = self.cfg.base_url  # 私有化 / 专属网关
+
+        attempts = max(1, self.cfg.max_retries + 1)
+        last_exc: Optional[Exception] = None
+        for attempt in range(attempts):
+            try:
+                resp = self._client.Generation.call(**call_kwargs)
+                if getattr(resp, "status_code", 200) != 200:
+                    raise RuntimeError(f"DashScope {resp.status_code} {getattr(resp, 'code', '')}: {getattr(resp, 'message', '')}")
+                raw = resp.output.choices[0].message
+                usage = getattr(resp, "usage", None)
+                if usage is not None:
+                    USAGE.add(self.cfg.model_name, getattr(usage, "input_tokens", 0) or 0,
+                              getattr(usage, "output_tokens", 0) or 0)
+                # 转成与 openai message 相同的属性对象，复用 _normalize_message
+                calls = []
+                for tc in (raw.get("tool_calls") or []) if isinstance(raw, dict) else (getattr(raw, "tool_calls", None) or []):
+                    fn = tc.get("function", {}) if isinstance(tc, dict) else getattr(tc, "function", {})
+                    calls.append(SimpleNamespace(function=SimpleNamespace(
+                        name=fn.get("name", "") if isinstance(fn, dict) else getattr(fn, "name", ""),
+                        arguments=fn.get("arguments", "") if isinstance(fn, dict) else getattr(fn, "arguments", ""))))
+                content = raw.get("content", "") if isinstance(raw, dict) else getattr(raw, "content", "")
+                return self._normalize_message(SimpleNamespace(role="assistant", content=content, tool_calls=calls or None))
+            except Exception as exc:  # noqa: BLE001
+                last_exc = exc
+                if attempt < attempts - 1:
+                    backoff = 2 ** attempt
+                    logger.warning("DashScope 调用失败（第 %d/%d 次），%ds 后重试: %s", attempt + 1, attempts, backoff, exc)
+                    time.sleep(backoff)
+        raise RuntimeError(f"DashScope 调用在 {attempts} 次尝试后仍失败: {last_exc}") from last_exc
 
     @staticmethod
     def _normalize_message(msg: Any) -> Dict[str, Any]:

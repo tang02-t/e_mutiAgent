@@ -433,5 +433,65 @@ except Exception as exc:  # noqa: BLE001
     traceback.print_exc()
     check("P5-5/P6 用例", False, f"异常：{exc}")
 
+# ─────────────────────────────────────────────────────────────
+print("\n[P5-2/P5-4] 损失加权切分、领域词典、预测解析与离线评测")
+# ─────────────────────────────────────────────────────────────
+try:
+    sys.path.insert(0, str(ROOT / "training/planner_sft"))
+    from training.planner_sft.weighting import split_weighted, load_domain_terms, normalized_weighted_ce
+    from predict import parse_response, gold_of
+    from scripts.eval.eval_planner_offline import score_row
+
+    terms = load_domain_terms()
+    check("领域词典已生成且含工具名/故障 ID/气体", len(terms) > 300 and {"fault_attribution", "overload_overheating", "过载过热", "C2H2", "ETTh1"} <= set(terms),
+          f"n={len(terms)}")
+    txt = '先归因。\n<tool_call>\n{"name": "fault_attribution", "arguments": {"dga_data": {"H2": 150, "C2H2": 3}}}\n</tool_call>'
+    segs, ws = split_weighted(txt)
+    check("切分后拼接与原文一致", "".join(segs) == txt)
+    w_of = {s: w for s, w in zip(segs, ws)}
+    check("结构 token 权重 2、领域词权重 3、普通文本 1",
+          w_of.get("<tool_call>") == 2.0 and w_of.get("fault_attribution") == 3.0 and w_of.get("C2H2") == 3.0
+          and w_of.get("先归因。\n") == 1.0, str(list(zip(segs, ws))[:8]))
+    segs2, ws2 = split_weighted(txt, domain_weight=1.0, domain_terms=[])
+    check("M2 模式领域词不升权", max(ws2) == 2.0 and "".join(segs2) == txt)
+    check("归一化加权 CE = Σw·CE/Σw", abs(normalized_weighted_ce([1.0, 2.0, 3.0], [1, 2, 3]) - 14 / 6) < 1e-9)
+
+    p = parse_response('<tool_call>\n{"name": "rag_search", "arguments": {"query": "x"}}\n</tool_call>')
+    check("解析 hermes 标签格式", p is not None and p["tool_calls"][0]["name"] == "rag_search")
+    check("未闭合标签判为格式非法", parse_response('<tool_call>{"name": "rag_search"') is None)
+    p = parse_response('{"intent_analysis": "a", "steps": [{"tool": "kg_search", "arguments": {"query": "q"}}]}')
+    check("解析 JSON 文本规划格式", p is not None and p["tool_calls"][0]["name"] == "kg_search")
+    check("纯文本回答视为无调用", parse_response("缺少 C2H2 浓度，请提供。") == {"content": "缺少 C2H2 浓度，请提供。", "tool_calls": []})
+
+    gold = {"content": "", "tool_calls": [{"name": "ett_forecast", "arguments": {"dataset": "ETTh1", "horizon": 6, "start_time": "2016-07-01", "end_time": "2016-07-10"}}]}
+    row = {"category": "numeric_tool", "sub_type": "ett_forecast", "decision_index": 0, "gold": gold,
+           "pred": {"content": "", "tool_calls": [{"name": "ett_forecast", "arguments": {"dataset": "ETTh1", "horizon": 6, "start_time": "2016-07-01", "end_time": "2016-07-10"}}]}}
+    s = score_row(row)
+    check("金标即预测 → 完整调用", s["format_valid"] and s["tool_correct"] and s["param_correct"] and s["complete_call"])
+    row["pred"]["tool_calls"][0]["arguments"]["dataset"] = "ETTh2"
+    s = score_row(row)
+    check("关键参数错误 → 参数不正确、工具仍正确", s["tool_correct"] and s["param_correct"] is False and s["complete_call"] is False)
+    row["pred"]["tool_calls"][0]["arguments"] = {"dataset": "ETTh3", "horizon": 6, "start_time": "2016-07-01", "end_time": "2016-07-10"}
+    check("枚举外参数被 Schema 校验拦截", score_row(row)["complete_call"] is False)
+    ask = {"category": "insufficient", "sub_type": "dga_missing", "decision_index": 0,
+           "gold": {"content": "{}", "tool_calls": []}, "pred": {"content": "缺少 C2H2 浓度，请补充。", "tool_calls": []}}
+    s = score_row(ask)
+    check("追问样本：无调用且含追问措辞 → 追问正确、无不必要调用", s["ask_correct"] and s["unnecessary_call"] is False)
+    ask["pred"] = {"content": "", "tool_calls": [{"name": "rag_search", "arguments": {"query": "x"}}]}
+    s = score_row(ask)
+    check("追问样本却调工具 → 不必要调用", s["unnecessary_call"] and not s["ask_correct"])
+    rec = {"category": "error_recovery", "sub_type": "ett_bad_dataset", "decision_index": 1, "gold": gold, "pred": gold}
+    check("错误恢复决策点计入恢复成功率", score_row(rec)["recovery_success"] is True)
+    import json as _json
+    mt = [_json.loads(l) for l in open(ROOT / "data/planner/sft/swift_multiturn_train.jsonl", encoding="utf-8")]
+    check("错误恢复样本不含刻意错误的首调（decision_index≥1）",
+          all(r["meta"]["decision_index"] >= 1 for r in mt if r["meta"]["category"] == "error_recovery")
+          and not any("ETTh3" in (r["messages"][-1].get("tool_calls") or [{}])[0].get("function", {}).get("arguments", "")
+                      for r in mt if r["messages"][-1].get("tool_calls")))
+except Exception as exc:  # noqa: BLE001
+    import traceback
+    traceback.print_exc()
+    check("P5-2/P5-4 用例", False, f"异常：{exc}")
+
 print(f"\n结果：{PASSED} passed, {FAILED} failed")
 sys.exit(1 if FAILED else 0)

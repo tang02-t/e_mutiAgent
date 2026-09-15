@@ -126,11 +126,18 @@ def _finish_content(step: Dict[str, Any]) -> str:
 
 
 def multi_turn_samples(rec: Dict[str, Any], tools: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """每个 assistant 决策点展开为一条样本：messages 前缀 = system + user + 之前的 assistant/tool 消息。"""
+    """每个 assistant 决策点展开为一条样本：messages 前缀 = system + user + 之前的 assistant/tool 消息。
+
+    error_recovery 类的第 0 个决策点是刻意构造的错误调用（ETTh3 / 超范围时间 / 口语词），
+    只作为后续决策的上下文，不导出为训练目标（否则 SFT 会学到「先犯错」）。
+    decision_index 为该决策在轨迹中的序号（含被跳过的首调），便于评测按 ≥1 识别「已看到工具报错」。
+    """
     base = _messages(rec)
     out: List[Dict[str, Any]] = []
     hist: List[Dict[str, Any]] = []
     call_idx = 0
+    decision_idx = 0
+    skip_first = rec.get("category") == "error_recovery"
     for k, step in enumerate(rec["trajectory"]):
         if step["role"] == "tool":
             hist.append({"role": "tool", "tool_call_id": f"call_{call_idx}", "name": step["tool"],
@@ -145,9 +152,12 @@ def multi_turn_samples(rec: Dict[str, Any], tools: List[Dict[str, Any]]) -> List
                                                    "arguments": json.dumps(step["tool_call"]["arguments"], ensure_ascii=False)}}]}
         else:
             target = {"role": "assistant", "content": _finish_content(step)}
-        out.append({"messages": base + hist + [target], "tools": tools,
-                    "meta": {"seed_id": rec["seed_id"], "category": rec["category"], "sub_type": rec["sub_type"],
-                             "split": rec["split"], "decision_index": len(out), "n_prior_calls": call_idx - (1 if "tool_call" in step else 0)}})
+        if not (skip_first and decision_idx == 0):
+            out.append({"messages": base + hist + [target], "tools": tools,
+                        "meta": {"seed_id": rec["seed_id"], "category": rec["category"], "sub_type": rec["sub_type"],
+                                 "split": rec["split"], "decision_index": decision_idx,
+                                 "n_prior_calls": call_idx - (1 if "tool_call" in step else 0)}})
+        decision_idx += 1
         hist.append(target)
     return out
 
@@ -204,6 +214,7 @@ def main() -> None:
             "- 切分：按 `group_key` 分组，train/dev/test 互不共享来源；test 封存",
             "- 已知偏差：问法为模板生成，多样性不足（待 P4-2 LLM 口语化扩写）；数值类 DGA 记录来自 3 个公开数据集，标签分布不均（过载过热/正常偏多）；"
             "图谱推理类受规则抽取图谱覆盖限制（90 节点/190 边）；多轮样本中 assistant 的 thought 为规则模板文本",
+            "- 错误恢复样本：刻意错误的首次调用只保留在上下文中，不导出为训练目标（decision_index 从 1 起）；tool 返回为真实执行结果",
             "- 许可：文献数据仅用于内部研究；ETT 数据集 CC BY 4.0；DGA 数据集见 data/real/dga 来源说明",
             "", "## 规模（单轮）", "| split | category | n |", "|---|---|---|"]
     for (sp, c), v in sorted(stats.items()):

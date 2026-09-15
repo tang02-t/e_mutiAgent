@@ -44,10 +44,11 @@ llms:
   # 微调后的 Planner（P5 产物）。仅当 workflow.planner_mode = finetuned 时启用；
   # 缺省字段继承 planner。百炼 LoRA 导入模型只支持 DashScope 原生接口，provider 需按 llm.py 适配层填写。
   # planner_finetuned:
-  #   provider: "openai"
-  #   base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+  #   # 百炼「模型调优」或「自定义模型导入」（LoRA）产出的模型只能以 DashScope 原生方式调用，不支持 OpenAI 兼容模式
+  #   provider: "dashscope"                       # 需 pip install dashscope
+  #   base_url: ""                                 # 留空用默认；专属网关时填 https://<gateway>/api/v1
   #   api_key: "YOUR_API_KEY"
-  #   model_name: "qwen3-vl-8b-planner-lora-m3"   # 百炼「我的模型」中的部署名
+  #   model_name: "qwen3-vl-8b-planner-lora-m3"   # 百炼「我的模型」中的部署名（模型 ID）
   #   temperature: 0.0
   #   enable_thinking: false
 
