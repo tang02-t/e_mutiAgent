@@ -149,6 +149,7 @@ v2 计划 E 阶段将重定义为 `llm_only → tool_base → active_plan → cl
 | `scripts/generate_synthetic_data.py` | 合成数据生成（仅流程回归） |
 | `scripts/probe_llm_endpoint.py` | 探测对话 / function calling 接口 |
 | `scripts/make_figures.py`、`make_arch_pptx.py`、`make_vsdx.py`、`make_ppt_full.py`、`md_to_docx.py` | 论文配图、可编辑架构图、汇报 PPT、Markdown 转 Word |
+| `scripts/demo_traces.py` | 三条主线离线执行轨迹（`--write` 生成 `docs/walkthrough_traces.md`），零 LLM，用于快速理解数据流 |
 | `training/planner_sft/` | v1 魔搭 ms-swift LoRA 训练脚本、加权损失插件、领域词典、预测脚本（已降级为备选） |
 
 ---
