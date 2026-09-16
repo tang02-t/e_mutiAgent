@@ -44,7 +44,7 @@ sys.path.insert(0, str(ROOT / "scripts" / "eval"))
 
 from src.graph.state import AgentState                                 # noqa: E402
 from src.graph.workflow import run_diagnosis_workflow                  # noqa: E402
-from src.graph.system_modes import resolve_mode, build_agents          # noqa: E402
+from src.graph.system_modes import tool_stack_spec, build_agents         # noqa: E402
 from src.agents.generator import GeneratorAgent                        # noqa: E402
 from src.agents.claim_checker import ClaimChecker                      # noqa: E402
 from src.tools.tool_registry import validate_arguments_strict, get_tool_names, to_openai_tools  # noqa: E402
@@ -158,7 +158,7 @@ class Executor:
         logging.disable(logging.WARNING)
         from eval_system_modes import build_mcp
         configure_engine("calibrated")
-        spec = resolve_mode("mode5", planner_mode="baseline", reflection="off")
+        spec = tool_stack_spec(NO_LLM_CFG)
         mcp, self.kb_desc = build_mcp(spec)
         _, self.retriever, _, self.validator, self.reflector = build_agents(NO_LLM_CFG, mcp, spec)
         self.generator = GeneratorAgent(NO_LLM_CFG, output_mode="claims")

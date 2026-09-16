@@ -28,7 +28,7 @@ sys.path.insert(0, str(ROOT / "scripts" / "eval"))
 
 from src.graph.state import AgentState                                # noqa: E402
 from src.graph.workflow import run_diagnosis_workflow                 # noqa: E402
-from src.graph.system_modes import resolve_mode, build_agents         # noqa: E402
+from src.graph.system_modes import tool_stack_spec, build_agents        # noqa: E402
 from src.agents.generator import GeneratorAgent                       # noqa: E402
 from src.agents.claim_checker import ClaimChecker                     # noqa: E402
 from src.agents.claims import CONSTRAINT_TYPES                        # noqa: E402
@@ -86,7 +86,7 @@ def part_b() -> Dict[str, Any]:
     logging.disable(logging.WARNING)
     cfg = C1.NO_LLM_CFG
     configure_engine("calibrated")
-    spec = resolve_mode("mode5", planner_mode="baseline", reflection="off")
+    spec = tool_stack_spec(cfg)
     mcp, kb_desc = build_mcp(spec)
     _, retriever, _, validator, reflector = build_agents(cfg, mcp, spec)
     generator = GeneratorAgent(cfg, output_mode="claims")

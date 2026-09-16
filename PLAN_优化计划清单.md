@@ -111,10 +111,10 @@
 ### A-5 砍掉项落地
 
 - [x] `run_matrix.sh` 顶部标注 v1 备选路线（保留脚本）。（2026-09-15）
-- [ ] `system_modes.py` 旧五级定义由 E-1 替换。
+- [x] `system_modes.py` 旧五级定义由 E-1 替换。（2026-09-16，见 E-1）
 - [x] 仓库清理（2026-09-15）：删除无引用的 Milvus 路线（`rag_engine.py`、`milvus_setup.py`、`utils/embedding.py`）、`remove_references.py`、`validate_dga_data.py`、两份早期 PPT 脚本、`data/rag.txt`、旧合成端到端报告；`timeseries.py` 收敛为唯一 3σ 实现，`app.py` / 两份评测脚本改为导入；`tool_registry.py` 移除已弃用的宽松 `validate_arguments`；`config.example.yaml` 移除 `knowledge_base` / `embedding` / `retriever` LLM / 未被读取的 `tools` 段；前端下线 Milvus 选项；`PROJECT_OVERVIEW.md` 按当前架构重写。
 - [x] `docs/planner_training.md` 顶部加「v1 路线，见 v2 计划 D 阶段」提示，不删除。（2026-09-15）
-- [ ] 在本文件附录 B 登记全部砍掉 / 降级项及理由。
+- [x] 在本文件附录 B 登记全部砍掉 / 降级项及理由。（2026-09-16，补齐旧五级定义、Milvus 路线、v1 训练脚本等 6 项）
 
 ---
 
@@ -328,11 +328,12 @@
 
 ### E-1 五级模式重定义
 
-- [ ] 重写 `system_modes.py` 为 §0.5 定义；`SystemModeSpec` 新增 `attribution_mode`、`planner_strategy`、`validator_mode`、`generator_output` 字段。
-- [ ] `build_agents` 按字段构建；`eval_system_modes.py` 与 `app.py` 下拉框同步更新。
-- [ ] OraclePlanner 校验在新 mode2 上重跑一次，确认 `task_success` 校验逻辑仍成立。
+- [x] 重写 [system_modes.py](/Users/ts/Desktop/thu/multi_Agent/src/graph/system_modes.py) 为 §0.5 定义：`llm_only → tool_base → active_plan → claim_verify → dpo_planner`，相邻模式只差一组开关；`SystemModeSpec` 新增 `attribution_mode`、`with_eig`、`planner_strategy`、`validator_mode`、`generator_output`；`resolve_mode` 支持逐项覆盖并校验取值；新增 `apply_engine_settings`（进程级归因 / EIG 参数）与 `tool_stack_spec(cfg)`（组件级评测用全工具栈，供 C 系列脚本替代旧 `resolve_mode("mode5", ...)`）。（2026-09-16）
+- [x] `build_agents` 按字段构建 Generator / Validator / Planner 策略；[eval_system_modes.py](/Users/ts/Desktop/thu/multi_Agent/scripts/eval/eval_system_modes.py) 新增 `--validator-mode / --attribution-mode / --planner-strategy / --generator-output / --planner-decision / --tag`，报告增加平均问询次数、无依据结论率、补证轮数、模式开关表；[app.py](/Users/ts/Desktop/thu/multi_Agent/app.py) `run_workflow` 复用 `build_agents`，侧栏可覆盖全部子开关。C 系列 7 个脚本 / 测试改用 `tool_stack_spec`。（2026-09-16）
+- [x] OraclePlanner 在新 mode2 上重跑 D10 196 条：191/196 通过（97.4%），与旧 `oracle_mode5.jsonl`（50 条，46/50）公共 50 条中 4 条由 fail 变 pass，原因均为旧结果在模板生成模式（LLM 未启用）下 `ask_ok` / `faith_ok` 为 False，本次 LLM 正常生成；无 pass→fail。剩余 5 条失败（3 条 `single_tool_fact` 忠实度 0、2 条 `ask_user` 未触发追问判定）属 Generator 与评分口径问题，非模式重定义引入，留到 E-2 处理。结果见 [oracle_mode2.jsonl](/Users/ts/Desktop/thu/multi_Agent/data/eval/d10/results/oracle_mode2.jsonl)。（2026-09-16）
 
 验收标准：五级模式各跑 D10 抽 5 条冒烟通过。
+验收结果（2026-09-16）：`--modes all --limit 5 --no-llm --tag smoke` 五级 25 条无异常，mode1-2 `llm_disabled`、mode3-5 `no_tool`（LLM 关闭时 active 策略无法决策，符合预期）；13 个测试文件共 608 项全部通过（p0 89、b 系列 196、c 系列 272、d 系列 51）；全部改动 `py_compile` 通过。
 
 ### E-2 正式评测
 
@@ -389,6 +390,12 @@
 | 林金山三智能体流程复现 | 不做（D-4） | 相关工作定性对比 |
 | 魔搭 A10 + OSS + 自定义模型导入 | 降为备选 | D-3 百炼 DPO 不可用时启用 |
 | LLMScorer 反思评分 | 降级 | 词法评分器作为基座固定配置；Kappa 仅作数据卡片附注 |
+| v1 五级模式（no_rag / naive_rag / planner_ft / kg / full） | 已替换（E-1，2026-09-16） | 知识库、图谱、词法反思从 mode2 起作为工程基座全开，不再单独归因；新五级按三条主线逐级加能力 |
+| Milvus / Zilliz 向量库路线（`rag_engine.py`、`milvus_setup.py`、`utils/embedding.py`、配置段、前端选项） | 已删除（A-5，2026-09-15） | 已被 `local_kb` 两路 BM25 取代，无引用 |
+| `remove_references.py`、`validate_dga_data.py`、早期两份 PPT 脚本、`data/rag.txt`、旧合成端到端报告 | 已删除（A-5，2026-09-15） | 功能已被 `build_units.py`、`eval_fault_attribution.py`、`make_ppt_full.py` 覆盖或为一次性残留 |
+| `run_matrix.sh`、`train.sh`、`plugin_loss_scale.py`、`docs/planner_training.md`（魔搭 ms-swift 路线） | 保留为备选，顶部标注 v1 | D-3 百炼 DPO 不可用时启用；不再维护 |
+| `tool_registry.validate_arguments` 宽松校验 | 已删除（A-5） | 只保留严格校验，避免两套口径 |
+| A-2 口语化改写实跑 | 后置 | 训练集格式与校验已就绪，改写只影响 SFT 基线数字，待百炼训练前一并执行 |
 
 ## 附录 C 关键风险与对策
 

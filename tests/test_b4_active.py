@@ -205,9 +205,11 @@ def main() -> int:
     check("轨迹每轮记录 entropy_bits / recommendations，ask 命中 VoI 最高征兆", log_ok)
     print(f"    平均追问 {total_rounds / 30:.2f} 轮，Top-1 命中 {n_hit}/30，停止原因 {stop_reasons}")
 
-    print("[5b] mode3 工具名单（数值工具 + rag_search）下走通")
+    print("[5b] mode3（active_plan：全工具 + calibrated + EIG + active 策略）名单下走通")
     from src.graph.system_modes import resolve_mode
     spec3 = resolve_mode("mode3")
+    check("mode3 定义为主动规划级", spec3.planner_strategy == "active" and spec3.with_eig
+          and spec3.attribution_mode == "calibrated" and "fault_attribution" in spec3.allowed_tools)
     n3 = 0
     for rec in rows[:6]:
         env = sim.PartialObsEnv(rec)

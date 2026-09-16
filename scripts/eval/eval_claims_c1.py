@@ -32,7 +32,7 @@ sys.path.insert(0, str(ROOT / "scripts" / "eval"))
 
 from src.graph.state import AgentState                                # noqa: E402
 from src.graph.workflow import run_diagnosis_workflow                 # noqa: E402
-from src.graph.system_modes import resolve_mode, build_agents         # noqa: E402
+from src.graph.system_modes import tool_stack_spec, build_agents        # noqa: E402
 from src.agents.generator import GeneratorAgent                       # noqa: E402
 from src.agents.claims import validate_claims, evidence_catalog, CLAIM_TYPES   # noqa: E402
 from src.tools.fault_attribution import configure_engine              # noqa: E402
@@ -99,7 +99,7 @@ def _safety_supported(claims: List[Dict[str, Any]]) -> bool:
 def run(samples: List[Dict[str, Any]], cfg: Dict[str, Any], *, use_llm: bool) -> List[Dict[str, Any]]:
     logging.disable(logging.WARNING)
     configure_engine(cfg.get("workflow", {}).get("attribution_mode", "calibrated"))
-    spec = resolve_mode("mode5", planner_mode="baseline", reflection="off")
+    spec = tool_stack_spec(cfg)
     mcp, kb_desc = build_mcp(spec)
     _, retriever, _, validator, reflector = build_agents(cfg, mcp, spec)
     generator = GeneratorAgent(cfg, output_mode="claims")

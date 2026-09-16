@@ -47,7 +47,7 @@ sys.path.insert(0, str(ROOT / "scripts" / "eval"))
 
 from src.graph.state import AgentState                                # noqa: E402
 from src.graph import workflow as wf                                  # noqa: E402
-from src.graph.system_modes import resolve_mode, build_agents         # noqa: E402
+from src.graph.system_modes import tool_stack_spec, build_agents        # noqa: E402
 from src.agents.claims import build_rule_claims, make_claim           # noqa: E402
 from src.agents.claim_checker import ClaimChecker                     # noqa: E402
 from src.agents.validator import ValidatorAgent                       # noqa: E402
@@ -267,7 +267,7 @@ def run_arm(records: List[Dict[str, Any]], arm: str, extras: bool = False) -> Li
     cfg = json.loads(json.dumps(NO_LLM_CFG))
     cfg["workflow"]["claim_check"] = ARM_CFG[arm]
     configure_engine(cfg["workflow"]["attribution_mode"])
-    spec = resolve_mode("mode5", planner_mode="baseline", reflection="off")
+    spec = tool_stack_spec(cfg)
     mcp, kb_desc = build_mcp(spec)
     _, retriever, _, _, _ = build_agents(cfg, mcp, spec)
     validator = ValidatorAgent(cfg, claim_check=ARM_CFG[arm])

@@ -364,7 +364,7 @@ try:
     from src.agents.planner import PlannerAgent
     from src.tools.tool_registry import to_openai_tools, render_tools_for_prompt
     from src.utils.prompts import PLANNER_SYSTEM_PROMPT
-    from src.graph.system_modes import SYSTEM_MODES, MODE_ORDER, resolve_mode, register_rag_for_mode
+    from src.graph.system_modes import SYSTEM_MODES, MODE_ORDER, ALL_TOOLS, resolve_mode, register_rag_for_mode
 
     base_cfg = {"llms": {"planner": {"provider": "openai", "base_url": "http://x", "api_key": "",
                                      "model_name": "m-base"}},
@@ -416,15 +416,33 @@ try:
           and codes.get("fault_attribution") is None, str(codes))
     check("拒绝记录进入 trajectory", any(t["error_code"] == "tool_disabled" for t in st.trajectory))
 
-    # 五级模式定义单调递增
-    check("五级模式能力单调递增",
-          all(set(SYSTEM_MODES[a].allowed_tools) <= set(SYSTEM_MODES[b].allowed_tools)
-              for a, b in zip(MODE_ORDER, MODE_ORDER[1:]))
-          and SYSTEM_MODES["mode1"].rag_mode is None and SYSTEM_MODES["mode2"].rag_mode == "naive"
-          and "kg_search" not in SYSTEM_MODES["mode3"].allowed_tools and "kg_search" in SYSTEM_MODES["mode4"].allowed_tools
-          and SYSTEM_MODES["mode5"].reflection != "off")
-    spec = resolve_mode("4", planner_mode="baseline", reflection="llm")
-    check("resolve_mode 支持别名与覆盖", spec.key == "mode4" and spec.planner_mode == "baseline" and spec.reflection == "llm")
+    # 五级模式定义（PLAN v2 §0.5）：每级只比上一级多开一项能力
+    M = SYSTEM_MODES
+    check("五级模式定义符合 §0.5",
+          M["mode1"].allowed_tools == [] and M["mode1"].rag_mode is None and M["mode1"].name == "llm_only"
+          and all(set(M[k].allowed_tools) == set(ALL_TOOLS) and M[k].rag_mode == "two_way" and M[k].reflection == "lexical"
+                  for k in MODE_ORDER[1:])
+          and M["mode2"].attribution_mode == "expert" and not M["mode2"].with_eig and M["mode2"].planner_strategy == "free"
+          and M["mode2"].generator_output == "text" and M["mode2"].validator_mode == "off" and M["mode2"].planner_mode == "baseline"
+          and M["mode3"].attribution_mode == "calibrated" and M["mode3"].with_eig and M["mode3"].planner_strategy == "active"
+          and M["mode3"].generator_output == "text" and M["mode3"].validator_mode == "off"
+          and M["mode4"].generator_output == "claims" and M["mode4"].validator_mode == "route" and M["mode4"].planner_mode == "baseline"
+          and M["mode5"].planner_mode == "finetuned" and M["mode5"].validator_mode == "route")
+    _diff = lambda a, b: {k for k, v in M[a].to_dict().items() if v != M[b].to_dict()[k]} - {"key", "name", "label", "mainline"}
+    check("相邻模式只差一组开关",
+          _diff("mode2", "mode3") == {"attribution_mode", "with_eig", "planner_strategy"}
+          and _diff("mode3", "mode4") == {"generator_output", "validator_mode"}
+          and _diff("mode4", "mode5") == {"planner_mode"}, str([_diff("mode2", "mode3"), _diff("mode3", "mode4"), _diff("mode4", "mode5")]))
+    spec = resolve_mode("4", planner_mode="baseline", reflection="llm", validator_mode="off", attribution_mode="expert")
+    check("resolve_mode 支持别名与覆盖",
+          spec.key == "mode4" and spec.planner_mode == "baseline" and spec.reflection == "llm"
+          and spec.validator_mode == "off" and spec.attribution_mode == "expert"
+          and resolve_mode("claim_verify").key == "mode4" and resolve_mode("full").key == "mode5")
+    try:
+        resolve_mode("mode2", validator_mode="bogus")
+        check("resolve_mode 拒绝非法覆盖值", False)
+    except ValueError:
+        check("resolve_mode 拒绝非法覆盖值", True)
     m = MCPClient()
     check("mode1 的 rag_search 桩返回空", register_rag_for_mode(m, SYSTEM_MODES["mode1"]) == "disabled"
           and m.call_tool("rag_search", "x") == [])

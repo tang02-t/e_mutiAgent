@@ -25,7 +25,7 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "scripts" / "eval"))
 
 from src.graph.state import AgentState                                              # noqa: E402
-from src.graph.system_modes import resolve_mode, build_agents                       # noqa: E402
+from src.graph.system_modes import tool_stack_spec, build_agents                      # noqa: E402
 from src.agents.claims import make_claim, make_evidence                             # noqa: E402
 from src.agents.claim_checker import ClaimChecker                                   # noqa: E402
 from src.agents.validator import ValidatorAgent                                     # noqa: E402
@@ -167,7 +167,7 @@ def test_4_run_one() -> None:
     ap = next(r for r in recs if r["injected"] and r["subtype"] == "dataset_swap")
     clean = next(r for r in recs if not r["injected"])
     configure_engine("calibrated")
-    spec = resolve_mode("mode5", planner_mode="baseline", reflection="off")
+    spec = tool_stack_spec(ev.NO_LLM_CFG)
     mcp, _ = build_mcp(spec)
     oracle = ClaimChecker()
     res: Dict[str, Dict[str, Any]] = {}

@@ -150,7 +150,7 @@ flowchart TD
 
 评测集 D10 196 条；脚本 `scripts/eval/eval_system_modes.py --modes all --judge llm`；报告 [end2end_eval.md](end2end_eval.md)。
 
-五级模式：mode1 无 RAG（仅数值工具）→ mode2 朴素 RAG（单路 BM25）→ mode3 + 微调 Planner 与两路检索 → mode4 + 图谱 → mode5 + 反思。每级只比上一级多开一个能力，`allowed_tools` 同时约束 Planner 提示词与 Retriever 执行守卫，越权调用记 `tool_disabled` 并计入不必要调用。
+五级模式（v2，2026-09-16 起）：mode1 `llm_only`（无工具）→ mode2 `tool_base`（全工具 + 知识库两路检索 + 图谱 + 词法反思，专家 CPT，自由规划，v1 Validator）→ mode3 `active_plan`（+ 校准归因、EIG 主动追问）→ mode4 `claim_verify`（+ 声明级输出、约束核查、补证重规划路由）→ mode5 `dpo_planner`（+ DPO 微调 Planner）。每级只比上一级多开一组开关，知识库 / 图谱 / 反思从 mode2 起作为工程基座固定全开，不再单独归因；`allowed_tools` 同时约束 Planner 提示词与 Retriever 执行守卫，越权调用记 `tool_disabled` 并计入不必要调用。`--validator-mode / --attribution-mode / --planner-strategy / --generator-output / --planner-mode` 可单独覆盖，用于交叉对照。
 
 | 指标 | 定义 |
 |---|---|
@@ -163,7 +163,7 @@ flowchart TD
 | 平均工具调用次数 / 不必要调用率 | 不必要 = 非必要调用次数 / 总调用次数，含 tool_disabled |
 | 平均延迟 / 平均 Token | 单任务秒数；`src.utils.llm.USAGE` 累计 prompt + completion |
 
-分 8 场景报告：single_tool_fact 40 / single_tool_numeric 40 / multi_tool 30 / kg_reasoning 30 / ask_user 17 / error_recovery 16 / no_tool 15 / context_contrast 8。OraclePlanner（金标当预测）校验评分链路：task_success 88.8%，param_acc 100%，tool_result_valid 100%，未到 100% 的部分来自离线忠实度代理的词面偏差。
+分 8 场景报告：single_tool_fact 40 / single_tool_numeric 40 / multi_tool 30 / kg_reasoning 30 / ask_user 17 / error_recovery 16 / no_tool 15 / context_contrast 8。OraclePlanner（金标当预测）校验评分链路：v1 mode5 离线代理 50 条 task_success 88.8%（46/50）；v2 mode2 全量 196 条、LLM 正常生成时 task_success 97.4%（191/196），param_acc 100%，tool_result_valid 100%，剩余 5 条为 Generator 忠实度代理词面偏差与 ask_user 追问措辞判定，不是模式定义问题。
 
 ### 2.5 基线与对照关系
 
@@ -174,8 +174,8 @@ flowchart TD
 | 标题 / 固定窗口 / DP α 网格 | 分块方式贡献 | D3 test | 1 |
 | 无反思 → LexicalScorer → LLMScorer | 反思贡献与评分器质量 | D3 test + D9 | 2b |
 | M0 → M1 → M2 → M3（→ M3-random） | 微调与加权损失贡献 | D8 test | 3 |
-| mode1 → mode5 | 每个模块的端到端增量 | D10 | 4 |
-| `--planner-mode baseline` 覆盖 mode3–5 | 微调 Planner 在完整系统中的净贡献 | D10 | 4 |
+| mode1 → mode5（v2） | 工具基座 / 主动规划 / 声明验证 / DPO Planner 的端到端增量 | D10 | 4 |
+| mode4 + `--planner-mode baseline`、mode5 + `--validator-mode off` | 分离主线二与主线三在完整系统中的净贡献 | D10 | 4 |
 
 ### 2.6 评测纪律
 

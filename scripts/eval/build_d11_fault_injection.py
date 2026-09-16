@@ -42,7 +42,7 @@ sys.path.insert(0, str(ROOT / "scripts" / "eval"))
 
 from src.graph.state import AgentState                                # noqa: E402
 from src.graph.workflow import run_diagnosis_workflow                 # noqa: E402
-from src.graph.system_modes import resolve_mode, build_agents         # noqa: E402
+from src.graph.system_modes import tool_stack_spec, build_agents        # noqa: E402
 from src.agents.generator import GeneratorAgent, CLAIMS_SEPARATOR      # noqa: E402
 from src.agents.claims import (evidence_catalog, make_claim, make_evidence, render_claims_markdown,  # noqa: E402
                                _fmt_num)
@@ -78,7 +78,7 @@ def build_bases(samples: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     cfg["workflow"]["claim_check"] = "off"
     cfg["workflow"]["max_iterations"] = 1
     configure_engine(cfg["workflow"]["attribution_mode"])
-    spec = resolve_mode("mode5", planner_mode="baseline", reflection="off")
+    spec = tool_stack_spec(cfg)
     mcp, kb_desc = build_mcp(spec)
     _, retriever, _, validator, _ = build_agents(cfg, mcp, spec)
     generator = GeneratorAgent(cfg, output_mode="claims")

@@ -131,27 +131,16 @@ def run_workflow(
     context: Dict[str, Any],
     config: Dict[str, Any],
     mcp: MCPClient,
-    reflection_mode: str = "off",
-    planner_mode: str = "baseline",
-    allowed_tools: List[str] | None = None,
-    planner_strategy: str = "free",
+    spec,
     planner_decision: str = "llm",
     max_inquiry_rounds: int = 3,
-    attribution_mode: str = "calibrated",
 ) -> tuple[AgentState | None, float, str | None]:
     """执行完整诊断工作流，返回 (final_state, elapsed, error)。
+    spec 为 SystemModeSpec（五级模式 + 覆盖后的全部开关）；智能体由 build_agents 统一构建，
+    同时按 spec 设置归因引擎参数与 EIG 开关。
     planner_strategy=active 时遇到追问会中断并把问题留在 final_state.pending_questions，由前端收集回答后续跑。
     """
-    from src.agents.planner import PlannerAgent
-    from src.agents.retriever import RetrieverAgent
-    from src.agents.generator import GeneratorAgent
-    from src.agents.validator import ValidatorAgent
-    from src.tools.fault_attribution import configure_engine
-
-    try:
-        configure_engine(attribution_mode)
-    except Exception as exc:  # noqa: BLE001
-        st.warning(f"归因参数切换失败（{exc}），沿用当前引擎")
+    from src.graph.system_modes import build_agents
 
     state = AgentState(
         user_query=user_query,
@@ -160,19 +149,23 @@ def run_workflow(
         max_inquiry_rounds=int(max_inquiry_rounds),
     )
 
-    planner = PlannerAgent(config, planner_mode=planner_mode, allowed_tools=allowed_tools,
-                           strategy=planner_strategy, decision=planner_decision)
-    retriever = RetrieverAgent(config, mcp, allowed_tools=allowed_tools)
-    generator = GeneratorAgent(config)
-    validator = ValidatorAgent(config)
-    reflector = None
-    if reflection_mode != "off":
-        try:
-            from src.agents.reflection import ReflectionModule, LexicalScorer
-            from src.tools.local_kb import get_local_kb
-            reflector = ReflectionModule(scorer=LexicalScorer(), kb=get_local_kb())
-        except Exception as exc:  # noqa: BLE001
+    try:
+        planner, retriever, generator, validator, reflector = build_agents(config, mcp, spec,
+                                                                           planner_decision=planner_decision)
+    except Exception as exc:  # noqa: BLE001
+        if spec.reflection != "off":
             st.warning(f"反思模块初始化失败，已关闭：{exc}")
+            from dataclasses import replace as _replace
+            spec = _replace(spec, reflection="off")
+            try:
+                planner, retriever, generator, validator, reflector = build_agents(config, mcp, spec,
+                                                                                   planner_decision=planner_decision)
+            except Exception:  # noqa: BLE001
+                import traceback
+                return None, 0.0, "智能体构建失败：\n" + traceback.format_exc()
+        else:
+            import traceback
+            return None, 0.0, "智能体构建失败：\n" + traceback.format_exc()
     st.session_state["agents"] = (planner, retriever, generator, validator, reflector)
 
     t0 = time.time()
@@ -591,18 +584,16 @@ with st.sidebar:
     )
     _ft_ready = isinstance(config.get("llms", {}).get("planner_finetuned"), dict)
     system_mode_key = st.selectbox(
-        "系统模式（P6 五级对比）",
+        "系统模式（五级增量对比）",
         options=MODE_ORDER,
         index=len(MODE_ORDER) - 1,
         format_func=lambda k: SYSTEM_MODES[k].label,
-        help="每级只在上一级基础上打开一个能力：无RAG → 朴素RAG → +规划微调 → +图谱 → +反思。",
+        help="每级只在上一级基础上打开一项能力：LLM 直答 → 工具基座（五工具 + 两路检索 + 图谱 + 词法反思）"
+             " → + 主动规划（校准归因 + EIG + 主动问询） → + 声明级验证（claim-evidence + 约束核查 + 补证路由）"
+             " → + DPO Planner。",
     )
     _spec = SYSTEM_MODES[system_mode_key]
-    st.caption(_spec.description)
-    st.caption("可用工具：" + "、".join(_spec.allowed_tools)
-               + f"　|　检索：{_spec.rag_mode or '关闭'}　|　Planner：{_spec.planner_mode}"
-               + ("（未配置微调模型，回退基线）" if _spec.planner_mode == "finetuned" and not _ft_ready else "")
-               + f"　|　反思：{_spec.reflection}")
+    st.caption(f"{_spec.description}（{_spec.mainline}）")
 
     with st.expander("高级：覆盖模式子开关", expanded=False):
         kb_mode = st.radio(
@@ -614,42 +605,46 @@ with st.sidebar:
             help="local_kb 由 data/kb 离线构建，不依赖网络；mock 为程序合成案例，不得用于评测。",
         )
         max_iter = st.slider("最大迭代轮次", 1, 5, value=config.get("workflow", {}).get("max_iterations", 3))
-        _pm_opts = ["（按模式）", "baseline", "finetuned"]
-        _pm_pick = st.selectbox("Planner 模型覆盖", _pm_opts, index=0,
-                                help="finetuned 需在 config.yaml 的 llms.planner_finetuned 配置微调模型接口；未配置时自动回退 baseline。")
-        _rf_pick = st.selectbox("反思模块覆盖", ["（按模式）", "off", "lexical"], index=0,
+        _BY = "（按模式）"
+        _pm_pick = st.selectbox("Planner 模型覆盖", [_BY, "baseline", "finetuned"], index=0,
+                                help="finetuned 需在 config.yaml 的 llms.planner_finetuned 配置百炼部署的 DPO 模型；未配置时自动回退 baseline。")
+        _ps_pick = st.selectbox("Planner 策略覆盖", [_BY, "free", "active"], index=0,
+                                help="free：一次规划直接结论；active：按信息增益决定追问 / 调工具 / 结论（B-4）。")
+        _am_pick = st.selectbox("归因参数覆盖", [_BY, "expert", "calibrated"], index=0,
+                                help="expert：专家默认 CPT；calibrated：数据学习 + 温度缩放（B-1）。EIG 推荐块随模式（mode3+ 开）。")
+        _go_pick = st.selectbox("Generator 输出覆盖", [_BY, "text", "claims"], index=0,
+                                help="claims：输出 claim-evidence 结构（C-1）。")
+        _vm_pick = st.selectbox("Validator 核查覆盖", [_BY, "off", "check", "route"], index=0,
+                                help="off：v1 整体评分；check：声明级核查不路由（C-2）；route：核查 + 补证重规划路由（C-3）。")
+        _rf_pick = st.selectbox("反思模块覆盖", [_BY, "off", "lexical"], index=0,
                                 help="lexical 为离线词法评分器（阈值 3 分）；LLM 评分需接口。")
+    _pick = lambda v: None if v == _BY else v
     _spec = resolve_mode(system_mode_key,
-                         planner_mode=None if _pm_pick == "（按模式）" else _pm_pick,
-                         reflection=None if _rf_pick == "（按模式）" else _rf_pick)
-    planner_mode = _spec.planner_mode
-    reflection_mode = _spec.reflection if _spec.reflection in ("off", "lexical") else "lexical"
-    allowed_tools = list(_spec.allowed_tools)
+                         planner_mode=_pick(_pm_pick), planner_strategy=_pick(_ps_pick),
+                         attribution_mode=_pick(_am_pick), generator_output=_pick(_go_pick),
+                         validator_mode=_pick(_vm_pick), reflection=_pick(_rf_pick))
+    if _spec.reflection == "llm":
+        _spec = resolve_mode(system_mode_key, planner_mode=_spec.planner_mode, planner_strategy=_spec.planner_strategy,
+                             attribution_mode=_spec.attribution_mode, generator_output=_spec.generator_output,
+                             validator_mode=_spec.validator_mode, reflection="lexical")
     rag_mode = _spec.rag_mode
+    st.caption("生效开关：" + _spec.summary()
+               + ("　（未配置微调模型，Planner 回退基线）" if _spec.planner_mode == "finetuned" and not _ft_ready else ""))
 
     st.divider()
     st.subheader("🎯 主动规划（B-4）")
     _wf = config.get("workflow", {}) or {}
-    planner_strategy = st.radio(
-        "Planner 策略", options=["free", "active"],
-        index=["free", "active"].index(_wf.get("planner_strategy", "free")),
-        format_func=lambda x: {"free": "free：一次规划直接结论", "active": "active：按信息增益决定追问 / 调工具 / 结论"}[x],
-        horizontal=False,
-    )
     planner_decision = "llm"
     max_inquiry_rounds = int(_wf.get("max_inquiry_rounds", 3))
-    if planner_strategy == "active":
+    if _spec.planner_strategy == "active":
         planner_decision = st.radio(
             "动作决策来源", options=["llm", "eig"],
             index=["llm", "eig"].index(_wf.get("planner_decision", "llm")),
             format_func=lambda x: {"llm": "LLM 决策（读 uncertainty 块，失败回退 EIG）", "eig": "EIG 规则（不调 LLM，问 VoI 最高征兆）"}[x],
         )
         max_inquiry_rounds = st.slider("最大追问轮数 K", 1, 5, value=max_inquiry_rounds)
-    attribution_mode = st.selectbox(
-        "归因参数", options=["calibrated", "expert"],
-        index=["calibrated", "expert"].index(_wf.get("attribution_mode", "calibrated")),
-        format_func=lambda x: {"calibrated": "calibrated：数据学习 + 温度缩放（B-1）", "expert": "expert：专家默认 CPT"}[x],
-    )
+    else:
+        st.caption("当前模式 Planner 策略为 free（一次规划直接结论）；切到模式 3 及以上或在高级选项覆盖为 active 可启用主动追问。")
 
     st.divider()
     st.subheader("🧪 DGA 油色谱（可选）")
@@ -736,11 +731,9 @@ if run_clicked:
                     rag_mode=rag_mode)
 
     with st.spinner(f"多智能体协同诊断中…（{_spec.label}）"):
-        final, elapsed, err = run_workflow(user_query, context, run_cfg, mcp,
-                                           reflection_mode=reflection_mode, planner_mode=planner_mode,
-                                           allowed_tools=allowed_tools,
-                                           planner_strategy=planner_strategy, planner_decision=planner_decision,
-                                           max_inquiry_rounds=max_inquiry_rounds, attribution_mode=attribution_mode)
+        final, elapsed, err = run_workflow(user_query, context, run_cfg, mcp, _spec,
+                                           planner_decision=planner_decision,
+                                           max_inquiry_rounds=max_inquiry_rounds)
 
     if err:
         st.error("工作流执行失败：")

@@ -210,12 +210,12 @@ check(wf._route_after_supplement(st2) == "generator" and wf._route_after_supplem
 
 # ─────────────────────────────────────────────────────────────
 print("[5] Retriever 补证轮累积（free 策略）")
-from src.graph.system_modes import resolve_mode, build_agents                        # noqa: E402
+from src.graph.system_modes import tool_stack_spec, build_agents                       # noqa: E402
 from eval_system_modes import build_mcp                                             # noqa: E402
 from src.tools.fault_attribution import configure_engine                           # noqa: E402
 
 configure_engine("calibrated")
-spec = resolve_mode("mode5", planner_mode="baseline", reflection="off")
+spec = tool_stack_spec(_cfg())
 mcp, _kb = build_mcp(spec)
 _, retriever, _, _, _ = build_agents(_cfg(), mcp, spec)
 
@@ -366,7 +366,7 @@ check("不要重复调用本轮已经执行过且参数相同的工具" in tpl, 
 print("[8] off / check 模式行为不变")
 for mode in ("off", "check"):
     cfg_m = _cfg(claim_check=mode)
-    _, retriever_m, _, validator_m, _ = build_agents(cfg_m, mcp, spec)
+    _, retriever_m, _, validator_m, _ = build_agents(cfg_m, mcp, tool_stack_spec(cfg_m))
     gen_m = InjectGenerator(cfg_m, inject)
     s_m = AgentState(user_query="变压器乙炔 25 ppm，可能是什么故障？", context={"dga": DGA}, max_iterations=3)
     f_m = wf.run_diagnosis_workflow(s_m, planner, retriever_m, gen_m, validator_m)

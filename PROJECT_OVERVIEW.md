@@ -88,15 +88,15 @@ flowchart TD
 - Validator 路由：PASS → END；REVISION 且 `iteration < max_iterations`（默认 3）→ generator；FAIL → END。
 - 每个智能体在 LLM 不可用时降级（Planner 空计划、Generator 模板、Validator 规则）。
 
-### 五级系统模式（`system_modes.py`，当前 v1 口径）
+### 五级系统模式（`system_modes.py`，PLAN v2 §0.5 口径）
 
-| 模式 | 名称 | 新增能力 |
-|---|---|---|
-| mode1 | no_rag | 仅数值工具 |
-| mode2 | naive_rag | + 单路 BM25 检索 |
-| mode3 | planner_ft | + 微调 Planner，检索升级两路 |
-| mode4 | kg | + 图谱 |
-| mode5 | full | + 反思 |
+| 模式 | 名称 | 新增能力 | 对应主线 |
+|---|---|---|---|
+| mode1 | llm_only | 无任何工具，LLM 直接回答 | 参照 |
+| mode2 | tool_base | 全部五个工具 + 两路检索 + 图谱 + 词法反思；归因 expert、无 EIG；v1 Validator；Planner 基座 free | 工程基座 |
+| mode3 | active_plan | 归因 calibrated + EIG 推荐；Planner active（主动问询 / 补证） | 主线一 |
+| mode4 | claim_verify | Generator claims 输出；Validator claim_check=route | 主线二 |
+| mode5 | dpo_planner | Planner 切换为百炼部署的 DPO 模型（planner_finetuned） | 主线三 |
 
 v2 计划 E 阶段将重定义为 `llm_only → tool_base → active_plan → claim_verify → dpo_planner`，知识库 / 图谱 / 词法反思从 tool_base 起作为基座全开。
 

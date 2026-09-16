@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-P6-2：五级系统模式对比评测（D10 → mode1..mode5）。
+E-1 / E-2：五级系统模式对比评测（D10 → mode1..mode5）。
 
-模式定义见 src/graph/system_modes.py：
-  mode1 no_rag / mode2 naive_rag / mode3 +planner_ft / mode4 +kg / mode5 +reflection(full)
+模式定义见 src/graph/system_modes.py（PLAN v2 §0.5）：
+  mode1 llm_only（无工具）/ mode2 tool_base（五工具 + 两路检索 + 图谱 + 词法反思，expert 归因，v1 Validator）
+  / mode3 active_plan（calibrated 归因 + EIG + Planner active）/ mode4 claim_verify（claims + claim_check=route）
+  / mode5 dpo_planner（Planner finetuned）
+每级只比上一级多开一项能力；--planner-mode / --validator-mode / --attribution-mode / --planner-strategy /
+--generator-output 可对所有被评测模式做显式覆盖（交叉对照，如 mode4 + baseline planner）。
 
 指标（PLAN P6-2）：
   任务成功率  = 动作正确 ∧ 关键参数正确 ∧ 工具结果有效 ∧ 答案忠实于证据（四项同时满足）
@@ -20,10 +24,15 @@ P6-2：五级系统模式对比评测（D10 → mode1..mode5）。
   平均工具调用次数 / 平均延迟 / Token 成本（src.utils.llm.USAGE）
   错误恢复成功率：expected_recovery 非空样本中，最终 recovered_call 工具业务成功的比例
   追问正确率    ：ask_user 样本中 未调用工具 ∧ 答案含追问措辞
+  无依据结论率  ：mode4/5 下 Validator 声明级核查的 unsupported_ratio（首轮）均值；平均问询次数：active 策略的 inquiry_rounds
+
+主动问询（mode3+）：D10 样本没有隐藏征兆真值，评测时 answer_fn 一律回答 None（「用户无法提供」），
+追问循环因此最多问 K 轮后结论；若工作流因中断留下 pending_questions，则把追问文本视作最终答案参与打分。
 
 用法：
   python3 scripts/eval/eval_system_modes.py --modes mode1,mode2,mode5 --limit 20      # 冒烟
   python3 scripts/eval/eval_system_modes.py --modes all --planner-mode baseline      # 微调模型未就绪时的对照
+  python3 scripts/eval/eval_system_modes.py --modes mode4 --validator-mode off       # 交叉对照：mode4 + v1 validator
   python3 scripts/eval/eval_system_modes.py --modes all --no-llm                     # 仅流程连通性（Planner 禁用 → 全部 no plan）
 输出：
   data/eval/d10/results/<mode>.jsonl   逐条结果
@@ -46,7 +55,7 @@ sys.path.insert(0, str(ROOT))
 from src.graph.state import AgentState                          # noqa: E402
 from src.graph.workflow import run_diagnosis_workflow           # noqa: E402
 from src.graph.system_modes import (                            # noqa: E402
-    MODE_ORDER, resolve_mode, register_rag_for_mode, build_agents, SystemModeSpec,
+    MODE_ORDER, SYSTEM_MODES, resolve_mode, register_rag_for_mode, build_agents, SystemModeSpec,
 )
 from src.tools.mcp_client import MCPClient                      # noqa: E402
 from src.tools.fault_attribution import fault_attribution       # noqa: E402
@@ -210,6 +219,11 @@ def _faithfulness_proxy(sample: Dict[str, Any], answer: str, tool_calls: List[Di
 def score_sample(sample: Dict[str, Any], final: AgentState, elapsed: float, usage: Dict[str, Any],
                  spec: SystemModeSpec) -> Dict[str, Any]:
     answer = final.final_answer or final.draft_answer or ""
+    if not answer and getattr(final, "pending_questions", None):
+        # active 策略在无 answer_fn 时遇 ask 中断：把追问文本当作系统的最终输出
+        answer = "；".join(str(q.get("question") or "") for q in final.pending_questions if isinstance(q, dict))
+        if answer and not any(p in answer for p in ASK_PATTERNS):
+            answer = "请提供：" + answer
     traj = list(getattr(final, "trajectory", []) or [])
     tool_calls = list(final.tool_calls or [])
     required = sample["required_actions"]
@@ -248,6 +262,8 @@ def score_sample(sample: Dict[str, Any], final: AgentState, elapsed: float, usag
 
     plan_content = next((it.get("content") for it in final.reasoning_trace
                          if it.get("agent") == "planner" and it.get("type") == "llm_plan"), {}) or {}
+    # E-1 新增：主动问询次数（mode3+）、声明级核查首轮无依据比例（mode4+）、补证轮数（route）
+    first_check = (final.claim_check_log or [{}])[0] if getattr(final, "claim_check_log", None) else {}
     return {
         "eval_id": sample["eval_id"], "scenario": sample["scenario"], "sub_type": sample["sub_type"],
         "mode": spec.key,
@@ -257,6 +273,11 @@ def score_sample(sample: Dict[str, Any], final: AgentState, elapsed: float, usag
         "n_disabled": n_disabled,
         "plan_status": final.plan_status, "planner_model": plan_content.get("planner_model"),
         "verdict": final.validation_verdict, "iterations": final.iteration,
+        "inquiry_rounds": int(getattr(final, "inquiry_rounds", 0) or 0),
+        "pending_question": bool(getattr(final, "pending_questions", None)),
+        "unsupported_ratio": first_check.get("unsupported_ratio"),
+        "claim_verdict": first_check.get("verdict"),
+        "evidence_rounds": int(getattr(final, "evidence_rounds", 0) or 0),
         "elapsed": elapsed, "tokens": usage.get("total_tokens", 0), "llm_calls": usage.get("calls", 0),
         "answer_len": len(answer),
         "tools_called": [t.get("tool") for t in traj],
@@ -306,24 +327,33 @@ class OraclePlanner:
         return state
 
 
+def _no_answer(symptom: str, question: Dict[str, Any]) -> None:
+    """D10 无隐藏征兆真值：追问一律回答「无法提供」（None），使 active 策略在 K 轮内自行结论。"""
+    return None
+
+
 def run_mode(spec: SystemModeSpec, samples: List[Dict[str, Any]], config: Dict[str, Any],
-             oracle: bool = False) -> List[Dict[str, Any]]:
+             oracle: bool = False, planner_decision: Optional[str] = None) -> List[Dict[str, Any]]:
     mcp, kb_desc = build_mcp(spec)
-    planner, retriever, generator, validator, reflector = build_agents(config, mcp, spec)
+    planner, retriever, generator, validator, reflector = build_agents(config, mcp, spec,
+                                                                       planner_decision=planner_decision)
     if oracle:
         planner = OraclePlanner(spec.allowed_tools)
-    print(f"\n=== {spec.label} | tools={spec.allowed_tools} rag={kb_desc} planner={planner.planner_mode}"
-          f"({planner.model_name}) reflection={spec.reflection} ===")
+    answer_fn = _no_answer if getattr(planner, "strategy", "free") == "active" else None
+    print(f"\n=== {spec.label} [{spec.name}] | {spec.summary()} | rag_impl={kb_desc} "
+          f"planner_model={getattr(planner, 'model_name', '?')} ===")
     out = []
     for i, s in enumerate(samples, 1):
         if oracle:
             planner.bind(s)
         state = AgentState(user_query=s["user_query"], context=dict(s.get("context") or {}),
-                           max_iterations=config.get("workflow", {}).get("max_iterations", 3))
+                           max_iterations=config.get("workflow", {}).get("max_iterations", 3),
+                           max_inquiry_rounds=int(config.get("workflow", {}).get("max_inquiry_rounds", 3)))
         USAGE.reset()
         t0 = time.time()
         try:
-            final = run_diagnosis_workflow(state, planner, retriever, generator, validator, reflector=reflector)
+            final = run_diagnosis_workflow(state, planner, retriever, generator, validator, reflector=reflector,
+                                           answer_fn=answer_fn)
             r = score_sample(s, final, time.time() - t0, USAGE.snapshot(), spec)
         except Exception as exc:  # noqa: BLE001
             r = {"eval_id": s["eval_id"], "scenario": s["scenario"], "sub_type": s["sub_type"], "mode": spec.key,
@@ -331,7 +361,10 @@ def run_mode(spec: SystemModeSpec, samples: List[Dict[str, Any]], config: Dict[s
         out.append(r)
         print(f"  [{i}/{len(samples)}] {s['eval_id']} {s['scenario']:<20} ok={r.get('success')} "
               f"act={r.get('action_ok')} par={r.get('params_ok')} res={r.get('results_ok')} "
-              f"faith={r.get('faithfulness')} calls={r.get('n_tool_calls')} plan={r.get('plan_status')}")
+              f"faith={r.get('faithfulness')} calls={r.get('n_tool_calls')} plan={r.get('plan_status')}"
+              + (f" ask={r.get('inquiry_rounds')}" if spec.planner_strategy == "active" else "")
+              + (f" unsup={r.get('unsupported_ratio')}" if spec.validator_mode != "off" else "")
+              + (f" ERR={r['error'][:80]}" if r.get("error") else ""))
     return out
 
 
@@ -363,6 +396,10 @@ def summarize(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
         "unnecessary_call_rate": (sum(r.get("n_unnecessary", 0) for r in rows) / max(sum(r.get("n_tool_calls", 0) for r in rows), 1)),
         "avg_latency_s": _mean(rows, "elapsed"),
         "avg_tokens": _mean(rows, "tokens"),
+        "avg_inquiry_rounds": _mean(rows, "inquiry_rounds"),
+        "unsupported_rate": _mean(rows, "unsupported_ratio"),
+        "avg_evidence_rounds": _mean(rows, "evidence_rounds"),
+        "n_errors": sum(1 for r in rows if r.get("error")),
         "plan_status": dict(sorted(__import__("collections").Counter(str(r.get("plan_status")) for r in rows).items())),
         "by_scenario": {
             sc: _rate([r for r in rows if r.get("scenario") == sc], "success")
@@ -381,19 +418,33 @@ def _fmt(v: Any, pct: bool = False) -> str:
 
 def write_report(summaries: Dict[str, Dict[str, Any]], meta: Dict[str, Any]) -> None:
     modes = [m for m in MODE_ORDER if m in summaries]
-    L = ["# 端到端评测：五级系统模式对比（P6-2）\n",
+    overrides = {k: v for k, v in (meta.get("overrides") or {}).items() if v}
+    L = ["# 端到端评测：五级系统模式对比（E-1 / E-2）\n",
          f"- 评测集：`data/eval/d10/end2end_eval.jsonl`（D10，{meta.get('n_samples')} 条{'，--limit 截断' if meta.get('limited') else ''}）",
          f"- 运行时间：{meta.get('time')}；LLM：{'禁用（仅流程连通性）' if meta.get('no_llm') else meta.get('llm_desc')}",
-         f"- planner_mode 覆盖：{meta.get('planner_override') or '按模式默认（mode3-5 finetuned，未配置时自动回退 baseline）'}",
+         "- 显式覆盖：" + (", ".join(f"`--{k.replace('_', '-')} {v}`" for k, v in overrides.items()) if overrides
+                         else "无（按模式默认；mode5 的 finetuned Planner 未配置时自动回退 baseline）"),
          "- 忠实度：" + ("LLM 裁判" if meta.get("judge") == "llm" else "离线证据锚点代理（非 LLM 裁判，见指标说明）"),
-         "", "## 主表", "",
-         "| 指标 | " + " | ".join(summaries[m]["label"] for m in modes) + " |",
-         "|---|" + "---:|" * len(modes)]
+         "", "## 模式开关", "",
+         "| 模式 | 名称 | 工具 | 检索 | 反思 | 归因 | EIG | Planner | 策略 | Generator | Validator |",
+         "|---|---|---|---|---|---|---|---|---|---|---|"]
+    for m in modes:
+        sp = summaries[m].get("spec") or SYSTEM_MODES[m].to_dict()
+        tools = "无" if not sp["allowed_tools"] else ("五工具" if len(sp["allowed_tools"]) == 5 else "、".join(sp["allowed_tools"]))
+        L.append(f"| {m} | `{sp['name']}` | {tools} | {sp['rag_mode'] or '—'} | {sp['reflection']} | {sp['attribution_mode']} | "
+                 f"{'开' if sp['with_eig'] else '关'} | {sp['planner_mode']} | {sp['planner_strategy']} | "
+                 f"{sp['generator_output']} | {sp['validator_mode']} |")
+    L += ["", "## 主表", "",
+          "| 指标 | " + " | ".join(summaries[m]["label"] for m in modes) + " |",
+          "|---|" + "---:|" * len(modes)]
     rows = [("任务成功率", "task_success", True), ("动作正确率", "action_acc", True), ("关键参数正确率", "param_acc", True),
             ("工具结果有效率", "tool_result_valid", True), ("证据忠实度（0-1）", "faithfulness", False),
             ("追问正确率", "ask_acc", True), ("错误恢复成功率", "recovery_rate", True),
+            ("无依据结论率（首轮声明核查）", "unsupported_rate", True),
+            ("平均问询次数", "avg_inquiry_rounds", False), ("平均补证轮数", "avg_evidence_rounds", False),
             ("平均工具调用次数", "avg_tool_calls", False), ("不必要调用率", "unnecessary_call_rate", True),
-            ("平均延迟 (s)", "avg_latency_s", False), ("平均 Token", "avg_tokens", False)]
+            ("平均延迟 (s)", "avg_latency_s", False), ("平均 Token", "avg_tokens", False),
+            ("运行异常条数", "n_errors", False)]
     for name, key, pct in rows:
         L.append(f"| {name} | " + " | ".join(_fmt(summaries[m].get(key), pct) for m in modes) + " |")
     L += ["", "## 分场景任务成功率", "",
@@ -410,12 +461,14 @@ def write_report(summaries: Dict[str, Dict[str, Any]], meta: Dict[str, Any]) -> 
           "- 关键参数：只比对 D10 `key_params`；`query` 用词法重合 ≥ 0.5 判定，`dga_data` 数值容差 1e-6，`relations` 集合相等。",
           "- 证据忠实度（离线代理）：kb 样本看金标文档标题/章节词与检索命中；kg 样本看期望实体出现；dga 样本看工具返回的主故障名是否被答案引用；"
           "ett 看预测数值/趋势词。该代理偏向词面匹配，正式报告需 LLM 裁判 + 10% 人工复核。",
+          "- 无依据结论率：Validator 声明级核查（mode4/5，或 `--validator-mode check|route`）首轮 `unsupported_ratio` 均值；v1 Validator 不产出该值（—）。",
+          "- 平均问询次数：active 策略（mode3+）的 `inquiry_rounds` 均值；D10 无隐藏征兆真值，追问一律按「无法提供」回答。",
           "- 不必要调用率 = 非必要调用次数 / 总调用次数；模式外工具被 Retriever 拒绝执行（tool_disabled）也计入。",
           "- Token 为 `src.utils.llm.USAGE` 累计的 prompt+completion；LLM 禁用时为 0。",
           "", "## 已知局限", "",
-          "- LLM 禁用时 Planner 不产出计划，所有需要工具的样本均失败，此时只验证流程连通性与 no_tool/ask_user 的“不调用”口径。",
-          "- mode3-5 依赖 `llms.planner_finetuned`；未部署微调模型时自动回退 baseline，主表将退化为 RAG/KG/反思三项的增量对比。",
-          "- D10 查询未经口语化改写（P4-2 需 LLM），对 Planner 偏乐观。",
+          "- LLM 禁用时 free 策略的 Planner 不产出计划，需要工具的样本均失败；active 策略回退 EIG 规则，仅在有 DGA 的样本上调用归因。此时只验证流程连通性与 no_tool/ask_user 的“不调用”口径。",
+          "- mode5 依赖 `llms.planner_finetuned`（百炼部署的 DPO 模型）；未部署时自动回退 baseline，mode5 与 mode4 等价。",
+          "- D10 查询未经口语化改写（A-2 rewrite 需 LLM），对 Planner 偏乐观。",
           ]
     REPORT.parent.mkdir(parents=True, exist_ok=True)
     REPORT.write_text("\n".join(L) + "\n", encoding="utf-8")
@@ -426,13 +479,19 @@ def main() -> None:
     ap.add_argument("--eval", default=str(D10))
     ap.add_argument("--modes", default="all", help="逗号分隔：mode1,mode2,... 或 all")
     ap.add_argument("--limit", type=int, default=0)
-    ap.add_argument("--planner-mode", default=None, choices=["baseline", "finetuned"], help="覆盖所有模式的 planner_mode")
-    ap.add_argument("--reflection", default=None, choices=["off", "lexical", "llm"], help="覆盖 mode5 的反思评分器")
+    ap.add_argument("--planner-mode", default=None, choices=["baseline", "finetuned"], help="覆盖所有被评测模式的 planner_mode")
+    ap.add_argument("--validator-mode", default=None, choices=["off", "check", "route"], help="覆盖 Validator 核查模式（交叉对照：mode5 + v1 validator）")
+    ap.add_argument("--attribution-mode", default=None, choices=["expert", "calibrated"], help="覆盖归因引擎参数")
+    ap.add_argument("--planner-strategy", default=None, choices=["free", "active"], help="覆盖 Planner 策略")
+    ap.add_argument("--generator-output", default=None, choices=["text", "claims"], help="覆盖 Generator 输出结构")
+    ap.add_argument("--planner-decision", default=None, choices=["llm", "eig"], help="active 策略的动作决策来源（默认取 config）")
+    ap.add_argument("--reflection", default=None, choices=["off", "lexical", "llm"], help="覆盖反思评分器（mode2+）")
     ap.add_argument("--judge", default="proxy", choices=["proxy", "llm"], help="忠实度判定：proxy 离线代理；llm 裁判（待接入）")
     ap.add_argument("--no-llm", action="store_true", help="禁用 LLM（清空 api_key），仅验证流程")
     ap.add_argument("--scenario", default="", help="只评测某些场景，逗号分隔")
     ap.add_argument("--oracle-planner", action="store_true",
                     help="用 D10 金标动作替代 Planner（校验评分链路 / 工具层上限），结果写入 results/oracle_<mode>.jsonl，不进主表")
+    ap.add_argument("--tag", default="", help="结果文件后缀（交叉对照实验时避免覆盖主结果，且不写入主报告）")
     args = ap.parse_args()
 
     assert_not_synthetic(args.eval, purpose="eval_set")
@@ -453,33 +512,41 @@ def main() -> None:
         print("[warn] LLM 裁判尚未接入，本次回退离线代理")
         args.judge = "proxy"
 
+    overrides = {"planner_mode": args.planner_mode, "validator_mode": args.validator_mode,
+                 "attribution_mode": args.attribution_mode, "planner_strategy": args.planner_strategy,
+                 "generator_output": args.generator_output, "reflection": args.reflection}
     modes = MODE_ORDER if args.modes == "all" else [m.strip() for m in args.modes.split(",") if m.strip()]
     RES_DIR.mkdir(parents=True, exist_ok=True)
     summaries: Dict[str, Dict[str, Any]] = {}
+    side_run = bool(args.oracle_planner or args.tag)
     # 保留历史结果，只覆盖本次运行的模式
-    for m in MODE_ORDER:
-        p = RES_DIR / f"{m}.jsonl"
-        if p.exists() and m not in modes:
-            rows = [json.loads(l) for l in open(p, encoding="utf-8") if l.strip()]
-            if rows:
-                summaries[m] = {**summarize(rows), "label": resolve_mode(m).label}
+    if not side_run:
+        for m in MODE_ORDER:
+            p = RES_DIR / f"{m}.jsonl"
+            if p.exists() and m not in modes:
+                rows = [json.loads(l) for l in open(p, encoding="utf-8") if l.strip()]
+                if rows:
+                    summaries[m] = {**summarize(rows), "label": resolve_mode(m).label, "spec": resolve_mode(m).to_dict()}
     for m in modes:
-        spec = resolve_mode(m, planner_mode=args.planner_mode, reflection=args.reflection if m == "mode5" else None)
-        rows = run_mode(spec, samples, config, oracle=args.oracle_planner)
-        fname = f"{'oracle_' if args.oracle_planner else ''}{m}.jsonl"
+        spec = resolve_mode(m, **overrides)
+        rows = run_mode(spec, samples, config, oracle=args.oracle_planner, planner_decision=args.planner_decision)
+        fname = f"{'oracle_' if args.oracle_planner else ''}{m}{('_' + args.tag) if args.tag else ''}.jsonl"
         with open(RES_DIR / fname, "w", encoding="utf-8") as f:
             for r in rows:
                 f.write(json.dumps(r, ensure_ascii=False) + "\n")
-        summaries[m] = {**summarize(rows), "label": spec.label}
-        print(json.dumps({k: v for k, v in summaries[m].items() if k not in ("by_scenario",)}, ensure_ascii=False))
+        summaries[m] = {**summarize(rows), "label": spec.label, "spec": spec.to_dict()}
+        print(json.dumps({k: v for k, v in summaries[m].items() if k not in ("by_scenario", "spec")}, ensure_ascii=False))
 
     if args.oracle_planner:
         print("\n[oracle] 金标 Planner 结果仅用于校验评分链路，不写入 docs/end2end_eval.md")
         return
+    if args.tag:
+        print(f"\n[tag={args.tag}] 交叉对照结果已写入 {RES_DIR}/<mode>_{args.tag}.jsonl，不写入主报告")
+        return
     llm_desc = (config.get("llms", {}).get("default", {}) or {}).get("model_name", "—")
     write_report(summaries, {"n_samples": len(samples), "limited": bool(args.limit or args.scenario),
                              "time": time.strftime("%Y-%m-%d %H:%M"), "no_llm": args.no_llm,
-                             "llm_desc": llm_desc, "planner_override": args.planner_mode, "judge": args.judge})
+                             "llm_desc": llm_desc, "overrides": overrides, "judge": args.judge})
     print(f"\n报告已写入 {REPORT}")
 
 

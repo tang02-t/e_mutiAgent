@@ -46,7 +46,7 @@ bash run_frontend.sh                      # 默认加载学习到的贝叶斯参
 USE_LEARNED_CPT=0 bash run_frontend.sh    # 专家默认 CPT 对照
 ```
 
-侧边栏「系统模式（P6 五级对比）」：mode1 无 RAG / mode2 朴素 RAG / mode3 + 微调 Planner / mode4 + 图谱 / mode5 完整系统（+ 反思）；「高级」可覆盖 Planner 模型与反思开关。标签页展示规划计划、工具调用轨迹、检索块、图谱链路、反思评分。
+侧边栏「系统模式（五级增量）」：mode1 `llm_only`（无工具）/ mode2 `tool_base`（全工具 + 知识库 + 图谱 + 词法反思，专家 CPT，自由规划）/ mode3 `active_plan`（+ 校准归因与 EIG 主动追问）/ mode4 `claim_verify`（+ 声明级输出、约束核查与补证路由）/ mode5 `dpo_planner`（+ DPO 微调 Planner）；「高级」可逐项覆盖 Planner 模型、归因参数、规划策略、Generator 输出、Validator 模式与反思开关。标签页展示规划计划、工具调用轨迹、检索块、图谱链路、反思评分、追问过程。
 
 ## 报告索引
 
@@ -78,4 +78,4 @@ USE_LEARNED_CPT=0 bash run_frontend.sh    # 专家默认 CPT 对照
 - 反思评分器目前是词法基线，LLMScorer 与人工评分的一致性尚未测量；D9 人工 `human_score` 未填写。
 - 规划训练数据问法为模板生成，口语化改写（P4-2）待 LLM；多轮样本的 assistant thought 为规则模板文本。
 - 端到端评测的「答案忠实度」在离线模式下使用证据锚点代理，LLM 裁判与 10% 人工复核未执行；D10 标注 `status=auto`。
-- 所有依赖 LLM 的正式数字（基线、五级模式、M0–M3 对照）尚未产出；论文对照实验的 GPU 训练需在魔搭环境执行。
+- 所有依赖 LLM 的正式数字（基线、五级模式 E-2、M0 / M1 / M4 对照）尚未产出；DPO 训练需在百炼平台执行（`submit_job.py`）。
