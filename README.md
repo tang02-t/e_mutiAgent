@@ -5,6 +5,131 @@ Planner → Retriever → [Reflection] → Generator → Validator 五智能体�
 - 项目结构说明：[PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md)
 - 完整计划与进度：[PLAN_优化计划清单.md](PLAN_优化计划清单.md)（顶部「进度状态」表）
 - 阶段报告：`docs/`（见下文「报告索引」）
+- 快速入门：[docs/速览卡.md](docs/速览卡.md)（一页）→ [docs/walkthrough_traces.md](docs/walkthrough_traces.md)（三条主线真实执行轨迹）→ [docs/技术报告_v2.md](docs/技术报告_v2.md)
+
+## 项目架构
+
+### 分层总览
+
+系统分四层：编排层（LangGraph 状态图）、智能体层（五个角色）、工具层（五个异构工具 + 统一注册表）、数据与评测层。论文的三条研究主线分别落在智能体层的 Planner、Validator 与 Planner 的训练数据上，工程基座（工具、检索、图谱、前端）不作论文贡献。
+
+```mermaid
+flowchart TB
+    subgraph L1[编排层 src/graph]
+        WF[workflow.py<br/>StateGraph + 条件路由 + 追问 / 补证节点]
+        SM[system_modes.py<br/>五级模式 → build_agents]
+        ST[state.py<br/>AgentState 共享状态]
+    end
+    subgraph L2[智能体层 src/agents]
+        P[Planner<br/>ask / call_tool / conclude]
+        R[Retriever<br/>参数校验 + 并行执行]
+        F[Reflection<br/>0-3 分过滤 + 补召回]
+        G[Generator<br/>claims JSON + 自然语言]
+        V[Validator<br/>ClaimChecker 四类约束]
+    end
+    subgraph L3[工具层 src/tools]
+        TR[tool_registry.py<br/>TOOL_SPECS 单一数据源]
+        T1[fault_attribution<br/>贝叶斯 x 三比值 + eig.py]
+        T2[local_kb → rag_search<br/>BM25 两路 RRF]
+        T3[kg_search<br/>90 节点 / 190 边]
+        T4[ett_forecasting<br/>油温预测 + 3σ]
+        T5[timeseries<br/>通用 3σ]
+    end
+    subgraph L4[数据与评测层]
+        D[data/ D1–D13]
+        E[scripts/eval + tests/<br/>四层评测 + 608 项回归]
+        UI[app.py Streamlit]
+    end
+    SM --> WF
+    WF --> P & R & F & G & V
+    R --> TR --> T1 & T2 & T3 & T4 & T5
+    D --> T1 & T2 & T3 & T4
+    E --> SM
+    UI --> SM
+```
+
+### 运行时数据流
+
+一次诊断从用户问题（可带 DGA 五气体、设备上下文）进入 Planner，Planner 输出三种动作之一：`ask`（向用户追问某个征兆，最多 K 轮）、`call_tool`（工具调用计划）、`conclude`（信息足够，直接生成）。Retriever 只执行通过严格 JSON Schema 校验的步骤，结果写入 `state.trajectory`；Reflection 对检索块打 0-3 分过滤并补召回邻块；Generator 先输出带证据引用的结构化 `claims`，再渲染自然语言；Validator 内部的 ClaimChecker 逐条核对声明与证据，判定驱动三种路由：`PASS / FAIL / ABSTAIN` 结束，`contradict` 或 DATA / SAFETY 违规回 Generator 修订，`unsupported` 且可补证则合成补证计划回 Retriever。
+
+```mermaid
+flowchart TD
+    U[用户问题 + DGA + 设备上下文] --> P[Planner]
+    P -- ask --> Q[追问用户<br/>最多 K 轮]
+    Q --> P
+    P -- call_tool --> R[Retriever]
+    P -- conclude --> G
+    R --> F[Reflection]
+    F --> G[Generator]
+    G --> V[Validator]
+    V -- PASS / FAIL / ABSTAIN --> E[final_answer]
+    V -- contradict / DATA / SAFETY --> G
+    V -- unsupported 且可补证 --> S[supplement 补证计划]
+    S --> R
+    R -.-> T[五个工具]
+    T -. uncertainty: 熵 / EIG 推荐 .-> P
+```
+
+归因工具除后验分布外还返回 `uncertainty` 块（熵、Top-1 与 Top-2 差、按期望信息增益排序的追问推荐），这是 Planner 决定「问还是查」的依据。每个智能体在 LLM 不可用时都有确定性降级路径（Planner 走 `eig_decide`、Generator 走模板、Validator 走规则），所以 `reproduce.sh` 与全部回归测试可离线运行。
+
+### 五个智能体
+
+| 智能体 | 文件 | 职责 | 论文对应 |
+|---|---|---|---|
+| Planner | `src/agents/planner.py` | Function Calling 优先；`strategy=free` 输出工具步骤列表，`strategy=active` 输出 `action + rationale`，据 `uncertainty` 决定追问；`planner_mode=finetuned` 时切换到百炼部署的 SFT / DPO 模型 | 主线一（决策）、主线三（训练对象） |
+| Retriever | `src/agents/retriever.py` | 只执行校验通过的步骤，并行调用，区分 `exec_success` 与 `business_success`，全部写入轨迹 | 工程基座 |
+| Reflection | `src/agents/reflection.py` | `LexicalScorer` / `LLMScorer` 0-3 分过滤，邻块补召回，改写重检 | 工程基座 |
+| Generator | `src/agents/generator.py`、`claims.py` | `output_mode=text` 纯文本；`output_mode=claims` 先输出 `claims[]`（每条含 `type`、`evidence[]`），再渲染答案 | 主线二（输出侧） |
+| Validator | `src/agents/validator.py`、`claim_checker.py` | `claim_check=off` 为 v1 整体评分；`check` 逐条核对 DATA / EVIDENCE / APPLICABILITY / SAFETY 四类约束；`route` 在核对基础上驱动修订 / 补证 / 弃答路由 | 主线二（核查侧） |
+
+### 工具层
+
+| 工具 | 实现 | 输入 | 输出要点 |
+|---|---|---|---|
+| `fault_attribution` | `src/tools/fault_attribution.py` + `eig.py` | `dga_data{H2,CH4,C2H2,C2H4,C2H6}`、`evidence{}`（支持「未检测」） | 8 类故障后验、三比值编码与匹配规则、`uncertainty{entropy, margin, recommendations[]}`；`configure_engine("expert"|"calibrated")` 切参数集 |
+| `rag_search` | `src/tools/local_kb.py` | `query`、`mode` | 182 篇文献 5404 块，BM25 子块层 + 锚点层 RRF，返回块文本与 `chunk_id` 供 claims 引用 |
+| `kg_search` | `src/tools/kg_search.py` | `query, relations[], hops, direction` | 故障关系图谱多跳路径，每条边带文献支持数 |
+| `ett_forecast` | `src/tools/ett_forecasting.py`、`ett_loader.py` | `dataset, lookback, horizon` | ETT 油温滑窗线性回归预测 + 3σ 异常 |
+| `timeseries_anomaly` | `src/tools/timeseries.py` | `signal[]` | 通用 3σ 异常检测 |
+
+`tool_registry.py::TOOL_SPECS` 是五个工具 JSON Schema 的唯一数据源，Planner 的 function calling 声明、Retriever 的 `validate_arguments_strict`、评测脚本的参数正确率判定都从这里读取；新增工具只需在此加声明并在 `app.py::build_mcp` 与 `eval_system_modes.py::build_mcp` 注册实现。
+
+### 五级增量系统模式
+
+`src/graph/system_modes.py` 把上述开关组合成五级，相邻两级只差一组开关（单元测试断言配置差集恰为一组），用于论文第 6 章分离每条主线的贡献；`resolve_mode` 支持逐项覆盖以构造交叉对照（如 mode4 + 基座 Planner）。
+
+| 模式 | 名称 | 相对上一级新增的开关 | 对应 |
+|---|---|---|---|
+| mode1 | `llm_only` | 无工具，LLM 直答 | 参照 |
+| mode2 | `tool_base` | 五工具 + 两路检索 + 图谱 + 词法反思；归因 `expert`、无 EIG；Planner `free`；Generator `text`；Validator `off` | 工程基座 |
+| mode3 | `active_plan` | 归因 `calibrated` + EIG 推荐；Planner `active` | 主线一 |
+| mode4 | `claim_verify` | Generator `claims`；Validator `route` | 主线二 |
+| mode5 | `dpo_planner` | Planner `finetuned`（百炼 DPO 模型） | 主线三 |
+
+### 目录结构
+
+```
+multi_Agent/
+├── app.py                     # Streamlit 前端：五级模式切换、DGA 输入、轨迹 / 图谱 / 反思 / 追问展示
+├── reproduce.sh               # 离线一键复现（阶段：dga kb kg reflection planner_data d10 B C D E test）
+├── PLAN_优化计划清单.md       # v2 任务清单，唯一进度源
+├── src/
+│   ├── agents/                # planner / retriever / reflection / generator / validator / claims / claim_checker
+│   ├── graph/                 # state / workflow（LangGraph）/ system_modes（五级模式）
+│   ├── tools/                 # tool_registry / fault_attribution / eig / local_kb / kg_search / ett_* / timeseries
+│   └── utils/                 # config / llm（OpenAI 兼容 + dashscope）/ prompts / data_guard / json_parse
+├── templates/                 # planner / generator 提示词模板
+├── scripts/
+│   ├── kb/  kg/               # 知识库与图谱构建、评测集、消融
+│   ├── planner_data/          # Planner 造数：种子 → 多轮 → 口语化改写 → SFT 导出 → 候选打分配对（DPO）
+│   ├── eval/                  # eval_system_modes（五级端到端）/ eval_planner_offline / 主线专项评测
+│   └── demo_traces.py         # 三条主线离线执行轨迹
+├── training/planner_bailian/  # 百炼 SFT / DPO 提交脚本（submit_job.py）与请求体（v2 主路线）
+├── training/planner_sft/      # v1 魔搭 LoRA 路线（备选）
+├── tests/                     # 13 个脚本式回归测试，608 项（逐文件 python3 运行，勿用 pytest）
+├── data/                      # D1–D13 派生数据与各集 DATA_CARD（原始文件 gitignore）
+└── docs/                      # 技术报告、速览卡、执行轨迹、数据与评测说明、各组件验收报告、论文章节素材
+```
 
 ## 环境
 
@@ -23,7 +148,7 @@ python3 scripts/probe_llm_endpoint.py   # 探测对话与 function calling 是�
 bash reproduce.sh                # 全部：DGA → 知识库 → 图谱 → 反思 → 规划数据 → D10 → 评测自检 → 回归测试
 bash reproduce.sh kb kg          # 只跑指定阶段
 SKIP_EXISTING=1 bash reproduce.sh
-for t in tests/test_*.py; do python3 "$t" | tail -1; done   # 回归测试：p0 87 项 + B-1 47 项 + B-2 34 项
+for t in tests/test_*.py; do python3 "$t" | tail -1; done   # 回归测试：13 个文件共 608 项（脚本式测试，勿用 pytest）
 ```
 
 各阶段对应脚本：
