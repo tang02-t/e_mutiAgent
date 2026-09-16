@@ -54,3 +54,6 @@ data/planner/dpo/*.jsonl
 
 # 复现脚本冒烟产物（可重生成）
 data/eval/d10/results/*_smoke.jsonl
+# A-1 基线旁路结果 60 KB，纳入版本库（见 docs/baseline.md）；其余 tag 旁路结果不入库
+data/eval/d10/results/*_a1_*.jsonl
+!data/eval/d10/results/mode2_a1_baseline.jsonl

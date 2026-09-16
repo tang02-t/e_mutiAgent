@@ -74,10 +74,10 @@
 
 ### A-1 基线数字（原 P0-3）
 
-- [ ] 用 `qwen3.7-flash`（未微调）在 [retrieval_seed.jsonl](/Users/ts/Desktop/thu/multi_Agent/data/kb/eval/retrieval_seed.jsonl) test 切分上记录 Recall@1/3/5（two_way 与 naive 两档）。
-- [ ] 用未微调 Planner 在 D8 test 切分抽 100 条（分层覆盖 8 类）跑 [eval_planner_offline.py](/Users/ts/Desktop/thu/multi_Agent/scripts/eval/eval_planner_offline.py) 7 项指标。
-- [ ] 用 mode2（工程基座）在 D10 抽 50 条跑 [eval_system_modes.py](/Users/ts/Desktop/thu/multi_Agent/scripts/eval/eval_system_modes.py)，记录任务成功率、平均工具调用次数、平均轮次、Token 成本。
-- [ ] 写入 `docs/baseline.md`，与 `baseline-v0` tag 对应。
+- [x] 用 `qwen3.7-flash`（未微调）在 [retrieval_seed.jsonl](/Users/ts/Desktop/thu/multi_Agent/data/kb/eval/retrieval_seed.jsonl) test 切分上记录 Recall@1/3/5（two_way 与 naive 两档）。（2026-09-16：264 条，two_way R@1/3/5 = 0.402/0.629/0.742，naive = 0.360/0.576/0.674；检索层零 LLM）
+- [x] 用未微调 Planner 在 D8 test 切分抽 100 条（分层覆盖 8 类）跑 [eval_planner_offline.py](/Users/ts/Desktop/thu/multi_Agent/scripts/eval/eval_planner_offline.py) 7 项指标。（2026-09-16：`predict.py --stratified 100 --seed 42`，M0 格式 100% / 工具 55.0% / 参数 61.1% / 完整 51.4% / 不必要 53.6% / 追问 66.7% / 恢复 0.0%）
+- [x] 用 mode2（工程基座）在 D10 抽 50 条跑 [eval_system_modes.py](/Users/ts/Desktop/thu/multi_Agent/scripts/eval/eval_system_modes.py)，记录任务成功率、平均工具调用次数、平均轮次、Token 成本。（2026-09-16：`--tag a1_baseline`，成功率 46.0%，平均调用 1.22，平均 LLM 轮次 3.04，平均 6790 Token/样本；Oracle 上界 97.4%）
+- [x] 写入 `docs/baseline.md`，与 `baseline-v0` tag 对应。（2026-09-16：含失败模式归因与复现命令）
 
 验收标准：三组数字齐全，任何人按 README 可复现。
 

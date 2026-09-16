@@ -7,6 +7,10 @@ P5-4：对封存 test 集做 Planner 推理，输出统一格式的预测文件�
   --backend swift   （默认，训练环境）ms-swift PtEngine 本地推理：--model 基座 [--adapters LoRA ckpt]
   --backend openai  通过 OpenAI 兼容接口推理（百炼部署模型 / 其他云端模型作为 M0 对照）：
                     --base-url --api-key-env --model-name
+  A-1 基线（M0 = 未微调 qwen3.7-flash，分层抽 100 条）：
+    DASHSCOPE_API_KEY=... python3 training/planner_sft/predict.py --backend openai \
+        --base-url <config.yaml llms.planner.base_url> --model-name qwen3.7-flash \
+        --stratified 100 --seed 42 --run-name M0_qwen3.7-flash_s42
 
 输入：data/planner/sft/swift_test.jsonl + swift_multiturn_test.jsonl（messages 去掉最后一条 assistant 作为 prompt）
 输出：<out-dir>/<run-name>.jsonl，每行：
@@ -44,6 +48,34 @@ def load_test(limit: Optional[int] = None, files: Optional[List[str]] = None) ->
                 if line.strip():
                     rows.append(json.loads(line))
     return rows[:limit] if limit else rows
+
+
+def stratified_sample(rows: List[Dict[str, Any]], n: int, seed: int = 42, min_per_cat: int = 5) -> List[Dict[str, Any]]:
+    """按 meta.category 比例分层抽 n 条；每类保底 min_per_cat（不超过该类总数），余额按比例分配，确定性可复现。"""
+    import random
+    from collections import defaultdict
+    by_cat: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+    for r in rows:
+        by_cat[r.get("meta", {}).get("category") or "unknown"].append(r)
+    cats = sorted(by_cat)
+    quota = {c: min(min_per_cat, len(by_cat[c])) for c in cats}
+    rest = max(n - sum(quota.values()), 0)
+    total = sum(len(by_cat[c]) for c in cats)
+    for c in cats:
+        quota[c] += int(rest * len(by_cat[c]) / total)
+    # 补齐取整损失，优先给剩余样本最多的类别
+    while sum(quota.values()) < n:
+        c = max(cats, key=lambda k: len(by_cat[k]) - quota[k])
+        if len(by_cat[c]) - quota[c] <= 0:
+            break
+        quota[c] += 1
+    rng = random.Random(seed)
+    out: List[Dict[str, Any]] = []
+    for c in cats:
+        pool = list(by_cat[c])
+        rng.shuffle(pool)
+        out.extend(pool[: min(quota[c], len(pool))])
+    return out
 
 
 def gold_of(sample: Dict[str, Any]) -> Dict[str, Any]:
@@ -189,6 +221,9 @@ def main() -> None:
     ap.add_argument("--run-name", required=True)
     ap.add_argument("--out-dir", default=str(ROOT / "data/planner/predictions"))
     ap.add_argument("--limit", type=int, default=None)
+    ap.add_argument("--stratified", type=int, default=None,
+                    help="按 category 分层抽样 N 条（每类保底 5，余额按比例；与 --limit 互斥，A-1 基线用 100）")
+    ap.add_argument("--seed", type=int, default=42, help="分层抽样随机种子")
     ap.add_argument("--files", nargs="*", default=None, help="覆盖默认 test 文件列表")
     ap.add_argument("--max-new-tokens", type=int, default=1024)
     args = ap.parse_args()
@@ -202,6 +237,13 @@ def main() -> None:
                                 use_tools=not args.no_tools)
 
     samples = load_test(args.limit, args.files)
+    if args.stratified:
+        if args.limit:
+            raise SystemExit("--stratified 与 --limit 互斥")
+        samples = stratified_sample(samples, args.stratified, seed=args.seed)
+        from collections import Counter
+        print(f"分层抽样 {len(samples)} 条：{dict(Counter(s.get('meta', {}).get('category') for s in samples))}",
+              file=sys.stderr)
     out_path = Path(args.out_dir) / f"{args.run_name}.jsonl"
     out_path.parent.mkdir(parents=True, exist_ok=True)
     done = set()

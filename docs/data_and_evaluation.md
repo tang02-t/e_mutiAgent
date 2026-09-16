@@ -337,12 +337,11 @@ C 系列均以 OraclePlanner + 真实工具 + 规则声明运行，不调 LLM；
 
 | 报告 | 缺什么 | 依赖 |
 |---|---|---|
-| `docs/baseline.md` | P0-3 三组基线 | LLM 调用 |
 | `docs/kb_ablation_test.md` | 稠密向量通道、Qwen3-Reranker、自然问句版 D3 | embedding 接口、GPU |
 | `data/kg/eval/report.md` | 人工 label、负样本、LightRAG 对比胜率 | 人工 + LLM |
 | `docs/reflection_eval.md` | LLMScorer 版本、Kappa | 人工 `human_score` + LLM |
 | `docs/planner_dpo_eval.md` | M0 / M1 / M4-exec / M4-full 离线 7 指标 | 百炼 SFT + DPO 训练与部署 |
-| `docs/planner_eval.md`（v1 备选） | M0–M3 × 2 seeds | 魔搭 A10 训练 |
+| `docs/planner_eval.md` | M0 已有 100 条基线（`docs/baseline.md` §2）；M1 / M4 列与 935 条全量、2 seeds | 百炼 SFT + DPO 部署 |
 | `docs/end2end_eval.md` | 五级模式正式数字（196 × 5 × 2 次）、交叉对照、LLM 裁判、10% 人工复核 | DPO Planner 部署 + LLM |
 | `docs/active_planning_eval.md` | `llm_free` 策略 | LLM |
 | `docs/validator_eval.md`、`data/eval/d11/manual_review_sample.md` | 注入有效率人工抽检 40 条 | 人工 |
