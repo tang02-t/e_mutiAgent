@@ -18,3 +18,7 @@
 | `sft/swift_multiturn_test.jsonl（203 条）` | `5ab2a535b9c2cb9cf9ec2e4d700a2c5300d3dc4d6d209ed261c1622ae7592257` |
 
 校验命令：`python3 scripts/planner_data/check_sealed.py`（比对上表种子级哈希，任何不一致即退出码 1）。
+
+## 变更记录
+
+- 2026-09-16 A-2 口语化改写后重导出（`export_sft.py --seeds task_seeds_rewritten.jsonl`）：test 切分未改写，种子级 sha256 两项不变（`check_sealed.py` 通过）；`swift_test.jsonl` / `jsontext_test.jsonl` / `lf_test.json` / `swift_multiturn_test.jsonl` 字节级与上表一致。train / dev 由 2311 / 439 扩至 6131 / 1157 单轮样本。

@@ -12,6 +12,8 @@ P4-2「模拟用户」口语化改写（需调用 LLM；默认 --dry-run 只估�
      - 关键实体不变：原问题中命中领域词典（training/planner_sft/domain_terms.json）的词至少保留 60%，或出现其同义词
      - 长度 8–200 字，不与原句或其他改写重复
      - insufficient 类：不得补出原本缺失的参数（不得新增数字）
+     - 判断词守卫：改写不得引入原句没有的结论 / 故障类型词（超标、放电、过热…）；numeric_tool / composite / insufficient
+       另拦截软判断（看着挺高、不太对、指向…），避免问句替 Planner 预判（2026-09-16 全量实跑：硬拦 160、软拦 140）
   4. 写出 data/planner/seeds/task_seeds_rewritten.jsonl：原种子 + 改写种子（seed_id 加后缀 -rN，query 替换，其余字段沿用，
      group_key 不变以保证切分不泄漏），并把 needs_llm_rewrite 置 False、记录 rewrite_of
   5. 之后重跑：python3 scripts/planner_data/export_sft.py --seeds data/planner/seeds/task_seeds_rewritten.jsonl
@@ -51,11 +53,19 @@ SYSTEM = (
     "轻瓦斯动作→「瓦斯动了」、噪声异常→「有响声」）；\n"
     "4. 如果原句缺少某些数据，改写后也必须同样缺少，不能补上；\n"
     "5. 每条 8–120 字，K 条之间差异明显；\n"
+    "6. 不得加入原句没有的判断或结论：不要说「超标 / 偏高 / 异常」，不要猜测故障类型（放电、过热、受潮等），"
+    "不要暗示答案，只描述现场和数据本身；\n"
     "只输出 JSON：{\"rewrites\": [\"...\", \"...\"]}，不要解释。"
 )
 
 _NUM_RE = re.compile(r"\d+(?:\.\d+)?")
 _SYMBOL_RE = re.compile(r"\b(?:C2H2|C2H4|C2H6|CH4|H2|CO2|CO|ETT[hm][12]|DL/T\s*\d+|GB/T\s*\d+|Q/GDW\s*\d+)\b", re.I)
+_JUDGEMENT_RE = re.compile(
+    r"超标|偏高|偏低|过高|过低|异常|不正常|不对劲|超限|放电|过热|受潮|短路|悬浮|局放|电弧|老化|绝缘劣化|绝缘故障|匝间|"
+    r"火花|电晕|热点|裸金属|固体绝缘|是不是.{0,4}故障|可能是.{0,6}故障")
+# 软判断词：仅对带数据 / 需工具判断的类别（numeric_tool / composite / insufficient）拦截，避免改写替用户「预判」数据高低
+_SOFT_JUDGEMENT_RE = re.compile(r"看着.{0,3}[高大]|挺大|太高|很高|偏大|明显高|不太对|有点高|有点大|涨得|飙|不太正常|超了|不放心|怀疑|像是|指向")
+_SOFT_GUARD_CATEGORIES = {"numeric_tool", "composite", "insufficient"}
 _PRICE_PER_1K = {"input": 0.0003, "output": 0.003}  # 估算用，元 / 千 token（flash 档位量级，实际以百炼计费为准）
 
 
@@ -114,6 +124,14 @@ class Guard:
                 return "lost_numbers"
             if set(nums_r) - set(nums_q):
                 return "added_numbers"
+        # 判断词守卫：改写中出现原句没有的结论 / 故障类型词 → 标签泄漏，丢弃
+        for m in _JUDGEMENT_RE.finditer(rw):
+            if m.group(0) not in q:
+                return "added_judgement"
+        if seed["category"] in _SOFT_GUARD_CATEGORIES:
+            for m in _SOFT_JUDGEMENT_RE.finditer(rw):
+                if m.group(0) not in q:
+                    return "added_soft_judgement"
         ents = self.entities(q)
         if ents:
             kept = sum(1 for e in ents if e in rw or any(s in rw for s in self.syn.get(e, ())))

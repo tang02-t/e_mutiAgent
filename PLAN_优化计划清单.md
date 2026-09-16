@@ -83,12 +83,12 @@
 
 ### A-2 训练问法口语化改写（原 P4-2 保留项）
 
-- [ ] 执行 [rewrite_queries.py](/Users/ts/Desktop/thu/multi_Agent/scripts/planner_data/rewrite_queries.py) 去掉 `--dry-run`（估算约 1.2 元），产出 `task_seeds_rewritten.jsonl`。
-- [ ] 人工抽 50 条确认数字 / 实体守卫生效（气体浓度、设备号、数据集名未被改写）。
+- [x] 执行 [rewrite_queries.py](/Users/ts/Desktop/thu/multi_Agent/scripts/planner_data/rewrite_queries.py) 去掉 `--dry-run`（估算约 1.2 元），产出 `task_seeds_rewritten.jsonl`。（2026-09-16：2750 条 train / dev 种子 × K=2，`qwen3.7-flash`，683 s，Token in/out 833k / 235k；保留 4538 条改写、守卫拒绝 961（lost_entities 207 / added_judgement 160 / added_soft_judgement 140 / added_numbers 142 / lost_numbers 111 / duplicate 133 / length 68）。小样试跑发现改写会替用户「预判」（「乙炔超标了」「怀疑放电」），新增硬 / 软判断词守卫后全量重跑。）
+- [x] 人工抽 50 条确认数字 / 实体守卫生效（气体浓度、设备号、数据集名未被改写）。（2026-09-16：随机 50 条（seed 7）逐条查看，气体浓度、kVA、日期、步长、ETTh1/h2、设备型号与编号全部原样保留；程序化全量复核 4538 条数字集合仅 27 条差异，全部为英文标题种子中「图 4 / 表 3.6」等编号被改写为「图4 / Fig. 4.8」形式，无数据数字丢失。改写后 `export_sft.py --seeds task_seeds_rewritten.jsonl` 重导出：单轮 train / dev 6131 / 1157，百炼 train 7001 / dev 1301（91.8 / 17.0 MB），`check_sealed.py` 通过，四份 test 导出文件 sha256 与 SEALED.md 完全一致，train vs test 泄漏 0 对。train / dev 导出文件改为 gitignore（可重建），test 四份保留入库。）
 - [x] `export_sft.py --seeds task_seeds_rewritten.jsonl` 重导出；同时新增 `--format bailian` 导出百炼 ChatML（messages 多轮，含 tool 角色消息按百炼模板处理）。（2026-09-15：`--format bailian` 与默认导出均产出 `bailian_{train,dev}.jsonl`（单轮 + 多轮合并，train 3181 / dev 583 条，42.0 / 7.7 MB），转换与校验在 [bailian_format.py](/Users/ts/Desktop/thu/multi_Agent/scripts/planner_data/bailian_format.py)：剥离 `meta` / tool `name`，`tool_calls[].id` 与 `tool_call_id` 一一对应，`arguments` 为 JSON 字符串，导出即校验；[test_d1_bailian_export.py](/Users/ts/Desktop/thu/multi_Agent/tests/test_d1_bailian_export.py) 22 项通过。口语化改写后用 `--seeds task_seeds_rewritten.jsonl` 重跑即可，改写实跑后置。）
 - [x] test 切分封存：写入 `data/planner/sft/SEALED.md` 记录 sha256，训练结束前不读取。（2026-09-15：[SEALED.md](/Users/ts/Desktop/thu/multi_Agent/data/planner/sft/SEALED.md) 登记种子级（test 732 + 多轮 92 行）与导出文件级 sha256；`scripts/planner_data/check_sealed.py` 比对种子级哈希，`export_sft.py` 不产出 `bailian_test.jsonl`。）
 
-验收标准：改写后训练 / 验证集重导出完成，泄漏检查仍为 0，百炼格式文件通过控制台数据校验。（本地格式校验已通过；控制台校验随 D-1 上传时完成。）
+验收标准：改写后训练 / 验证集重导出完成，泄漏检查仍为 0，百炼格式文件通过控制台数据校验。（2026-09-16：重导出完成、泄漏 0、本地格式校验通过；控制台校验随 D-1 上传时完成，注意 91.8 MB 单文件是否超过百炼上限。）
 
 ### A-3 人工标注（与 B、C 并行，不阻塞代码）
 

@@ -74,7 +74,7 @@ flowchart LR
     D1 --> D6[D6 任务种子<br/>单轮 3482 / 多轮 529]
     D4 --> D6
     D6 --> D8[D8 工具调用训练集<br/>单轮 2311/439/732<br/>多轮 870/144/203]
-    D6 --> D7[D7 口语化改写<br/>待 LLM]
+    D6 --> D7[D7 口语化改写<br/>4538 条]
     D8 -->|封存 test 分层抽样| D10[D10 端到端评测集 196 条]
     D10 -->|Oracle + 真实工具 + 规则声明| D11[D11 故障注入评测集<br/>300 条]
     D8 -->|train prompt + 候选打分配对| D13[D13 Planner 偏好对<br/>demo 50 / 60]
@@ -92,8 +92,8 @@ flowchart LR
 | D9 | `data/kb/eval/reflection/d9_pairs.jsonl` | 298 对 | `build_reflection_evalset.py --n 300` | D3 查询 × 检索命中块配对，四桶：gold 105 / retrieved_nongold 105 / global_random 45 / same_doc_random 43 | 评分器与人工分一致性 | 完成；`human_score` 待填 |
 | D6 | `data/planner/seeds/task_seeds.jsonl` | 3482（train 2311 / dev 439 / test 732） | `scripts/planner_data/build_task_seeds.py --execute` | 六类：fact 1207（D1 块）、numeric_tool 952（R4 / R6 / R7 记录）、reasoning 403（D4 实体对）、no_tool 340、insufficient 340、composite 240；金标动作在真实工具环境执行，失败样本剔除（`rejected.jsonl`） | D8 / D10 的源 | 完成；口语化改写待 LLM |
 | D6-多轮 | `data/planner/seeds/multi_turn_seeds.jsonl` | 529 种子 / 1286 决策点（train 373 / dev 64 / test 92） | `build_multi_turn.py` | single_then_finish 300、composite_2step 152、composite_recover_kg 8、错误恢复 69（kg_colloquial_to_std 30 / ett_bad_dataset 18 / ett_bad_range 12 / ts_unrecoverable_ask 9）；工具返回全部真实执行 | 多轮与错误恢复训练 | 完成 |
-| D8 | `data/planner/sft/*`（jsonl / json gitignore，保留 `DATA_CARD.md`、`SEALED.md`） | 单轮 2311 / 439 / 732；多轮决策点 870 / 144 / 203；百炼合并 train 3181 / dev 583 | `export_sft.py` | 按 `group_key` 分组切分 70 / 10 / 20，跨集相似度 > 0.9 为 0 对；导出 ms-swift、LLaMA-Factory、JSON 文本、百炼四种格式；错误恢复的刻意错误首调不作训练目标；test 封存（sha256 见 SEALED.md，`check_sealed.py` 校验） | Planner SFT 训练与离线评测 | 完成；改写后需重导出 |
-| D7 | `data/planner/seeds/task_seeds_rewritten.jsonl` | 目标 2750 × 2 | `rewrite_queries.py` | LLM 口语化改写，守卫保证数字 / 实体不变 | 提升训练问法多样性 | 待跑（约 1.2 元） |
+| D8 | `data/planner/sft/*`（jsonl / json gitignore，保留 `DATA_CARD.md`、`SEALED.md`） | 单轮 6131 / 1157 / 732（含 D7 改写；改写前 2311 / 439 / 732）；多轮决策点 870 / 144 / 203；百炼合并 train 7001 / dev 1301（改写前 3181 / 583） | `export_sft.py --seeds task_seeds_rewritten.jsonl` | 按 `group_key` 分组切分 70 / 10 / 20，跨集相似度 > 0.9 为 0 对；导出 ms-swift、LLaMA-Factory、JSON 文本、百炼四种格式；错误恢复的刻意错误首调不作训练目标；test 封存（sha256 见 SEALED.md，`check_sealed.py` 校验） | Planner SFT 训练与离线评测 | 完成（2026-09-16 含改写重导出，test 种子级 sha256 不变） |
+| D7 | `data/planner/seeds/task_seeds_rewritten.jsonl`（gitignore，可重建） | 原种子 3482 + 改写 4538（2750 条 train / dev 种子 × K=2 请求，守卫拒绝 961） | `rewrite_queries.py --k 2` | `qwen3.7-flash` 口语化改写（temperature 0.8）；守卫：数字集合不变（气体符号 / 数据集名 / 标准号中的数字屏蔽）、领域实体保留 ≥ 60%（同义词算保留）、长度 8–200、不重复、insufficient 不得补数字、不得引入原句没有的结论 / 故障类型词，numeric_tool / composite / insufficient 另拦软判断词；改写沿用原种子 `gold_actions` / `group_key` / `split`，`seed_id` 加 `-rN`；test 不改写 | 提升训练问法多样性 | 完成（2026-09-16；1.07M Token） |
 | D10 | `data/eval/d10/end2end_eval.jsonl` | 196（71 group_key） | `scripts/eval/build_d10.py` | 仅从 D8 封存 test 分层抽样（seed 20260915），8 场景 23 子类，标注必要动作、关键参数、期望证据来源、参考要点 | 五级系统模式端到端评测；C-1 / C-3 抽样底稿 | 完成；`reference_points` 人工复核待做 |
 | D11 | `data/eval/d11/fault_injection_eval.jsonl` | 300 = 注入 200（四类各 50）+ 干净 100 | `scripts/eval/build_d11_fault_injection.py` | D10 底稿经 OraclePlanner + 真实工具 + 规则声明生成干净草案，再脚本注入单处错误（numeric_tamper / fake_reference / applicability_swap / safety_premise_removed）；不调 LLM，可复现 | ClaimChecker 分类型检出率、C-5 三组 Validator 对照 | 完成；人工抽检 40 条待做 |
 | D12 | `data/eval/d12/partial_obs.jsonl` | 1500（light / medium / heavy 各 500） | `scripts/sim/partial_obs_sim.py --build` | R4 非 normal 记录 3729 条按故障类分层抽样，随机遮蔽 1 / 2 / 3 种气体，派生可见与隐藏征兆 | B-5 四种问询策略对照、E-3 mode2 vs mode3 鲁棒性 | 完成 |
@@ -201,7 +201,7 @@ D13 `d13_{exec,full}_demo.jsonl`：百炼 DPO 格式 `{messages[system, user], c
 
 ### 1.7 已知偏差（写论文时须声明）
 
-- 训练与评测的问法目前为模板生成，口语化改写（D7）未执行，对 Planner 指标偏乐观。
+- train / dev 问法已含 LLM 口语化改写（D7），但 D8 test 与 D10 仍为模板问法，Planner 离线 / 端到端指标对真实口语输入仍偏乐观；改写由同一 `qwen3.7-flash` 生成，与 M0 基线同源，存在风格偏置。
 - DGA 三源标签分布不均（过载过热 / 正常偏多）；标签为文献汇编而非现场确认；`device_id` 为循环生成，不能做设备维度分析。
 - 图谱由规则抽取，覆盖有限（90 节点），推理类样本受此约束。
 - ETT 负载特征单位未知，预测模型为线性回归，仅用于工具调用行为研究。

@@ -15,7 +15,7 @@ Planner 是诊断流程的第一个 LLM 节点，输入用户问题与对话历�
 | 阶段 | 模型 | 训练方式 | 数据 | 说明 |
 |---|---|---|---|---|
 | M0 | `qwen3-8b` 基座 | 无 | — | 对照：未微调 Planner，prompt 与 M1 一致 |
-| M1 | M0 + LoRA | 百炼 `efficient_sft`，`n_epochs=3`、`batch_size=16`、`max_length=4096` | D8 train 3181 / dev 583（单轮 + 多轮合并，百炼 ChatML，`tool_calls` 风格） | SFT 基线；同时作为 D-2 候选采样器 |
+| M1 | M0 + LoRA | 百炼 `efficient_sft`，`n_epochs=3`、`batch_size=16`、`max_length=4096` | D8 train 7001 / dev 1301（含 A-2 口语化改写；单轮 + 多轮合并，百炼 ChatML，`tool_calls` 风格） | SFT 基线；同时作为 D-2 候选采样器 |
 | M4-exec | M1 + LoRA | 百炼 `dpo_lora`，`n_epochs=2`、`batch_size=16`、`max_length=4096`、`dpo_beta=0.1` | D13-exec | 偏好只来自执行信号（4 项） |
 | M4-full | M1 + LoRA | 同上 | D13-full | 偏好加入验证信号（6 项 + 成本） |
 

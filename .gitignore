@@ -40,9 +40,15 @@ data/kb/units.jsonl
 data/kb/chunks.jsonl
 data/kb/index/sections_index.jsonl
 
-# Planner SFT 导出产物（可由 scripts/planner_data/export_sft.py 重建，保留 DATA_CARD.md）
+# Planner SFT 导出产物（可由 scripts/planner_data/export_sft.py --seeds task_seeds_rewritten.jsonl 确定性重建，保留 DATA_CARD.md / SEALED.md）
+# train / dev 含口语化改写后单文件 80-92 MB，不入库；test 三份 + 多轮 test 为封存对象，保留在库中（sha256 见 SEALED.md）
+# 改写种子 task_seeds_rewritten.jsonl 由 LLM 生成、不可确定性重建，随库保存（5.7 MB）
 data/planner/sft/*.jsonl
 data/planner/sft/*.json
+!data/planner/sft/swift_test.jsonl
+!data/planner/sft/jsontext_test.jsonl
+!data/planner/sft/lf_test.json
+!data/planner/sft/swift_multiturn_test.jsonl
 
 # 训练产物、模型预测与 DPO 候选采样（体积大，可重建）
 output/

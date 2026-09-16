@@ -60,7 +60,12 @@ if has planner_data; then
   echo "== 4. 规划数据 D8（含百炼 SFT 格式导出与 test 封存校验）=="
   run python3 scripts/planner_data/build_task_seeds.py --execute
   run python3 scripts/planner_data/build_multi_turn.py
-  run python3 scripts/planner_data/export_sft.py
+  # A-2 口语化改写产物随库保存（LLM 生成，不可确定性重建）；存在则用它导出，否则退回模板种子
+  if [ -f data/planner/seeds/task_seeds_rewritten.jsonl ]; then
+    run python3 scripts/planner_data/export_sft.py --seeds data/planner/seeds/task_seeds_rewritten.jsonl
+  else
+    run python3 scripts/planner_data/export_sft.py
+  fi
   run python3 scripts/planner_data/check_sealed.py
   run python3 training/planner_sft/build_domain_terms.py
 fi

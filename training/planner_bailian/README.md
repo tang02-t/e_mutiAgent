@@ -23,7 +23,7 @@
 - `assistant.tool_calls[] = {id, type:"function", function:{name, arguments:<JSON 字符串>}}`。
 - `tool` 消息仅 `role / tool_call_id / content`，`tool_call_id` 与前一条 assistant 的 `tool_calls[].id` 一一对应；不带 `name`。
 - 末条消息为 assistant（训练目标）。错误恢复轨迹的「刻意错误首调」只在上下文中出现，不做训练目标（平台对所有 assistant 输出都计算 loss，不支持逐条权重）。
-- 单轮 + 多轮决策点合并：train 3181 条（2311 + 870，42.0 MB），dev 583 条（439 + 144，7.7 MB）。test 封存不导出（`data/planner/sft/SEALED.md`）。
+- 单轮 + 多轮决策点合并（含 A-2 口语化改写，2026-09-16 重导出）：train 7001 条（6131 + 870，91.8 MB），dev 1301 条（1157 + 144，17.0 MB）。test 封存不导出（`data/planner/sft/SEALED.md`）。百炼单文件上限请以控制台为准；如超限可用 `--no-multi-turn` 或按行切分上传。
 
 校验：`python3 scripts/planner_data/bailian_format.py data/planner/sft/bailian_train.jsonl data/planner/sft/bailian_dev.jsonl`
 自检：`python3 tests/test_d1_bailian_export.py`
