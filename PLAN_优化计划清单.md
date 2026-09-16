@@ -357,8 +357,8 @@
 ## F 成果固化
 
 - [ ] 六份报告齐全：`baseline.md`、`attribution_calibration.md`、`active_planning_eval.md`、`validator_eval.md`、`planner_dpo_eval.md`、`system_modes_eval.md`。
-- [ ] 数据卡片：D11、D12、D13 新增；D8、D10 更新复核状态。
-- [ ] `reproduce.sh` 更新为 A → B → C → E 一键（D 需百炼账号，提供 `submit_job.py` 与说明）。
+- [x] 数据卡片：D11、D12、D13 新增；D8、D10 更新复核状态。（2026-09-16：D11 / D12 / D13 卡片已随 C-4 / B-3 / D-2 建立；D8 / D10 `reviewed` 状态待 A-3 人工复核后更新）
+- [x] `reproduce.sh` 更新为 A → B → C → E 一键（D 需百炼账号，提供 `submit_job.py` 与说明）。（2026-09-16：阶段名 `dga kb kg reflection planner_data d10 B C D E test`，D 阶段只跑偏好对 demo 与 `submit_job.py` dry-run；Oracle 抽样校验加 `--tag smoke` 避免覆盖正式 196 条结果，`*_smoke.jsonl` 入 `.gitignore`；D / E 阶段实跑通过，demo 产物重跑数字一致仅耗时变化）
 - [ ] README 更新架构图与三条主线说明；`docs/figures/fig3_1_architecture.png` 重绘加入 EIG 模块与声明核查器。
 - [ ] 代码打 tag `v2-final`，与 `baseline-v0` 对照。
 - [ ] 已知局限：DGA 标签映射不代表真实故障部位；征兆成本表为专家设定；D11 为自动注入而非真实错误；评测依赖 LLM 裁判；DPO 偏好对由自动打分构造。
