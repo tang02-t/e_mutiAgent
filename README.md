@@ -60,6 +60,7 @@ USE_LEARNED_CPT=0 bash run_frontend.sh    # 专家默认 CPT 对照
 | `docs/planner_training.md` | v1 微调路线（魔搭 LoRA → 百炼导入）、百炼约束 | 已降级为备选；v2 走百炼 SFT + DPO |
 | `docs/planner_eval.md` | Planner 七项指标分类别（v2 矩阵：M0 / M1 / M4-exec / M4-full） | 待模型预测 |
 | `docs/end2end_eval.md` | 五级模式任务成功率 / 忠实度 / 调用次数 / 延迟 / Token | 框架就位，正式数字待 Planner 真实调用 |
+| `docs/chapter3_active_planning_material.md`、`docs/chapter4_claim_verification_material.md`、`docs/chapter5_planner_dpo_material.md` | 论文第 3-5 章素材：定义表、流程图、消融设计、相关工作差异、可引用数字 | 第 3-4 章数字齐全；第 5 章数字待百炼训练 |
 | `docs/progress_*.md` | 阶段进展报告 | 持续更新 |
 
 ## 数据与安全约束

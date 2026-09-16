@@ -319,8 +319,10 @@
 
 ### D-5 章节素材
 
-- [ ] 偏好构造流程图、打分函数定义表、消融设计说明。
-- [ ] 与 ToolRL / ARTIST / Deep-DxSearch 的差异说明：本文奖励信号来自下游声明级验证器而非仅工具执行结果；采用 DPO 离线优化以适配平台约束。
+- [x] 偏好构造流程图、打分函数定义表、消融设计说明。（2026-09-16：[chapter5_planner_dpo_material.md](/Users/ts/Desktop/thu/multi_Agent/docs/chapter5_planner_dpo_material.md) §5.3 Mermaid 流程图、§5.4 表 5-1 ~ 5-3（分项定义、总分公式、金标扰动候选排序）、§5.5 偏好来源消融 M1 / M4-exec / M4-full 与判读规则；§5.7 数字表留空待 D-3 / D-4）
+- [x] 与 ToolRL / ARTIST / Deep-DxSearch 的差异说明：本文奖励信号来自下游声明级验证器而非仅工具执行结果；采用 DPO 离线优化以适配平台约束。（2026-09-16：§5.6 表 5-4 七维对照 + 三段可改写文字；引用 arXiv:2504.13958 / 2505.01441 / 2508.15746，关键数字已核对：ToolRL 相对 SFT +15、ARTIST BFCL v3 最难子集最高 +16、Deep-DxSearch 四维奖励且动作空间无追问）
+
+验收结果（2026-09-16）：素材引用的 10 个本地文件全部存在；表 5-3 七行数字与 [summary_demo.json](/Users/ts/Desktop/thu/multi_Agent/data/planner/dpo/summary_demo.json) `source_mean_full` 一致；超参与 `submit_job.py` `HP_SFT / HP_DPO` 一致；train 3181 / dev 583 与 `training/planner_bailian/README.md` 一致。**D 主线离线可完成部分（D-1 / D-2 / D-5）全部完成；D-1 上传训练部署、D-2 正式候选生成与人工复核、D-3、D-4 需百炼账号，后置。**
 
 ---
 
