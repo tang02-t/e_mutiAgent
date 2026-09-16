@@ -95,7 +95,7 @@
 - [ ] D9 反思校验集 298 对填 `human_score`（两人标注，争议第三人裁定），计算 LexicalScorer 与人工的加权 Kappa。
 - [ ] 图谱 [precision_sample.jsonl](/Users/ts/Desktop/thu/multi_Agent/data/kg/eval/precision_sample.jsonl) 56 条精度抽检人工确认（当前 AI 预标注 83%）。
 - [ ] D10 196 条 `reference_points` 人工复核，`status` 由 `auto` 改为 `reviewed`。
-- [x] 2026-09-15 核实数据来源与许可：R1 非 Kaggle（字段不符，改写为「来源未核实的 IEC 60599 标签 DGA 汇编」）；R3 589 条为公开基准并已知含重复/冲突；ETT 许可统一为 CC BY-ND 4.0（原仓库为准，脚注说明 HF 镜像差异）；R8 公开站点检索未匹配。已同步 `docs/data_inventory.md`、`docs/data_and_evaluation.md`。
+- [x] 2026-09-15 核实数据来源与许可：R1 非 Kaggle（字段不符，改写为「来源未核实的 IEC 60599 标签 DGA 汇编」）；R3 589 条为公开基准并已知含重复/冲突；ETT 许可统一为 CC BY-ND 4.0（原仓库为准，脚注说明 HF 镜像差异）；R8 公开站点检索未匹配。已同步 `docs/data_inventory.md`、`docs/data_and_evaluation.md`（2026-09-16 前者已并入后者并删除）。
 - [ ] R8 `power_transformer_fault.csv` 若在 F 阶段前仍无法核实来源，从仓库移除并登记附录 B。
 - [x] B-1 校准实验增加「R3 589 公开基准子集」单列结果（见 `docs/attribution_calibration.md` 附录，n=438，Top-1 0.662 → 0.669，ECE 0.113 → 0.091；注意该子集参与了全量学习，非严格外部检验）。（2026-09-15）
 - [ ] 视时间补 IEC TC 10 案例库（IEEE DataPort, DOI 10.21227/h8g0-8z59）外部检验。

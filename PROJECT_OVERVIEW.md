@@ -131,7 +131,7 @@ v2 计划 E 阶段将重定义为 `llm_only → tool_base → active_plan → cl
 | `data/synthetic/` | 合成 DGA / 时序 / 案例 / eval_set | 仅流程回归，`assert_not_synthetic` 阻止进入评测与训练 |
 | `data/external_transformer/`（gitignore） | `power_transformer_fault.csv` | 来源未核实，未使用 |
 
-来源与许可细节见 [docs/data_inventory.md](docs/data_inventory.md) 与 [docs/data_and_evaluation.md](docs/data_and_evaluation.md)。
+来源、许可、文件格式与角色隔离规则见 [docs/data_and_evaluation.md](docs/data_and_evaluation.md)（第一部分；原 `data_inventory.md` 已并入）。
 
 ---
 
