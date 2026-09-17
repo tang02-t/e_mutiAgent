@@ -3,7 +3,7 @@
 Planner → Retriever → [Reflection] → Generator → Validator 五智能体（LangGraph 编排），工具层包含 DGA 贝叶斯归因、ETT 油温预测、时序异常检测、离线知识库两路检索（`rag_search`）、故障关系图谱多跳检索（`kg_search`）。规划模块支持用微调后的 Planner 替换（`planner_mode: finetuned`，v2 路线为百炼 `qwen3-8b` SFT + DPO），并提供五级系统模式用于增量归因。研究主线与任务清单见 [PLAN_优化计划清单.md](PLAN_优化计划清单.md)。
 
 - 项目结构说明：[PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md)
-- 完整计划与进度：[PLAN_优化计划清单.md](PLAN_优化计划清单.md)（顶部「进度状态」表）
+- 完整计划与进度：[PLAN_优化计划清单.md](PLAN_优化计划清单.md)（§0.6「进度状态」表 + 各小节 `[ ]` 项）
 - 阶段报告：`docs/`（见下文「报告索引」）
 - 快速入门：[docs/速览卡.md](docs/速览卡.md)（一页）→ [docs/walkthrough_traces.md](docs/walkthrough_traces.md)（三条主线真实执行轨迹）→ [docs/技术报告_v2.md](docs/技术报告_v2.md)
 
@@ -153,16 +153,21 @@ for t in tests/test_*.py; do python3 "$t" | tail -1; done   # 回归测试：13 
 
 各阶段对应脚本：
 
-| 阶段 | 脚本 | 产物 |
+| `reproduce.sh` 阶段 | 脚本 | 产物 |
 |---|---|---|
-| DGA 合并 / 参数学习 | `scripts/convert_real_dga.py`、`scripts/learn_cpt.py` | `data/real/dga/dga_records.jsonl`（5143）、`learned_params.json` |
-| P1 知识库 | `scripts/kb/build_units.py` → `build_chunks.py` → `build_index.py`；`build_retrieval_evalset.py`；`eval_retrieval.py --ablation`；`ablation_chunking.py` | `data/kb/{units,chunks}.jsonl`、`data/kb/index/`、`data/kb/eval/retrieval_seed.jsonl`（1209）、`docs/kb_ablation_test.md` |
-| P2 图谱 | `scripts/kg/extract_rules.py` → `build_graph.py` → `build_kg_eval.py` | `data/kg/graph.json`（90 节点 / 190 边）、`data/kg/eval/`（304 条问答 + 56 条精度抽检） |
-| P3 反思 | `scripts/kb/build_reflection_evalset.py --n 300`；`eval_reflection_recall.py` | `data/kb/eval/reflection/d9_pairs.jsonl`（298 对）、`docs/reflection_eval.md` |
-| P4 规划数据 | `scripts/planner_data/build_task_seeds.py --execute` → `build_multi_turn.py` → `export_sft.py`；`training/planner_sft/build_domain_terms.py` | `data/planner/seeds/`、`data/planner/sft/`（ms-swift 单轮 2311/439/732 + 多轮 870/144/203，LLaMA-Factory，JSON 文本）、`DATA_CARD.md` |
-| P5 训练（v1 备选路线） | `training/planner_sft/train.sh`、`run_matrix.sh`、`predict.py`；`scripts/eval/eval_planner_offline.py --write-report` | `output/planner_sft/`、`data/planner/predictions/`、`docs/planner_eval.md` |
-| P6 评测 | `scripts/eval/build_d10.py`；`scripts/eval/eval_system_modes.py --modes all [--judge llm]` | `data/eval/d10/end2end_eval.jsonl`（196）、`docs/end2end_eval.md` |
-| 端到端（旧接口，合成 eval_set 回归） | `scripts/eval_end2end.py --limit N --reflection lexical --kb-mode local_kb|mock` | `data/synthetic/eval/report_end2end_dev*.md` |
+| `dga` DGA 合并 / 参数学习 | `scripts/convert_real_dga.py`、`scripts/learn_cpt.py` | `data/real/dga/dga_records.jsonl`（5143）、`learned_params.json` |
+| `kb` 知识库 | `scripts/kb/build_units.py` → `build_chunks.py` → `build_index.py`；`build_retrieval_evalset.py`；`eval_retrieval.py --ablation`；`ablation_chunking.py` | `data/kb/{units,chunks}.jsonl`、`data/kb/index/`、`data/kb/eval/retrieval_seed.jsonl`（1209）、`docs/kb_ablation_test.md` |
+| `kg` 图谱 | `scripts/kg/extract_rules.py` → `build_graph.py` → `build_kg_eval.py` | `data/kg/graph.json`（90 节点 / 190 边）、`data/kg/eval/`（304 条问答 + 56 条精度抽检） |
+| `reflection` 反思 | `scripts/kb/build_reflection_evalset.py --n 300`；`eval_reflection_recall.py` | `data/kb/eval/reflection/d9_pairs.jsonl`（298 对）、`docs/reflection_eval.md` |
+| `planner_data` 规划数据 | `scripts/planner_data/build_task_seeds.py --execute` → `build_multi_turn.py` → `export_sft.py`（存在 `task_seeds_rewritten.jsonl` 时用改写种子）；`rewrite_queries.py` 改写需 LLM，不在离线阶段 | `data/planner/seeds/`（3482 种子 + 4538 条改写）、`data/planner/sft/`（百炼 ChatML train 7001 / dev 1301，本地不入库；test 四份封存入库，`SEALED.md`）、`DATA_CARD.md` |
+| `d10` 端到端评测集 | `scripts/eval/build_d10.py` | `data/eval/d10/end2end_eval.jsonl`（196） |
+| `B` 主线一 | `scripts/learn_cpt.py --kfold 5`（在 `dga` 阶段）、`scripts/eval/eig_sanity_check.py`、`scripts/sim/partial_obs_sim.py --build`、`scripts/eval/eval_active_planning.py` | `docs/attribution_calibration.md`、`docs/eig_sanity_check.md`、`data/eval/d12/`（1500）、`docs/active_planning_eval.md` |
+| `C` 主线二 | `scripts/eval/eval_claims_c1.py`、`eval_claim_checker_c2.py`、`eval_route_c3.py`、`build_d11_fault_injection.py`、`eval_validator.py` | `docs/claims_acceptance.md`、`claim_checker_acceptance.md`、`route_acceptance.md`、`data/eval/d11/`（300）、`docs/validator_eval.md` |
+| `D` 主线三（离线部分） | `scripts/planner_data/score_candidates.py --synthetic-demo`；`training/planner_bailian/submit_job.py` dry-run | `data/planner/dpo/d13_{exec,full}_demo.jsonl`、`DATA_CARD.md`；正式训练需百炼账号，见 `training/planner_bailian/README.md` |
+| `E` 五级模式 | `scripts/eval/eval_system_modes.py --modes all --no-llm --tag smoke`；`--oracle-planner` 上界 | `data/eval/d10/results/`、`docs/end2end_eval.md`（正式数字待 LLM） |
+| `test` 回归 | `tests/test_*.py` 逐文件运行 | 13 个文件 608 项 |
+| 基线（需 LLM，不在 `reproduce.sh`） | `scripts/kb/eval_retrieval.py`、`training/planner_sft/predict.py --stratified 100` + `scripts/eval/eval_planner_offline.py`、`eval_system_modes.py --modes mode2 --limit 50 --tag a1_baseline` | `docs/baseline.md`、`docs/planner_eval.md` M0 列 |
+| v1 备选训练路线 | `training/planner_sft/train.sh`、`run_matrix.sh` | 已降级，见 `docs/planner_training.md` |
 
 ## 运行前端
 
@@ -205,6 +210,6 @@ USE_LEARNED_CPT=0 bash run_frontend.sh    # 专家默认 CPT 对照
 - 知识库文献存在重复与 MinerU 解析噪声，图片仅有路径、表格无标题，多模态转文本依赖 LLM 尚未完成；当前检索为 BM25 子块 + 锚点两路 RRF，无稠密向量与重排器。
 - 图谱由规则抽取（显式因果触发词），90 节点 / 190 边，覆盖有限，精度抽检 83%（严格）/ 95.7%（宽松）。
 - 反思评分器目前是词法基线，LLMScorer 与人工评分的一致性尚未测量；D9 人工 `human_score` 未填写。
-- 规划训练数据问法为模板生成，口语化改写（P4-2）待 LLM；多轮样本的 assistant thought 为规则模板文本。
-- 端到端评测的「答案忠实度」在离线模式下使用证据锚点代理，LLM 裁判与 10% 人工复核未执行；D10 标注 `status=auto`。
-- 所有依赖 LLM 的正式数字（基线、五级模式 E-2、M0 / M1 / M4 对照）尚未产出；DPO 训练需在百炼平台执行（`submit_job.py`）。
+- 规划训练数据问法由模板生成后经 `qwen3.7-flash` 口语化改写（A-2，2026-09-16 完成，守卫过滤 961 条、人工抽检 50 条），改写模型与 M0 基线同源；多轮样本的 assistant thought 为规则模板文本。
+- 端到端评测的「答案忠实度」在离线模式下使用证据锚点代理，LLM 裁判与 10% 人工复核未执行；D10 标注 `status=auto`，人工复核（A-3）待做。
+- 已产出的 LLM 数字仅限 A-1 基线（检索 Recall@k、M0 Planner 100 条、mode2 端到端 50 条，见 `docs/baseline.md`）；M1 / M4 对照与五级模式 E-2 正式数字待百炼训练（`training/planner_bailian/submit_job.py`）与 LLM 评测，进度见 `PLAN_优化计划清单.md` §0.6。

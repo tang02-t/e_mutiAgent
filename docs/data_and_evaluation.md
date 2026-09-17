@@ -340,9 +340,12 @@ C 系列均以 OraclePlanner + 真实工具 + 规则声明运行，不调 LLM；
 | `docs/kb_ablation_test.md` | 稠密向量通道、Qwen3-Reranker、自然问句版 D3 | embedding 接口、GPU |
 | `data/kg/eval/report.md` | 人工 label、负样本、LightRAG 对比胜率 | 人工 + LLM |
 | `docs/reflection_eval.md` | LLMScorer 版本、Kappa | 人工 `human_score` + LLM |
-| `docs/planner_dpo_eval.md` | M0 / M1 / M4-exec / M4-full 离线 7 指标 | 百炼 SFT + DPO 训练与部署 |
+| `docs/planner_dpo_eval.md` | M0 / M1 / M4-exec / M4-full 离线 7 指标与端到端对照（M0 100 条基线已在 `baseline.md`） | 百炼 SFT + DPO 训练与部署（D-1 ~ D-4） |
 | `docs/planner_eval.md` | M0 已有 100 条基线（`docs/baseline.md` §2）；M1 / M4 列与 935 条全量、2 seeds | 百炼 SFT + DPO 部署 |
-| `docs/end2end_eval.md` | 五级模式正式数字（196 × 5 × 2 次）、交叉对照、LLM 裁判、10% 人工复核 | DPO Planner 部署 + LLM |
+| `docs/end2end_eval.md` / `system_modes_eval.md` | 五级模式正式数字（196 × 5 × 2 次）、交叉对照、LLM 裁判、10% 人工复核（mode2 前 50 条基线 46.0% 与 Oracle 上界 97.4% 已有） | DPO Planner 部署 + LLM + D10 人工复核（E-2） |
 | `docs/active_planning_eval.md` | `llm_free` 策略 | LLM |
 | `docs/validator_eval.md`、`data/eval/d11/manual_review_sample.md` | 注入有效率人工抽检 40 条 | 人工 |
-| `data/eval/d10/DATA_CARD.md` | `reference_points` 人工复核（status → reviewed） | 人工 |
+| `data/eval/d10/DATA_CARD.md` | `reference_points` 人工复核（status → reviewed） | 人工（A-3） |
+| `data/planner/dpo/` | 正式 D13 偏好对 ≥1200 对（现为 demo 50 / 60）、100 对人工复核 | 百炼 M1 采样 + 人工（D-2） |
+
+完整进度以 [PLAN_优化计划清单.md](../PLAN_优化计划清单.md) §0.6 为准。

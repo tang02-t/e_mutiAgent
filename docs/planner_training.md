@@ -37,7 +37,7 @@
 - 测试集（封存）：`swift_test.jsonl`（732）+ `swift_multiturn_test.jsonl`（203），只在最终评测读取
 - 错误恢复样本中刻意错误的首调只作上下文，不做训练目标（`decision_index` 从 1 起）
 - 合成数据（`data/synthetic/`）不参与；数据卡片：`data/planner/sft/DATA_CARD.md`
-- 待 P4-2 LLM 口语化改写后重新导出（`python3 scripts/planner_data/export_sft.py`）
+- 口语化改写（A-2）已于 2026-09-16 完成并重导出：单轮 train / dev 6131 / 1157，百炼 ChatML train 7001 / dev 1301；本路线的 ms-swift / LLaMA-Factory 格式如需使用请重跑 `export_sft.py --seeds data/planner/seeds/task_seeds_rewritten.jsonl --format swift`
 
 ## 4. 训练配置（P5-2）
 
@@ -73,7 +73,7 @@
 | M2 | 结构 token 加权 | `train.sh M2 <seed>` |
 | M3 | 结构 + 领域 token 加权 | `train.sh M3 <seed>` |
 
-每个变体 2 个 seed（42 / 2026），`run_matrix.sh` 一键完成训练 → 推理 → 评测；报告 `docs/planner_eval.md` 对同变体多 seed 取均值。Q0 / Q1（查询分解智能体有无微调）留待 P4-2 后视数据量决定是否加入。
+每个变体 2 个 seed（42 / 2026），`run_matrix.sh` 一键完成训练 → 推理 → 评测；报告 `docs/planner_eval.md` 对同变体多 seed 取均值。Q0 / Q1（查询分解智能体有无微调）在 v2 中不做。
 
 ## 6. 评测（P5-4）
 

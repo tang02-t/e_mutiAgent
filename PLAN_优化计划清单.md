@@ -52,7 +52,7 @@
 | 2027-02 ~ 04 | 论文写作、补实验 |
 | 2027-05 | 预答辩 |
 
-### 0.5 五级系统模式（重定义，替换 [system_modes.py](/Users/ts/Desktop/thu/multi_Agent/src/graph/system_modes.py) 现有定义）
+### 0.5 五级系统模式（v2 定义，已落地于 [system_modes.py](/Users/ts/Desktop/thu/multi_Agent/src/graph/system_modes.py)）
 
 每级只在上一级基础上打开一项能力。知识库两路检索、`kg_search`、词法反思属于工程基座，从模式 2 起全部开启且不再单独归因。
 
@@ -64,7 +64,33 @@
 | mode4 | `claim_verify` | Generator 输出 claim-evidence 结构；Validator 切换为声明级约束核查 + 补证重规划路由 | 主线二 |
 | mode5 | `dpo_planner` | Planner 切换为百炼部署的 DPO 模型 | 主线三 |
 
-`resolve_mode` 的显式覆盖参数保留（`--planner-mode`、`--validator-mode`、`--attribution-mode`），用于交叉对照（例如 mode4 + baseline planner）。
+`resolve_mode` 的显式覆盖参数保留（`--planner-mode`、`--validator-mode`、`--attribution-mode`、`--planner-strategy`、`--generator-output`），用于交叉对照（例如 mode4 + baseline planner）。（2026-09-16：已由 E-1 落地到 `system_modes.py`，单元测试断言相邻模式配置差集恰为一组。）
+
+### 0.6 进度状态（截至 2026-09-17，代码 `0128d32`）
+
+按下文各小节 `[x]` / `[ ]` 统计，修改任务勾选后请同步更新本表。
+
+| 阶段 | 小节 | 完成 / 总数 | 未完成项性质 |
+|---|---|---:|---|
+| A | A-1 基线 | 4 / 4 | — |
+| A | A-2 口语化改写 | 4 / 4 | — |
+| A | A-3 人工标注 | 2 / 7 | 人工：D9 Kappa、图谱 56 条、D10 复核、R8 来源、IEC TC 10 |
+| A | A-4 安全与仓库 | 2 / 3 | 用户：百炼 API Key / GitHub token 撤销重建 |
+| A | A-5 砍掉项 | 5 / 5 | — |
+| B | B-1 ~ B-6 主线一 | 28 / 28 | —（`llm_free` 对照为可选附加，需 LLM） |
+| C | C-1 ~ C-6 主线二 | 22 / 23 | LLM + 人工：语义层 10% 一致率 |
+| D | D-1 百炼 SFT | 1 / 5 | 百炼：上传、训练、部署、M1 离线评测 |
+| D | D-2 偏好对 | 4 / 7 | 百炼 + 人工：正式候选生成、100 对复核 |
+| D | D-3 百炼 DPO | 0 / 4 | 百炼 |
+| D | D-4 对照矩阵 | 0 / 4 | 百炼 + LLM |
+| D | D-5 章节素材 | 2 / 2 | —（§5.7 数字待 D-4 回填） |
+| E | E-1 五级重定义 | 3 / 3 | — |
+| E | E-2 正式评测 | 0 / 5 | LLM 费用 + D10 人工复核前置 |
+| E | E-3 鲁棒性 | 0 / 2 | LLM，时间允许时 |
+| F | 成果固化 | 2 / 7 | 三份报告待数字、架构 PNG 重绘、tag、局限、论文初稿 |
+| 合计 | | 79 / 113 | 百炼 15、LLM 8、人工 / 用户 7、F 收尾 4 |
+
+阅读顺序建议：[docs/速览卡.md](/Users/ts/Desktop/thu/multi_Agent/docs/速览卡.md) → [docs/技术报告_v2.md](/Users/ts/Desktop/thu/multi_Agent/docs/技术报告_v2.md) §7 → 本文件未勾选项。
 
 ---
 
@@ -106,7 +132,7 @@
 
 - [ ] 阿里云 AccessKey `LTAI5t7f…` 到控制台撤销重建；GitHub 推送 token 撤销重建。
 - [x] `.gitignore` 增加 `config.yaml`、`*.key`、`output/`、`data/planner/dpo/candidates/`。（2026-09-15）
-- [ ] 87 项回归测试保持通过；新增测试文件命名 `tests/test_<阶段>_<模块>.py`。
+- [x] 回归测试保持通过；新增测试文件命名 `tests/test_<阶段>_<模块>.py`。（2026-09-17：13 个文件 608 项全部通过，原 87 项已扩展；持续性要求，每次提交前逐文件 `python3` 运行，勿用 pytest）
 
 ### A-5 砍掉项落地
 
@@ -359,7 +385,7 @@
 - [ ] 六份报告齐全：`baseline.md`、`attribution_calibration.md`、`active_planning_eval.md`、`validator_eval.md`、`planner_dpo_eval.md`、`system_modes_eval.md`。
 - [x] 数据卡片：D11、D12、D13 新增；D8、D10 更新复核状态。（2026-09-16：D11 / D12 / D13 卡片已随 C-4 / B-3 / D-2 建立；D8 / D10 `reviewed` 状态待 A-3 人工复核后更新）
 - [x] `reproduce.sh` 更新为 A → B → C → E 一键（D 需百炼账号，提供 `submit_job.py` 与说明）。（2026-09-16：阶段名 `dga kb kg reflection planner_data d10 B C D E test`，D 阶段只跑偏好对 demo 与 `submit_job.py` dry-run；Oracle 抽样校验加 `--tag smoke` 避免覆盖正式 196 条结果，`*_smoke.jsonl` 入 `.gitignore`；D / E 阶段实跑通过，demo 产物重跑数字一致仅耗时变化）
-- [ ] README 更新架构图与三条主线说明；`docs/figures/fig3_1_architecture.png` 重绘加入 EIG 模块与声明核查器。
+- [ ] README 更新架构图与三条主线说明；`docs/figures/fig3_1_architecture.png` 重绘加入 EIG 模块与声明核查器。（2026-09-17：README「项目架构」章节已完成，含分层图、运行时数据流、五智能体、工具层、五级模式、目录结构（`0128d32`）；PNG 重绘待做，可由 `scripts/make_arch_pptx.py` 改造）
 - [ ] 代码打 tag `v2-final`，与 `baseline-v0` 对照。
 - [ ] 已知局限：DGA 标签映射不代表真实故障部位；征兆成本表为专家设定；D11 为自动注入而非真实错误；评测依赖 LLM 裁判；DPO 偏好对由自动打分构造。
 - [ ] 论文第 3-6 章实验小节初稿，每章引用对应报告的表与图。
