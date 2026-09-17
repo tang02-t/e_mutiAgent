@@ -5,6 +5,7 @@ Planner → Retriever → [Reflection] → Generator → Validator 五智能体�
 - 项目结构说明：[PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md)
 - 完整计划与进度：[PLAN_优化计划清单.md](PLAN_优化计划清单.md)（§0.6「进度状态」表 + 各小节 `[ ]` 项）
 - 阶段报告：`docs/`（见下文「报告索引」）
+- 看不懂代号先查：[docs/术语与代号对照表.md](docs/术语与代号对照表.md)（R/D/S 数据编号、M0–M4、mode1–5、指标缩写）
 - 快速入门：[docs/速览卡.md](docs/速览卡.md)（一页）→ [docs/walkthrough_traces.md](docs/walkthrough_traces.md)（三条主线真实执行轨迹）→ [docs/技术报告_v2.md](docs/技术报告_v2.md)
 
 ## 项目架构
@@ -184,6 +185,7 @@ USE_LEARNED_CPT=0 bash run_frontend.sh    # 专家默认 CPT 对照
 |---|---|---|
 | `docs/技术报告_v2.md` | 阶段技术报告：背景、三条主线设计与已验证数字、完成状态、预期目标与量化目标、创新点、已知局限（v1 `技术报告.md` 已被取代） | 2026-09-16 |
 | `docs/速览卡.md` | 一页速览：一句话、一张图、十个已验证数字、五个待办、三个风险 | 2026-09-16 |
+| `docs/术语与代号对照表.md` | 全部代号、缩写与内部代称的全称及指代（含三组易混编号辨析） | 2026-09-17 |
 | `docs/walkthrough_traces.md` | 三条主线「从输入到答案」的真实执行轨迹（`scripts/demo_traces.py --write` 生成，零 LLM） | 2026-09-16 |
 | `docs/data_and_evaluation.md` | 数据来源、许可与已知问题（R1–R11）、派生谱系与文件格式（D1–D13）、合成数据守卫、角色隔离规则、四层评测体系与指标口径 | 完成 |
 | `docs/kb_ablation_test.md` | 分块 α 网格、切分方式、检索通道消融（Recall@k） | 离线通道版本；稠密向量 + 重排待接口 |
