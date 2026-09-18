@@ -6,7 +6,7 @@ Planner → Retriever → [Reflection] → Generator → Validator 五智能体�
 - 完整计划与进度：[PLAN_优化计划清单.md](PLAN_优化计划清单.md)（§0.6「进度状态」表 + 各小节 `[ ]` 项）
 - 阶段报告：`docs/`（见下文「报告索引」）
 - 看不懂代号先查：[docs/design/术语与代号对照表.md](docs/design/术语与代号对照表.md)（R/D/S 数据编号、M0–M4、mode1–5、指标缩写）
-- 快速入门：[docs/thesis/速览卡.md](docs/thesis/速览卡.md)（一页）→ [docs/eval/walkthrough_traces.md](docs/eval/walkthrough_traces.md)（三条主线真实执行轨迹）→ [docs/thesis/技术报告_v2.md](docs/thesis/技术报告_v2.md)
+- 快速入门：[docs/thesis/三条主线入门讲解.md](docs/thesis/三条主线入门讲解.md)（问题 / 方法 / 创新 + 三个真实例子）→ [docs/thesis/速览卡.md](docs/thesis/速览卡.md)（一页）→ [docs/eval/walkthrough_traces.md](docs/eval/walkthrough_traces.md)（三条主线真实执行轨迹）→ [docs/thesis/技术报告_v2.md](docs/thesis/技术报告_v2.md)
 
 ## 项目架构
 
