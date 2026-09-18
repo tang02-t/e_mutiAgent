@@ -39,8 +39,8 @@ from src.tools.fault_attribution import configure_engine              # noqa: E4
 from eval_system_modes import build_mcp, OraclePlanner                # noqa: E402
 
 D10 = ROOT / "data/eval/d10/end2end_eval.jsonl"
-REPORT_MD = ROOT / "docs/claims_acceptance.md"
-REPORT_JSON = ROOT / "docs/claims_acceptance.json"
+REPORT_MD = ROOT / "docs/eval/claims_acceptance.md"
+REPORT_JSON = ROOT / "docs/eval/claims_acceptance.json"
 
 NO_LLM_CFG: Dict[str, Any] = {
     "llms": {"default": {"provider": "openai", "model_name": "x", "api_key": "", "api_key_env": "___DISABLED___",

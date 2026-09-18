@@ -74,7 +74,7 @@ class LexicalScorer(Scorer):
     校准（retrieval_seed 随机 400 条，2026-09-15）：金标块得 3 分占 97%，随机块得 0 分占 79%；
     对 BM25 检回的非金标块约 11% 被判 <2（其余多为 2-3 分），因此它只能剔除明显无关块，
     正式实验应使用 LLMScorer 并在 D9 上校验一致率。
-    阈值：D3 test 有/无反思对比（docs/reflection_eval.md）显示 min_keep=3 在零金标误丢下精度 0.177→0.271，
+    阈值：D3 test 有/无反思对比（docs/eval/reflection_eval.md）显示 min_keep=3 在零金标误丢下精度 0.177→0.271，
     min_keep=2 几乎不过滤，故本评分器 recommended_min_keep=3。
     """
 

@@ -270,7 +270,7 @@ def main() -> None:
                           else "问法为模板生成，多样性不足（待 P4-2 LLM 口语化扩写）") + "；数值类 DGA 记录来自 3 个公开数据集，标签分布不均（过载过热/正常偏多）；"
             "图谱推理类受规则抽取图谱覆盖限制（90 节点/190 边）；多轮样本中 assistant 的 thought 为规则模板文本",
             "- 错误恢复样本：刻意错误的首次调用只保留在上下文中，不导出为训练目标（decision_index 从 1 起）；tool 返回为真实执行结果",
-            "- 许可：文献数据仅用于内部研究；ETT 数据集 CC BY-ND 4.0；DGA 数据集见 docs/data_and_evaluation.md §1.1",
+            "- 许可：文献数据仅用于内部研究；ETT 数据集 CC BY-ND 4.0；DGA 数据集见 docs/design/data_and_evaluation.md §1.1",
             "", "## 规模（单轮）", "| split | category | n |", "|---|---|---|"]
     for (sp, c), v in sorted(stats.items()):
         card.append(f"| {sp} | {c} | {v} |")

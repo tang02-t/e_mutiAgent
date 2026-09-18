@@ -3,7 +3,7 @@
 """
 P1-1 内容单元清洗：把 MinerU `content_list_v2.json` 转成统一的「内容单元库」。
 
-输入：data/fast_md/<doc_dir>/content_list_v2.json  （结构：页列表 → 块列表）
+输入：data/raw/fast_md/<doc_dir>/content_list_v2.json  （结构：页列表 → 块列表）
 输出：
   data/kb/units.jsonl      每行一个内容单元
   data/kb/docs.jsonl       每行一篇文献的元数据
@@ -18,7 +18,7 @@ P1-1 内容单元清洗：把 MinerU `content_list_v2.json` 转成统一的「�
 6. 行间公式：与前一段落（引出语）及后一段落（以「式中」开头的变量解释）合并成一个 equation 单元。
 7. 每个单元携带 section_path（所属章节路径），供后续动态分块与多层索引使用。
 
-用法：python3 scripts/kb/build_units.py [--src data/fast_md] [--out data/kb]
+用法：python3 scripts/kb/build_units.py [--src data/raw/fast_md] [--out data/kb]
 """
 from __future__ import annotations
 
@@ -365,7 +365,7 @@ def process_doc(doc_dir: Path) -> Tuple[Dict[str, Any], List[Dict[str, Any]], Di
 # ──────────────────────────────────────────────────────────────
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--src", default=str(ROOT / "data/fast_md"))
+    ap.add_argument("--src", default=str(ROOT / "data/raw/fast_md"))
     ap.add_argument("--out", default=str(ROOT / "data/kb"))
     args = ap.parse_args()
 

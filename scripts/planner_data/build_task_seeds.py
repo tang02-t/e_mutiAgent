@@ -9,7 +9,7 @@ seed_source（用于分组切分）与 expected_hint（金标块 / 金标实体 
 数据来源（均为真实数据或由真实文献派生）：
 - 事实类      ← data/kb/eval/retrieval_seed.jsonl（金标块）
 - 推理类      ← data/kg/eval/kg_qa_seed.jsonl（1 跳）+ data/kg/graph.json（2 跳链路）
-- 数值工具类  ← data/real/dga/dga_records.jsonl（R4 原始标签）、data/ETT-small/*.csv（预测 + 异常检测窗口）
+- 数值工具类  ← data/real/dga/dga_records.jsonl（R4 原始标签）、data/raw/ETT-small/*.csv（预测 + 异常检测窗口）
 - 无需工具类  ← 手写常识/闲聊模板
 - 信息不足类  ← 手写缺参数模板（缺 DGA / 缺序列 / 缺设备语境）
 - 复合类      ← DGA+文献 / DGA+图谱 / 预测+异常 的多步金标（供 D7/D8 多工具样本）
@@ -41,7 +41,7 @@ KB_SPLIT = ROOT / "data/kb/eval/split.json"
 KG_SEED = ROOT / "data/kg/eval/kg_qa_seed.jsonl"
 KG_GRAPH = ROOT / "data/kg/graph.json"
 DGA_REAL = ROOT / "data/real/dga/dga_records.jsonl"
-ETT_DIR = ROOT / "data/ETT-small"
+ETT_DIR = ROOT / "data/raw/ETT-small"
 
 CATEGORY_TARGET = {"fact": 0.35, "reasoning": 0.15, "numeric_tool": 0.30, "no_tool": 0.10, "insufficient": 0.10}
 DEVICE_POOL = ["220kV 主变 #1", "110kV 主变 #2", "500kV 1 号主变", "35kV 站用变", "某 220kV 变电站 2 号主变",

@@ -8,7 +8,7 @@
 #   VARIANTS="M2 M3" SEEDS="42" bash training/planner_sft/run_matrix.sh
 #   SKIP_TRAIN=1 bash training/planner_sft/run_matrix.sh    # 已训练完成，只做推理与评测
 #
-# 流程：train.sh → predict.py（对 test 集推理，写 predictions jsonl）→ eval_planner_offline.py（写 docs/planner_eval.md）
+# 流程：train.sh → predict.py（对 test 集推理，写 predictions jsonl）→ eval_planner_offline.py（写 docs/eval/planner_eval.md）
 # M0（未微调基座）只做推理与评测：predict.py --adapters 留空。
 set -euo pipefail
 
@@ -58,5 +58,5 @@ for v in $VARIANTS; do
   done
 done
 
-echo "== 离线评测 → docs/planner_eval.md =="
+echo "== 离线评测 → docs/eval/planner_eval.md =="
 python3 "$ROOT/scripts/eval/eval_planner_offline.py" --pred-dir "$PRED_DIR" --write-report

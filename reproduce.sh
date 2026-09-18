@@ -29,8 +29,8 @@ run() { echo; echo "▶ $*"; eval "$* 2>&1 | $FILTER"; }
 # ───────────────────────────── v1 工程基座 ─────────────────────────────
 if has dga; then
   echo "== 0. DGA 数据合并与贝叶斯参数学习（B-1 校准）=="
-  skip_if data/real/dga/dga_records.jsonl || run python3 scripts/convert_real_dga.py
-  skip_if data/real/dga/learned_params.json || run python3 scripts/learn_cpt.py --kfold 5   # 5 折校准，写 docs/attribution_calibration.md
+  skip_if data/real/dga/dga_records.jsonl || run python3 scripts/data/convert_real_dga.py
+  skip_if data/real/dga/learned_params.json || run python3 scripts/data/learn_cpt.py --kfold 5   # 5 折校准，写 docs/eval/attribution_calibration.md
 fi
 
 if has kb; then
@@ -78,10 +78,10 @@ fi
 # ───────────────────────────── v2 主线 ─────────────────────────────
 if has B; then
   echo "== B. 主线一：不确定性驱动的主动规划（EIG 抽检 → D12 模拟集 → 五策略对照）=="
-  run python3 scripts/eval/eig_sanity_check.py                       # B-2：EIG 领域一致性抽检，写 docs/eig_sanity_check.md
+  run python3 scripts/eval/eig_sanity_check.py                       # B-2：EIG 领域一致性抽检，写 docs/eval/eig_sanity_check.md
   skip_if data/eval/d12/partial_obs.jsonl || run python3 scripts/sim/partial_obs_sim.py --build   # B-3：D12 1500 条
   run python3 scripts/sim/partial_obs_sim.py --check
-  run python3 scripts/eval/eval_active_planning.py                   # B-5：五策略 × 三档，写 docs/active_planning_eval.md
+  run python3 scripts/eval/eval_active_planning.py                   # B-5：五策略 × 三档，写 docs/eval/active_planning_eval.md
 fi
 
 if has C; then
@@ -90,7 +90,7 @@ if has C; then
   run python3 scripts/eval/eval_claim_checker_c2.py                  # C-2：确定性层正反例
   run python3 scripts/eval/eval_route_c3.py                          # C-3：补证与重规划路由
   skip_if data/eval/d11/fault_injection_eval.jsonl || run python3 scripts/eval/build_d11_fault_injection.py   # C-4：D11 300 条
-  run python3 scripts/eval/eval_validator.py                         # C-5：v1 / v2_check / v2_route，写 docs/validator_eval.md
+  run python3 scripts/eval/eval_validator.py                         # C-5：v1 / v2_check / v2_route，写 docs/eval/validator_eval.md
 fi
 
 if has D; then
@@ -114,8 +114,8 @@ fi
 
 echo
 echo "完成。主要报告："
-echo "  基座：docs/kb_ablation_test.md  docs/reflection_eval.md  data/planner/sft/DATA_CARD.md  data/eval/d10/DATA_CARD.md"
-echo "  B：  docs/attribution_calibration.md  docs/eig_sanity_check.md  docs/active_planning_eval.md  data/eval/d12/DATA_CARD.md"
-echo "  C：  docs/claims_acceptance.md  docs/claim_checker_acceptance.md  docs/route_acceptance.md  docs/validator_eval.md  data/eval/d11/DATA_CARD.md"
+echo "  基座：docs/eval/kb_ablation_test.md  docs/eval/reflection_eval.md  data/planner/sft/DATA_CARD.md  data/eval/d10/DATA_CARD.md"
+echo "  B：  docs/eval/attribution_calibration.md  docs/eval/eig_sanity_check.md  docs/eval/active_planning_eval.md  data/eval/d12/DATA_CARD.md"
+echo "  C：  docs/eval/claims_acceptance.md  docs/eval/claim_checker_acceptance.md  docs/eval/route_acceptance.md  docs/eval/validator_eval.md  data/eval/d11/DATA_CARD.md"
 echo "  D：  data/planner/dpo/DATA_CARD.md  training/planner_bailian/README.md"
-echo "  E：  docs/end2end_eval.md"
+echo "  E：  docs/eval/end2end_eval.md"

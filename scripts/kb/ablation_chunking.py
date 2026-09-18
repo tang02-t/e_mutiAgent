@@ -12,7 +12,7 @@ P1-4 / P1-7 分块策略消融（离线，无需 LLM）。
 金标映射：评测集记录 `source_unit_id`（查询派生自的原子单元），对每种分块把 source_unit_id
 映射到其所在块，作为该策略下的金标块；因此不同分块方案之间的 Recall@k 可直接比较。
 
-输出：data/kb/eval/chunking_ablation.json 与 docs/kb_ablation.md（分块部分）。
+输出：data/kb/eval/chunking_ablation.json 与 docs/eval/kb_ablation_<split>.md（分块部分）。
 """
 from __future__ import annotations
 
@@ -167,8 +167,8 @@ def main() -> int:
            "天然有利于该类查询，因此本表对 `title` 策略存在评测口径偏向。动态规划分块的收益主要体现在块长可控"
            "（供 LLM 上下文预算）、锚点单元与解释段落不被切开（B_caption 类）、以及反思模块邻块补召回的粒度；"
            "最终选型以 LLM 改写后的自然问句评测集与端到端指标为准。\n")
-    (ROOT / f"docs/kb_ablation_{a.split}.md").write_text(md, encoding="utf-8")
-    print(f"written docs/kb_ablation_{a.split}.md")
+    (ROOT / f"docs/eval/kb_ablation_{a.split}.md").write_text(md, encoding="utf-8")
+    print(f"written docs/eval/kb_ablation_{a.split}.md")
     return 0
 
 

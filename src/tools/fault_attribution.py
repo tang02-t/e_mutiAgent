@@ -802,7 +802,7 @@ class FaultBayesianNetwork:
 
 _bn_engine: Optional[FaultBayesianNetwork] = None
 
-#: DL/T 722 注意值（μL/L），与 scripts/convert_real_dga.py 保持一致
+#: DL/T 722 注意值（μL/L），与 scripts/data/convert_real_dga.py 保持一致
 GAS_ATTENTION: dict[str, float] = {"H2": 150, "CH4": 120, "C2H2": 5, "C2H4": 50, "C2H6": 65}
 TOTAL_HC_ATTENTION = 150.0
 GAS_RATE_RAPID_C2H2 = 50.0

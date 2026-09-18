@@ -21,7 +21,7 @@ B-5 主动规划对照实验（数据 D12，纯 CPU，无 LLM）。
 用法：
   python3 scripts/eval/eval_active_planning.py                 # 全量 1500 条 + 消融 + 一致性核对
   python3 scripts/eval/eval_active_planning.py --limit 100     # 快速试跑
-输出：docs/active_planning_eval.md / .json、docs/figures/fig_b5_*.png
+输出：docs/eval/active_planning_eval.md / .json、docs/figures/fig_b5_*.png
 """
 from __future__ import annotations
 
@@ -47,8 +47,8 @@ from src.tools.fault_attribution import FaultBayesianNetwork, SYMPTOM_IDS  # noq
 from src.tools.eig import recommend, load_cost_table  # noqa: E402
 import partial_obs_sim as sim  # noqa: E402
 
-DOCS = ROOT / "docs"
-FIG_DIR = DOCS / "figures"
+DOCS = ROOT / "docs" / "eval"
+FIG_DIR = ROOT / "docs" / "figures"
 REPORT_MD = DOCS / "active_planning_eval.md"
 REPORT_JSON = DOCS / "active_planning_eval.json"
 N_BINS = 15
@@ -380,7 +380,7 @@ def write_report(res: dict[str, Any]) -> None:
     lines += ["", "b = 前者对、后者错的条数；c 反之。问询次数均差为负表示前者问得更少。"]
 
     lines += ["", "## 4. 协议 A：固定预算曲线", "",
-              f"![acc](figures/fig_b5_acc_vs_queries.png)", "", f"![entropy](figures/fig_b5_entropy_curve.png)", "",
+              f"![acc](../figures/fig_b5_acc_vs_queries.png)", "", f"![entropy](../figures/fig_b5_entropy_curve.png)", "",
               "| q | " + " | ".join(f"{s} Top-1" for s in STRATEGIES) + " | " + " | ".join(f"{s} H" for s in STRATEGIES) + " |",
               "|---:|" + "---:|" * (2 * len(STRATEGIES))]
     cv = res["curves"]["calibrated"]

@@ -18,7 +18,7 @@ P5-4：工具调用 Planner 离线评测（读 training/planner_sft/predict.py �
   python3 scripts/eval/eval_planner_offline.py --pred-dir data/planner/predictions --write-report
   python3 scripts/eval/eval_planner_offline.py --pred data/planner/predictions/M3_seed42.jsonl
   python3 scripts/eval/eval_planner_offline.py --self-test    # 用金标作为预测做自检（应全部 100%）
-输出：docs/planner_eval.md（同名 run 的两个 seed 自动取均值，列出 seed 数）
+输出：docs/eval/planner_eval.md（同名 run 的两个 seed 自动取均值，列出 seed 数）
 """
 
 from __future__ import annotations
@@ -36,7 +36,7 @@ sys.path.insert(0, str(ROOT))
 
 from src.tools.tool_registry import validate_arguments_strict  # noqa: E402
 
-REPORT = ROOT / "docs/planner_eval.md"
+REPORT = ROOT / "docs/eval/planner_eval.md"
 KEY_PARAMS = {
     "rag_search": ["query"],
     "kg_search": ["query", "relations", "hops", "direction"],

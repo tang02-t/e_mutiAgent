@@ -14,7 +14,7 @@ P3-3：在检索评测集 D3 上对比「无反思 / 有反思（lexical）」�
   平均输出块数、平均耗时
 
 用法：python3 scripts/kb/eval_reflection_recall.py [--split test] [--min-keep 2]
-输出：data/kb/eval/reflection/recall_compare_<split>.json + 追加至 docs/reflection_eval.md
+输出：data/kb/eval/reflection/recall_compare_<split>.json + 追加至 docs/eval/reflection_eval.md
 """
 from __future__ import annotations
 
@@ -110,8 +110,8 @@ def main() -> int:
            f"- 精度：{all_row['P_base']:.3f} → {all_row['P_refl']:.3f}；平均输出块数 {all_row['avg_out']}（基线固定 5）。",
            "- 反思模块的设计目标是在不明显损失召回的前提下提高送入 Generator 的证据精度并补齐上下文；金标误丢条数是评分器阈值 t2 的直接约束，"
            "后续用 D9 人工标注校准 LexicalScorer/LLMScorer 阈值时以该指标为主。"]
-    (ROOT / "docs/reflection_eval.md").write_text("\n".join(md), encoding="utf-8")
-    print("written docs/reflection_eval.md")
+    (ROOT / "docs/eval/reflection_eval.md").write_text("\n".join(md), encoding="utf-8")
+    print("written docs/eval/reflection_eval.md")
     return 0
 
 

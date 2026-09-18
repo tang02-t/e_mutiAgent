@@ -1,7 +1,7 @@
 """
 C-1 声明与证据（claims）公共模块。
 
-规范见 docs/claim_schema.md。本模块提供：
+规范见 docs/design/claim_schema.md。本模块提供：
 - CLAIM_TYPES / EVIDENCE_SOURCES / CONSTRAINT_TYPES 常量
 - evidence_catalog(state)：枚举本轮可被引用的证据（工具调用 / 知识片段 / 图谱关系 / 用户轮次）
 - render_evidence_catalog(catalog)：把证据目录渲染成提示词文本（claims 模式下附给 LLM）

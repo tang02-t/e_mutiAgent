@@ -30,9 +30,9 @@
 
 | 阶段 | 名称 | 目标 | 前置 | 核心产出 | 预估工时 | 资源 |
 |---|---|---|---|---|---:|---|
-| A | 基础设施收口与基线 | 关闭 v1 遗留、跑出基线数字、封存数据 | 无 | `docs/baseline.md`、改写后的训练集、人工标注 | 2 周（与 B 并行） | 少量 LLM 调用 |
-| B | 主线一：主动诊断规划 | 校准的贝叶斯归因 + EIG 推荐 + Planner 接入 + 部分观测模拟评测 | A-1 | `eig.py`、模拟器、`docs/active_planning_eval.md` | 4-5 周 | 纯 CPU + 少量 LLM |
-| C | 主线二：声明级验证 | claim-evidence 输出、约束核查器、故障注入评测集 D11 | A-1 | `claim_checker.py`、D11、`docs/validator_eval.md` | 4 周 | 少量 LLM 调用 |
+| A | 基础设施收口与基线 | 关闭 v1 遗留、跑出基线数字、封存数据 | 无 | `docs/eval/baseline.md`、改写后的训练集、人工标注 | 2 周（与 B 并行） | 少量 LLM 调用 |
+| B | 主线一：主动诊断规划 | 校准的贝叶斯归因 + EIG 推荐 + Planner 接入 + 部分观测模拟评测 | A-1 | `eig.py`、模拟器、`docs/eval/active_planning_eval.md` | 4-5 周 | 纯 CPU + 少量 LLM |
+| C | 主线二：声明级验证 | claim-evidence 输出、约束核查器、故障注入评测集 D11 | A-1 | `claim_checker.py`、D11、`docs/eval/validator_eval.md` | 4 周 | 少量 LLM 调用 |
 | D | 主线三：DPO Planner | 百炼 SFT 基线 → 偏好对构造 → 百炼 DPO → 部署 | A-2、C-3 | D13 偏好对、部署模型 ID、`docs/planner_dpo_eval.md` | 5-6 周 | 百炼训练 + 调用 |
 | E | 系统级增量评测 | 五级模式重定义、正式跑数、LLM 裁判 + 人工复核 | B、C、D | `docs/system_modes_eval.md` | 3 周 | LLM 调用 |
 | F | 成果固化 | 报告、复现脚本、tag、论文实验章节初稿 | E | `v2-final` tag、六份报告 | 2-3 周 | 否 |
@@ -52,7 +52,7 @@
 | 2027-02 ~ 04 | 论文写作、补实验 |
 | 2027-05 | 预答辩 |
 
-### 0.5 五级系统模式（v2 定义，已落地于 [system_modes.py](/Users/ts/Desktop/thu/multi_Agent/src/graph/system_modes.py)）
+### 0.5 五级系统模式（v2 定义，已落地于 [system_modes.py](src/graph/system_modes.py)）
 
 每级只在上一级基础上打开一项能力。知识库两路检索、`kg_search`、词法反思属于工程基座，从模式 2 起全部开启且不再单独归因。
 
@@ -90,7 +90,7 @@
 | F | 成果固化 | 2 / 7 | 三份报告待数字、架构 PNG 重绘、tag、局限、论文初稿 |
 | 合计 | | 79 / 113 | 百炼 15、LLM 8、人工 / 用户 7、F 收尾 4 |
 
-阅读顺序建议：[docs/速览卡.md](/Users/ts/Desktop/thu/multi_Agent/docs/速览卡.md) → [docs/技术报告_v2.md](/Users/ts/Desktop/thu/multi_Agent/docs/技术报告_v2.md) §7 → 本文件未勾选项。
+阅读顺序建议：[docs/thesis/速览卡.md](docs/thesis/速览卡.md) → [docs/thesis/技术报告_v2.md](docs/thesis/技术报告_v2.md) §7 → 本文件未勾选项。
 
 ---
 
@@ -100,30 +100,30 @@
 
 ### A-1 基线数字（原 P0-3）
 
-- [x] 用 `qwen3.7-flash`（未微调）在 [retrieval_seed.jsonl](/Users/ts/Desktop/thu/multi_Agent/data/kb/eval/retrieval_seed.jsonl) test 切分上记录 Recall@1/3/5（two_way 与 naive 两档）。（2026-09-16：264 条，two_way R@1/3/5 = 0.402/0.629/0.742，naive = 0.360/0.576/0.674；检索层零 LLM）
-- [x] 用未微调 Planner 在 D8 test 切分抽 100 条（分层覆盖 8 类）跑 [eval_planner_offline.py](/Users/ts/Desktop/thu/multi_Agent/scripts/eval/eval_planner_offline.py) 7 项指标。（2026-09-16：`predict.py --stratified 100 --seed 42`，M0 格式 100% / 工具 55.0% / 参数 61.1% / 完整 51.4% / 不必要 53.6% / 追问 66.7% / 恢复 0.0%）
-- [x] 用 mode2（工程基座）在 D10 抽 50 条跑 [eval_system_modes.py](/Users/ts/Desktop/thu/multi_Agent/scripts/eval/eval_system_modes.py)，记录任务成功率、平均工具调用次数、平均轮次、Token 成本。（2026-09-16：`--tag a1_baseline`，成功率 46.0%，平均调用 1.22，平均 LLM 轮次 3.04，平均 6790 Token/样本；Oracle 上界 97.4%）
-- [x] 写入 `docs/baseline.md`，与 `baseline-v0` tag 对应。（2026-09-16：含失败模式归因与复现命令）
+- [x] 用 `qwen3.7-flash`（未微调）在 [retrieval_seed.jsonl](data/kb/eval/retrieval_seed.jsonl) test 切分上记录 Recall@1/3/5（two_way 与 naive 两档）。（2026-09-16：264 条，two_way R@1/3/5 = 0.402/0.629/0.742，naive = 0.360/0.576/0.674；检索层零 LLM）
+- [x] 用未微调 Planner 在 D8 test 切分抽 100 条（分层覆盖 8 类）跑 [eval_planner_offline.py](scripts/eval/eval_planner_offline.py) 7 项指标。（2026-09-16：`predict.py --stratified 100 --seed 42`，M0 格式 100% / 工具 55.0% / 参数 61.1% / 完整 51.4% / 不必要 53.6% / 追问 66.7% / 恢复 0.0%）
+- [x] 用 mode2（工程基座）在 D10 抽 50 条跑 [eval_system_modes.py](scripts/eval/eval_system_modes.py)，记录任务成功率、平均工具调用次数、平均轮次、Token 成本。（2026-09-16：`--tag a1_baseline`，成功率 46.0%，平均调用 1.22，平均 LLM 轮次 3.04，平均 6790 Token/样本；Oracle 上界 97.4%）
+- [x] 写入 `docs/eval/baseline.md`，与 `baseline-v0` tag 对应。（2026-09-16：含失败模式归因与复现命令）
 
 验收标准：三组数字齐全，任何人按 README 可复现。
 
 ### A-2 训练问法口语化改写（原 P4-2 保留项）
 
-- [x] 执行 [rewrite_queries.py](/Users/ts/Desktop/thu/multi_Agent/scripts/planner_data/rewrite_queries.py) 去掉 `--dry-run`（估算约 1.2 元），产出 `task_seeds_rewritten.jsonl`。（2026-09-16：2750 条 train / dev 种子 × K=2，`qwen3.7-flash`，683 s，Token in/out 833k / 235k；保留 4538 条改写、守卫拒绝 961（lost_entities 207 / added_judgement 160 / added_soft_judgement 140 / added_numbers 142 / lost_numbers 111 / duplicate 133 / length 68）。小样试跑发现改写会替用户「预判」（「乙炔超标了」「怀疑放电」），新增硬 / 软判断词守卫后全量重跑。）
+- [x] 执行 [rewrite_queries.py](scripts/planner_data/rewrite_queries.py) 去掉 `--dry-run`（估算约 1.2 元），产出 `task_seeds_rewritten.jsonl`。（2026-09-16：2750 条 train / dev 种子 × K=2，`qwen3.7-flash`，683 s，Token in/out 833k / 235k；保留 4538 条改写、守卫拒绝 961（lost_entities 207 / added_judgement 160 / added_soft_judgement 140 / added_numbers 142 / lost_numbers 111 / duplicate 133 / length 68）。小样试跑发现改写会替用户「预判」（「乙炔超标了」「怀疑放电」），新增硬 / 软判断词守卫后全量重跑。）
 - [x] 人工抽 50 条确认数字 / 实体守卫生效（气体浓度、设备号、数据集名未被改写）。（2026-09-16：随机 50 条（seed 7）逐条查看，气体浓度、kVA、日期、步长、ETTh1/h2、设备型号与编号全部原样保留；程序化全量复核 4538 条数字集合仅 27 条差异，全部为英文标题种子中「图 4 / 表 3.6」等编号被改写为「图4 / Fig. 4.8」形式，无数据数字丢失。改写后 `export_sft.py --seeds task_seeds_rewritten.jsonl` 重导出：单轮 train / dev 6131 / 1157，百炼 train 7001 / dev 1301（91.8 / 17.0 MB），`check_sealed.py` 通过，四份 test 导出文件 sha256 与 SEALED.md 完全一致，train vs test 泄漏 0 对。train / dev 导出文件改为 gitignore（可重建），test 四份保留入库。）
-- [x] `export_sft.py --seeds task_seeds_rewritten.jsonl` 重导出；同时新增 `--format bailian` 导出百炼 ChatML（messages 多轮，含 tool 角色消息按百炼模板处理）。（2026-09-15：`--format bailian` 与默认导出均产出 `bailian_{train,dev}.jsonl`（单轮 + 多轮合并，train 3181 / dev 583 条，42.0 / 7.7 MB），转换与校验在 [bailian_format.py](/Users/ts/Desktop/thu/multi_Agent/scripts/planner_data/bailian_format.py)：剥离 `meta` / tool `name`，`tool_calls[].id` 与 `tool_call_id` 一一对应，`arguments` 为 JSON 字符串，导出即校验；[test_d1_bailian_export.py](/Users/ts/Desktop/thu/multi_Agent/tests/test_d1_bailian_export.py) 22 项通过。口语化改写后用 `--seeds task_seeds_rewritten.jsonl` 重跑即可，改写实跑后置。）
-- [x] test 切分封存：写入 `data/planner/sft/SEALED.md` 记录 sha256，训练结束前不读取。（2026-09-15：[SEALED.md](/Users/ts/Desktop/thu/multi_Agent/data/planner/sft/SEALED.md) 登记种子级（test 732 + 多轮 92 行）与导出文件级 sha256；`scripts/planner_data/check_sealed.py` 比对种子级哈希，`export_sft.py` 不产出 `bailian_test.jsonl`。）
+- [x] `export_sft.py --seeds task_seeds_rewritten.jsonl` 重导出；同时新增 `--format bailian` 导出百炼 ChatML（messages 多轮，含 tool 角色消息按百炼模板处理）。（2026-09-15：`--format bailian` 与默认导出均产出 `bailian_{train,dev}.jsonl`（单轮 + 多轮合并，train 3181 / dev 583 条，42.0 / 7.7 MB），转换与校验在 [bailian_format.py](scripts/planner_data/bailian_format.py)：剥离 `meta` / tool `name`，`tool_calls[].id` 与 `tool_call_id` 一一对应，`arguments` 为 JSON 字符串，导出即校验；[test_d1_bailian_export.py](tests/test_d1_bailian_export.py) 22 项通过。口语化改写后用 `--seeds task_seeds_rewritten.jsonl` 重跑即可，改写实跑后置。）
+- [x] test 切分封存：写入 `data/planner/sft/SEALED.md` 记录 sha256，训练结束前不读取。（2026-09-15：[SEALED.md](data/planner/sft/SEALED.md) 登记种子级（test 732 + 多轮 92 行）与导出文件级 sha256；`scripts/planner_data/check_sealed.py` 比对种子级哈希，`export_sft.py` 不产出 `bailian_test.jsonl`。）
 
 验收标准：改写后训练 / 验证集重导出完成，泄漏检查仍为 0，百炼格式文件通过控制台数据校验。（2026-09-16：重导出完成、泄漏 0、本地格式校验通过；控制台校验随 D-1 上传时完成，注意 91.8 MB 单文件是否超过百炼上限。）
 
 ### A-3 人工标注（与 B、C 并行，不阻塞代码）
 
 - [ ] D9 反思校验集 298 对填 `human_score`（两人标注，争议第三人裁定），计算 LexicalScorer 与人工的加权 Kappa。
-- [ ] 图谱 [precision_sample.jsonl](/Users/ts/Desktop/thu/multi_Agent/data/kg/eval/precision_sample.jsonl) 56 条精度抽检人工确认（当前 AI 预标注 83%）。
+- [ ] 图谱 [precision_sample.jsonl](data/kg/eval/precision_sample.jsonl) 56 条精度抽检人工确认（当前 AI 预标注 83%）。
 - [ ] D10 196 条 `reference_points` 人工复核，`status` 由 `auto` 改为 `reviewed`。
-- [x] 2026-09-15 核实数据来源与许可：R1 非 Kaggle（字段不符，改写为「来源未核实的 IEC 60599 标签 DGA 汇编」）；R3 589 条为公开基准并已知含重复/冲突；ETT 许可统一为 CC BY-ND 4.0（原仓库为准，脚注说明 HF 镜像差异）；R8 公开站点检索未匹配。已同步 `docs/data_inventory.md`、`docs/data_and_evaluation.md`（2026-09-16 前者已并入后者并删除）。
+- [x] 2026-09-15 核实数据来源与许可：R1 非 Kaggle（字段不符，改写为「来源未核实的 IEC 60599 标签 DGA 汇编」）；R3 589 条为公开基准并已知含重复/冲突；ETT 许可统一为 CC BY-ND 4.0（原仓库为准，脚注说明 HF 镜像差异）；R8 公开站点检索未匹配。已同步 `docs/data_inventory.md`、`docs/design/data_and_evaluation.md`（2026-09-16 前者已并入后者并删除）。
 - [ ] R8 `power_transformer_fault.csv` 若在 F 阶段前仍无法核实来源，从仓库移除并登记附录 B。
-- [x] B-1 校准实验增加「R3 589 公开基准子集」单列结果（见 `docs/attribution_calibration.md` 附录，n=438，Top-1 0.662 → 0.669，ECE 0.113 → 0.091；注意该子集参与了全量学习，非严格外部检验）。（2026-09-15）
+- [x] B-1 校准实验增加「R3 589 公开基准子集」单列结果（见 `docs/eval/attribution_calibration.md` 附录，n=438，Top-1 0.662 → 0.669，ECE 0.113 → 0.091；注意该子集参与了全量学习，非严格外部检验）。（2026-09-15）
 - [ ] 视时间补 IEC TC 10 案例库（IEEE DataPort, DOI 10.21227/h8g0-8z59）外部检验。
 
 验收标准：四项标注 / 核实结果写入对应数据卡片。
@@ -139,7 +139,7 @@
 - [x] `run_matrix.sh` 顶部标注 v1 备选路线（保留脚本）。（2026-09-15）
 - [x] `system_modes.py` 旧五级定义由 E-1 替换。（2026-09-16，见 E-1）
 - [x] 仓库清理（2026-09-15）：删除无引用的 Milvus 路线（`rag_engine.py`、`milvus_setup.py`、`utils/embedding.py`）、`remove_references.py`、`validate_dga_data.py`、两份早期 PPT 脚本、`data/rag.txt`、旧合成端到端报告；`timeseries.py` 收敛为唯一 3σ 实现，`app.py` / 两份评测脚本改为导入；`tool_registry.py` 移除已弃用的宽松 `validate_arguments`；`config.example.yaml` 移除 `knowledge_base` / `embedding` / `retriever` LLM / 未被读取的 `tools` 段；前端下线 Milvus 选项；`PROJECT_OVERVIEW.md` 按当前架构重写。
-- [x] `docs/planner_training.md` 顶部加「v1 路线，见 v2 计划 D 阶段」提示，不删除。（2026-09-15）
+- [x] `docs/design/planner_training.md` 顶部加「v1 路线，见 v2 计划 D 阶段」提示，不删除。（2026-09-15）
 - [x] 在本文件附录 B 登记全部砍掉 / 降级项及理由。（2026-09-16，补齐旧五级定义、Milvus 路线、v1 训练脚本等 6 项）
 
 ---
@@ -148,7 +148,7 @@
 
 目标：让归因引擎不只给出后验，还给出「下一个最值得观测的征兆」；Planner 据此决定追问用户、调用工具补证，还是直接给结论。核心指标是同等准确率下更少的问询与调用。
 
-涉及文件：[fault_attribution.py](/Users/ts/Desktop/thu/multi_Agent/src/tools/fault_attribution.py)（`FaultBayesianNetwork`）、[learn_cpt.py](/Users/ts/Desktop/thu/multi_Agent/scripts/learn_cpt.py)、[learned_params.json](/Users/ts/Desktop/thu/multi_Agent/data/real/dga/learned_params.json)、[planner.py](/Users/ts/Desktop/thu/multi_Agent/src/agents/planner.py)、[templates/planner/system.txt](/Users/ts/Desktop/thu/multi_Agent/templates/planner/system.txt)、[state.py](/Users/ts/Desktop/thu/multi_Agent/src/graph/state.py)。
+涉及文件：[fault_attribution.py](src/tools/fault_attribution.py)（`FaultBayesianNetwork`）、[learn_cpt.py](scripts/data/learn_cpt.py)、[learned_params.json](data/real/dga/learned_params.json)、[planner.py](src/agents/planner.py)、[templates/planner/system.txt](templates/planner/system.txt)、[state.py](src/graph/state.py)。
 
 ### B-1 归因引擎补全与校准
 
@@ -157,24 +157,24 @@
 - [x] `learn_cpt.py --kfold 5` 分层 5 折交叉验证，逐折报告 Top-1 / Top-3 / NLL / Brier / ECE。（2026-09-15）
 - [x] 置信度校准：验证折二分（前半拟合、后半 held-out 评估），温度 T 网格 0.5~4.5 目标 NLL；ECE 15 桶、Brier、可靠性图；校准参数写入 `learned_params.json.calibration`。（2026-09-15）
 - [x] `_fuse_results` 融合权重改为按故障类别可学习（坐标下降网格，目标 NLL），写入 `learned_params.json.fusion_weights`；与固定 0.7 对照。（2026-09-15）
-- [x] 输出 [attribution_calibration.md](/Users/ts/Desktop/thu/multi_Agent/docs/attribution_calibration.md) 与 `docs/figures/fig_b1_reliability.png`。（2026-09-15）
+- [x] 输出 [attribution_calibration.md](docs/eval/attribution_calibration.md) 与 `docs/figures/fig_b1_reliability.png`。（2026-09-15）
 
-验收结果（2026-09-15，held-out 半折 5 折平均，n=3729 非 normal）：ECE 0.101 → 0.055（下降 46%），NLL 1.061 → 0.822，Top-1 0.635 → 0.665（+3.0pt，未下降），Top-3 0.915 → 0.975。负观测消融：关闭时 Top-1 0.596 / ECE 0.117，开启时 0.635 / 0.101。单元测试 [test_b1_attribution.py](/Users/ts/Desktop/thu/multi_Agent/tests/test_b1_attribution.py) 47 项通过。注意：`overload_overheating` 学到 w_f=0，即该类完全依赖三比值规则，报告需说明。
+验收结果（2026-09-15，held-out 半折 5 折平均，n=3729 非 normal）：ECE 0.101 → 0.055（下降 46%），NLL 1.061 → 0.822，Top-1 0.635 → 0.665（+3.0pt，未下降），Top-3 0.915 → 0.975。负观测消融：关闭时 Top-1 0.596 / ECE 0.117，开启时 0.635 / 0.101。单元测试 [test_b1_attribution.py](tests/test_b1_attribution.py) 47 项通过。注意：`overload_overheating` 学到 w_f=0，即该类完全依赖三比值规则，报告需说明。
 
 验收标准：校准后 ECE 相对校准前下降可量化；Top-1 准确率不下降超过 1 个点；单元测试覆盖负观测与温度缩放。
 
 ### B-2 期望信息增益（EIG）模块
 
-- [x] 新建 [eig.py](/Users/ts/Desktop/thu/multi_Agent/src/tools/eig.py)：`EIG(s) = H(F|E) - Σ_v P(s=v|E)·H(F|E, s=v)`，`P(s=v|E) = Σ_F P(s=v|F)·P(F|E)`；两种计算基 `bayes`（严格互信息，非负）/ `fused`（系统实际置信分布，裁剪到 0）。（2026-09-15）
-- [x] 成本表 [symptom_cost.json](/Users/ts/Desktop/thu/multi_Agent/data/real/dga/symptom_cost.json)：气体派生征兆 0、现场征兆 / 时序工具 1、局放检测 3；`VoI = EIG - λ·cost`，λ 默认 0.05。（2026-09-15）
+- [x] 新建 [eig.py](src/tools/eig.py)：`EIG(s) = H(F|E) - Σ_v P(s=v|E)·H(F|E, s=v)`，`P(s=v|E) = Σ_F P(s=v|F)·P(F|E)`；两种计算基 `bayes`（严格互信息，非负）/ `fused`（系统实际置信分布，裁剪到 0）。（2026-09-15）
+- [x] 成本表 [symptom_cost.json](data/real/dga/symptom_cost.json)：气体派生征兆 0、现场征兆 / 时序工具 1、局放检测 3；`VoI = EIG - λ·cost`，λ 默认 0.05。（2026-09-15）
 - [x] 停止准则 `H < τ_H(0.8) | max VoI < ε(0.02) | rounds ≥ K(3)`，成本表 `stop` 段可配，`recommend(..., stop=...)` 可覆盖。（2026-09-15）
 - [x] `fault_attribution` 返回 `uncertainty` 块新增 `recommendations[{symptom, eig, cost, voi, p_true, how_to_obtain, ask_hint, kg_evidence}]`、`suggested_action`、`suggested_tool`、`stop_reason`；`how_to_obtain` 映射 `oil_temp_elevated → call_tool:ett_forecast`、`load_elevated → call_tool:timeseries_anomaly`，其余 `ask_user`。`FAULT_ATTR_EIG=0` 或 `with_eig=False` 关闭（mode2 基座用）。（2026-09-15）
 - [x] 与 `kg_search` 联动：成本表 `kg_nodes` → 图谱 `INDICATES / DETECTED_BY / PRODUCES / CAUSES` 边原文（最多 2 条）附在推荐上。（2026-09-15）
-- [x] 单元测试 [test_b2_eig.py](/Users/ts/Desktop/thu/multi_Agent/tests/test_b2_eig.py) 34 项：EIG 非负、不超过当前熵、全部观测后无候选、λ 单调性、三种停止原因、call_tool 映射、遮蔽气体不触发伪三比值规则。（2026-09-15）
+- [x] 单元测试 [test_b2_eig.py](tests/test_b2_eig.py) 34 项：EIG 非负、不超过当前熵、全部观测后无候选、λ 单调性、三种停止原因、call_tool 映射、遮蔽气体不触发伪三比值规则。（2026-09-15）
 
 附带修复（2026-09-15）：三比值法在任一气体缺失时不再用 0 代入触发伪规则（`dga_analysis.ratios_incomplete`）；数据集不含 CO / 温度 / 负载 / 振动 / 局放 7 个征兆，`learn_cpt.py` 对其写入向 0.5 收缩的专家 CPT（κ=`EXPERT_SHRINK`=0.5，条目标记 `source: expert_shrunk`），否则原专家值在 EIG 中会压过数据学到的气体征兆。
 
-验收结果（2026-09-15）：[eig_sanity_check.md](/Users/ts/Desktop/thu/multi_Agent/docs/eig_sanity_check.md) 20 条手工部分观测样例，Top-1 一致率 90%、Top-3 一致率 95%（κ=0.5；κ=1.0 时仅 60%/70%，κ≤0.6 稳定在 90%/95%）。预期集合为 AI 预填，**需人工复核后登记**。
+验收结果（2026-09-15）：[eig_sanity_check.md](docs/eval/eig_sanity_check.md) 20 条手工部分观测样例，Top-1 一致率 90%、Top-3 一致率 95%（κ=0.5；κ=1.0 时仅 60%/70%，κ≤0.6 稳定在 90%/95%）。预期集合为 AI 预填，**需人工复核后登记**。
 
 验收标准：对 20 条手工部分观测样例，推荐征兆与领域专家直觉一致率不低于 80%（人工判定）。
 
@@ -195,7 +195,7 @@
 - [x] `templates/planner/system_active.txt` 新增 `active` 变体（`TemplateLoader.load_system(agent, variant)`）：说明 `uncertainty` 块含义、三种动作选择规则、追问话术要求（一次一个征兆、说明为什么问、不重复）。
 - [x] Planner 输出增加 `action: ask | call_tool | conclude` 与 `rationale`；`_validate_action` 校验 `ask` 必须携带推荐列表内且未问过的 `symptom` 与 `question`，`call_tool` 必须带步骤；另提供无 LLM 的 `decision=eig` 路径（`eig_decide`），LLM 失败时自动回退。
 - [x] 配置开关 `attribution_mode: expert | calibrated`（`configure_engine()`）、`planner_strategy: free | active`、`planner_decision: llm | eig`、`max_inquiry_rounds`。
-- [x] 前端 [app.py](/Users/ts/Desktop/thu/multi_Agent/app.py)：侧边栏「主动规划」区（策略 / 决策来源 / K / 归因参数），展示后验柱状图、熵、Top-1 与 Top-2 差、推荐征兆表与追问话术，「追问轨迹」tab 含日志与熵曲线，是 / 否 / 不知道三按钮续跑；新增案例 6（H2/CH4/C2H4，缺 C2H2/C2H6）与案例 7（H2/C2H2，其余缺），每种气体支持「未检测」。
+- [x] 前端 [app.py](app.py)：侧边栏「主动规划」区（策略 / 决策来源 / K / 归因参数），展示后验柱状图、熵、Top-1 与 Top-2 差、推荐征兆表与追问话术，「追问轨迹」tab 含日志与熵曲线，是 / 否 / 不知道三按钮续跑；新增案例 6（H2/CH4/C2H4，缺 C2H2/C2H6）与案例 7（H2/C2H2，其余缺），每种气体支持「未检测」。
 
 验收标准：mode3 在 D12 抽 30 条上能完整走通追问循环，轨迹日志记录每轮 EIG 与动作。
 
@@ -207,7 +207,7 @@
 - [x] 指标：停止时 Top-1 / Top-3、平均问询次数、平均获取成本、追问命中率@2、每轮后验熵曲线、ECE / NLL；分档（light / medium / heavy）与停止原因分布。
 - [x] 消融：有 / 无校准（calibrated vs expert）、有 / 无成本项（eig_cost vs eig_greedy）、τ_H ∈ {0.5, 0.8, 1.0, 1.2, 1.5}。
 - [x] 四种策略均确定性（random 固定 seed 20260915）；LLM 策略后置，跑时按每条固定 seed。
-- [x] 结果写入 `docs/active_planning_eval.md`（附 `.json`），图表 `docs/figures/fig_b5_acc_vs_queries.png`、`fig_b5_entropy_curve.png`。
+- [x] 结果写入 `docs/eval/active_planning_eval.md`（附 `.json`），图表 `docs/figures/fig_b5_acc_vs_queries.png`、`fig_b5_entropy_curve.png`。
 
 验收标准：`eig_greedy` 在同等 Top-1 下平均问询次数低于 `llm_free` 与 `fixed`，差异有配对检验 p 值；结论写入报告。
 
@@ -215,10 +215,10 @@
 
 ### B-6 章节素材
 
-- [x] 整理算法伪代码（EIG 计算、停止准则、动作选择、追问循环）与符号表 → `docs/chapter3_active_planning_material.md` §1–§3（含 Mermaid 状态图、复杂度说明）。
+- [x] 整理算法伪代码（EIG 计算、停止准则、动作选择、追问循环）与符号表 → `docs/thesis/chapter3_active_planning_material.md` §1–§3（含 Mermaid 状态图、复杂度说明）。
 - [x] 与 Active Task Disambiguation、BED-LLM、When Should AI Ask、InfoGatherer 的差异说明 → 同文件 §6（对比表 + 五条差异要点 + 局限）：本文用校准的领域概率模型闭式计算 EIG，而非 LLM 采样估计；动作空间统一追问与工具调用；引入分级工程获取成本。
 
-产出（2026-09-15）：`docs/chapter3_active_planning_material.md` 另含实验设置摘要（§4）、写作用主结果数字（§5）与图表清单（§7），所有数字引自 B-1 / B-2 / B-3 / B-5 报告。
+产出（2026-09-15）：`docs/thesis/chapter3_active_planning_material.md` 另含实验设置摘要（§4）、写作用主结果数字（§5）与图表清单（§7），所有数字引自 B-1 / B-2 / B-3 / B-5 报告。
 
 ---
 
@@ -226,18 +226,18 @@
 
 目标：Validator 从「给草案打整体分」升级为「逐条核对声明与证据、判定违反哪类工程约束」，并驱动补证或重规划。
 
-涉及文件：[generator.py](/Users/ts/Desktop/thu/multi_Agent/src/agents/generator.py)、[validator.py](/Users/ts/Desktop/thu/multi_Agent/src/agents/validator.py)、[templates/generator/](/Users/ts/Desktop/thu/multi_Agent/templates/generator/)、[prompts.py](/Users/ts/Desktop/thu/multi_Agent/src/utils/prompts.py)、[workflow.py](/Users/ts/Desktop/thu/multi_Agent/src/graph/workflow.py)。
+涉及文件：[generator.py](src/agents/generator.py)、[validator.py](src/agents/validator.py)、[templates/generator/](templates/generator)、[prompts.py](src/utils/prompts.py)、[workflow.py](src/graph/workflow.py)。
 
 ### C-1 声明与证据的输出规范
 
-- [x] 定义 `docs/claim_schema.md`：`claims: [{id, text, type: observation | inference | recommendation | safety, evidence: [{source: tool | kb | kg | user, ref, span}]}]`，`ref` 为工具调用 id / 文本块 uuid / 图谱边 id / 用户轮次号；`span` 为证据原文片段。（2026-09-15，ref 规范定为 `call:<call_index>` / `kb:<chunk_id>` / `kg:<path>` / `user:<round>`）
-- [x] 约束类型定义：`DATA`（数值与工具输出不一致、单位错误、比值编码错误）、`EVIDENCE`（引用不存在、片段不含该内容、历史案例冒充当前检测）、`APPLICABILITY`（证据设备 / 数据集 / 时间窗与当前任务不匹配）、`SAFETY`（处置建议缺少前提条件、与检测结果矛盾）。每类给正例、反例各 3 条。（2026-09-15，`docs/claim_schema.md` §4）
+- [x] 定义 `docs/design/claim_schema.md`：`claims: [{id, text, type: observation | inference | recommendation | safety, evidence: [{source: tool | kb | kg | user, ref, span}]}]`，`ref` 为工具调用 id / 文本块 uuid / 图谱边 id / 用户轮次号；`span` 为证据原文片段。（2026-09-15，ref 规范定为 `call:<call_index>` / `kb:<chunk_id>` / `kg:<path>` / `user:<round>`）
+- [x] 约束类型定义：`DATA`（数值与工具输出不一致、单位错误、比值编码错误）、`EVIDENCE`（引用不存在、片段不含该内容、历史案例冒充当前检测）、`APPLICABILITY`（证据设备 / 数据集 / 时间窗与当前任务不匹配）、`SAFETY`（处置建议缺少前提条件、与检测结果矛盾）。每类给正例、反例各 3 条。（2026-09-15，`docs/design/claim_schema.md` §4）
 - [x] Generator 新增 `templates/generator/system_claims.txt`，要求先输出 JSON 声明列表再渲染自然语言答案；`_llm_generate` 增加 `output_mode: text | claims`。（2026-09-15，配置项 `workflow.generator_output_mode`，`GENERATOR_SYSTEM_PROMPT(variant)`；LLM 输出按 `===ANSWER===` 切分，JSON 经 `parse_llm_json` + `validate_claims` 校验，非法自动回退规则声明）
-- [x] 模板回退 `_template_generate` 同步产出声明（规则拼装，保证 LLM 不可用时链路不断）。（2026-09-15，公共模块 [claims.py](/Users/ts/Desktop/thu/multi_Agent/src/agents/claims.py)：`evidence_catalog` / `validate_claims` / `build_rule_claims` / `render_claims_markdown`；state 新增 `draft_claims` / `claims_source` / `claims_json_valid`）
+- [x] 模板回退 `_template_generate` 同步产出声明（规则拼装，保证 LLM 不可用时链路不断）。（2026-09-15，公共模块 [claims.py](src/agents/claims.py)：`evidence_catalog` / `validate_claims` / `build_rule_claims` / `render_claims_markdown`；state 新增 `draft_claims` / `claims_source` / `claims_json_valid`）
 
 验收标准：D10 抽 30 条，Generator 在 `claims` 模式下 JSON 合法率不低于 95%，每条 claim 至少一条 evidence 引用。
 
-验收结果（2026-09-15，`scripts/eval/eval_claims_c1.py --n 30`，报告 [claims_acceptance.md](/Users/ts/Desktop/thu/multi_Agent/docs/claims_acceptance.md)）：D10 按 scenario 分层抽 30 条，OraclePlanner + 真实工具 + 本地 BM25；JSON 合法率 100%（30/30），110 条声明全部 ≥1 条 evidence，ref 全部在本轮证据目录内，safety 声明 6 条均双引用工具结果（归因概率 + DGA 入参），工作流异常 0。类型分布 observation 40 / inference 43 / recommendation 21 / safety 6；证据来源 tool 73 / kb 21 / kg 16 / user 6。单元测试 `tests/test_c1_claims.py` 50 项通过；回归 p0 87 / b1 47 / b2 34 / b3 33 / b4 51 / b5 30 全绿。**验收通过。** 标注：本次在 LLM 未启用条件下验证的是规则拼装路径（`claims_source=rule`）；LLM 路径（`system_claims.txt` → JSON 解析）合法率需在启用 LLM 后用 `--llm` 补跑并更新报告（后置项）。
+验收结果（2026-09-15，`scripts/eval/eval_claims_c1.py --n 30`，报告 [claims_acceptance.md](docs/eval/claims_acceptance.md)）：D10 按 scenario 分层抽 30 条，OraclePlanner + 真实工具 + 本地 BM25；JSON 合法率 100%（30/30），110 条声明全部 ≥1 条 evidence，ref 全部在本轮证据目录内，safety 声明 6 条均双引用工具结果（归因概率 + DGA 入参），工作流异常 0。类型分布 observation 40 / inference 43 / recommendation 21 / safety 6；证据来源 tool 73 / kb 21 / kg 16 / user 6。单元测试 `tests/test_c1_claims.py` 50 项通过；回归 p0 87 / b1 47 / b2 34 / b3 33 / b4 51 / b5 30 全绿。**验收通过。** 标注：本次在 LLM 未启用条件下验证的是规则拼装路径（`claims_source=rule`）；LLM 路径（`system_claims.txt` → JSON 解析）合法率需在启用 LLM 后用 `--llm` 补跑并更新报告（后置项）。
 
 ### C-2 约束核查器
 
@@ -250,46 +250,46 @@
 
 验收标准：确定性层对构造样例检出率 100%，误报 0；语义层在 30 条人工标注声明上与人工一致率不低于 85%。
 
-验收结果（2026-09-15，`scripts/eval/eval_claim_checker_c2.py`，报告 [claim_checker_acceptance.md](/Users/ts/Desktop/thu/multi_Agent/docs/claim_checker_acceptance.md)）：确定性层对 20 条构造违反样例检出 20/20（100%），20 条合规样例误报 0；D10 全量 196 条规则声明（817 条，视为干净样本）核查误报 0 条，196 条全部 PASS，耗时 1.5 s。回归 c1 50 / p0 87 / b1 47 / b2 34 / b3 33 / b4 51 / b5 30 全绿。**确定性层验收通过。** 标注：语义层「30 条人工标注一致率 ≥ 85%」需启用 LLM 并人工标注，后置到 C-5 与人工项一并完成（已实现，未验收）。
+验收结果（2026-09-15，`scripts/eval/eval_claim_checker_c2.py`，报告 [claim_checker_acceptance.md](docs/eval/claim_checker_acceptance.md)）：确定性层对 20 条构造违反样例检出 20/20（100%），20 条合规样例误报 0；D10 全量 196 条规则声明（817 条，视为干净样本）核查误报 0 条，196 条全部 PASS，耗时 1.5 s。回归 c1 50 / p0 87 / b1 47 / b2 34 / b3 33 / b4 51 / b5 30 全绿。**确定性层验收通过。** 标注：语义层「30 条人工标注一致率 ≥ 85%」需启用 LLM 并人工标注，后置到 C-5 与人工项一并完成（已实现，未验收）。
 
 ### C-3 补证与重规划路由
 
 - [x] `workflow.py` 路由新增：`unsupported` 且证据可补 → 回 Planner 并携带 `missing_evidence: [{claim_id, suggested_tool, suggested_query}]`；`contradict` → 回 Generator 修订；`ABSTAIN` → 结束。（2026-09-15，实现为规则型 `supplement` 节点：Validator REVISION 且 `claim_check=route` 且 `missing_evidence` 有可用建议工具 且未超 `claim_supplement_rounds`（默认 1）→ `supplement` 构造合成补证计划（`decision_source=supplement`）→ Retriever 累积执行 → Generator 修订；无可补证据 / 矛盾 / DATA / SAFETY → Generator；ABSTAIN / PASS / FAIL → END。去重：跳过与已执行调用同工具同参数（`ett_forecast` 补默认值、`fault_attribution` 忽略 `query`）及计划内重复；`kg_search` 预检实体可定位性。LangGraph 图与串行降级路径同步；state 新增 `evidence_rounds` / `route_log`）
-- [x] Planner `active` 模板增加对 `missing_evidence` 的处理规则（优先调用建议工具，最多补证 1 轮）。（2026-09-15，[system_active.txt](/Users/ts/Desktop/thu/multi_Agent/templates/planner/system_active.txt) 新增「补证规则」段；`_render_context` 渲染 `context.missing_evidence`）
+- [x] Planner `active` 模板增加对 `missing_evidence` 的处理规则（优先调用建议工具，最多补证 1 轮）。（2026-09-15，[system_active.txt](templates/planner/system_active.txt) 新增「补证规则」段；`_render_context` 渲染 `context.missing_evidence`）
 - [x] 每次路由记录到轨迹日志：触发原因、补证工具、额外 Token 与耗时。（2026-09-15，`state.route_log`：`iteration / verdict / claim_check_verdict / unsupported_ratio / n_missing / target / reason`，补证轮另记 `round / tools / skipped / extra_tokens / extra_llm_calls / latency_ms`，Token 由 `USAGE.snapshot` 差分）
 
 验收标准：D10 抽 30 条，补证路由触发的调用中不出现重复调用同一工具同一参数。
 
-验收结果（2026-09-15，`scripts/eval/eval_route_c3.py --n 30`，报告 [route_acceptance.md](/Users/ts/Desktop/thu/multi_Agent/docs/route_acceptance.md)）：D10 分层 30 条，首轮草案注入 4 条无据声明（分别指向四个工具）；补证路由触发 28/30（2 条 multi_tool 场景注入占比未超 0.3 阈值直接 PASS），补证调用 95 次全部成功，与首轮调用重复 0、补证内部重复 0、全部调用重复 0；去重跳过 `duplicate_of_existing_call` 2、`no_entity_in_kg` 15；补证后 30 条全部 PASS，平均 Generator 轮次 1.93，补证轮平均耗时 29 ms，额外 Token 0（无 LLM）。对照 `claim_check=check`：无补证调用、证据来源仅 tool 78 / kb 21 / kg 16 / user 6，route 模式为 tool 228 / kb 87 / kg 42。单元测试 `tests/test_c3_route.py` 84 项通过；回归 p0 87 / b1 47 / b2 34 / b3 33 / b4 51 / b5 30 / c1 50 / c2 59 全绿。**验收通过。** 标注：本次验证的是规则补证路径；LLM 重规划路径（active 模板 `missing_evidence` 规则）的去重效果需启用 LLM 后在 C-5 一并评测。
+验收结果（2026-09-15，`scripts/eval/eval_route_c3.py --n 30`，报告 [route_acceptance.md](docs/eval/route_acceptance.md)）：D10 分层 30 条，首轮草案注入 4 条无据声明（分别指向四个工具）；补证路由触发 28/30（2 条 multi_tool 场景注入占比未超 0.3 阈值直接 PASS），补证调用 95 次全部成功，与首轮调用重复 0、补证内部重复 0、全部调用重复 0；去重跳过 `duplicate_of_existing_call` 2、`no_entity_in_kg` 15；补证后 30 条全部 PASS，平均 Generator 轮次 1.93，补证轮平均耗时 29 ms，额外 Token 0（无 LLM）。对照 `claim_check=check`：无补证调用、证据来源仅 tool 78 / kb 21 / kg 16 / user 6，route 模式为 tool 228 / kb 87 / kg 42。单元测试 `tests/test_c3_route.py` 84 项通过；回归 p0 87 / b1 47 / b2 34 / b3 33 / b4 51 / b5 30 / c1 50 / c2 59 全绿。**验收通过。** 标注：本次验证的是规则补证路径；LLM 重规划路径（active 模板 `missing_evidence` 规则）的去重效果需启用 LLM 后在 C-5 一并评测。
 
 ### C-4 故障注入评测集（数据 D11）
 
-- [x] 新建 `scripts/eval/build_d11_fault_injection.py`：以 [oracle_mode5.jsonl](/Users/ts/Desktop/thu/multi_Agent/data/eval/d10/results/oracle_mode5.jsonl) 中 196 条正确草案为底，自动注入四类错误各 50 条：篡改数值（气体浓度 ±30%、概率互换）、伪造引用（不存在的 chunk uuid / 编造片段）、换设备或换数据集（ETTh1 → ETTm1、设备号错位）、删安全前提（保留「立即停电吊罩」删去支撑它的高乙炔观测）。（2026-09-15，[build_d11_fault_injection.py](/Users/ts/Desktop/thu/multi_Agent/scripts/eval/build_d11_fault_injection.py)；`oracle_mode5.jsonl` 仅存 `answer_head` 无完整声明，改为在 D10 196 条上以 OraclePlanner + 真实工具 + 规则声明重新生成等价干净底稿；15 个注入子类：numeric 5、fake_reference 5、applicability 3、safety 2；`low_risk_shutdown` 因 D10 无低风险归因候选为 0，已在 DATA_CARD 说明）
+- [x] 新建 `scripts/eval/build_d11_fault_injection.py`：以 [oracle_mode5.jsonl](data/eval/d10/results/oracle_mode5.jsonl) 中 196 条正确草案为底，自动注入四类错误各 50 条：篡改数值（气体浓度 ±30%、概率互换）、伪造引用（不存在的 chunk uuid / 编造片段）、换设备或换数据集（ETTh1 → ETTm1、设备号错位）、删安全前提（保留「立即停电吊罩」删去支撑它的高乙炔观测）。（2026-09-15，[build_d11_fault_injection.py](scripts/eval/build_d11_fault_injection.py)；`oracle_mode5.jsonl` 仅存 `answer_head` 无完整声明，改为在 D10 196 条上以 OraclePlanner + 真实工具 + 规则声明重新生成等价干净底稿；15 个注入子类：numeric 5、fake_reference 5、applicability 3、safety 2；`low_risk_shutdown` 因 D10 无低风险归因候选为 0，已在 DATA_CARD 说明）
 - [x] 加 100 条未注入的干净草案作为负样本（考察误报）。（2026-09-15，100 个不同底稿，全部含工具 / 知识 / 图谱证据）
-- [x] 每条记录 `injected: bool, type, location, original`；人工抽 40 条确认注入确实构成错误。（2026-09-15，另含 `subtype / expected_constraints / injection_detail / snapshot / checker_preview / annotation`；`snapshot` 可离线重建 `AgentState` 供 C-5 复跑；人工抽检清单 [manual_review_sample.md](/Users/ts/Desktop/thu/multi_Agent/data/eval/d11/manual_review_sample.md) 已生成，每类 10 条，**人工判定列待填**）
-- [x] 数据卡片 `data/eval/d11/DATA_CARD.md`。（2026-09-15，[DATA_CARD.md](/Users/ts/Desktop/thu/multi_Agent/data/eval/d11/DATA_CARD.md)：来源、注入类型与子类说明、场景分布、字段说明、确定性层预览、已知偏差）
+- [x] 每条记录 `injected: bool, type, location, original`；人工抽 40 条确认注入确实构成错误。（2026-09-15，另含 `subtype / expected_constraints / injection_detail / snapshot / checker_preview / annotation`；`snapshot` 可离线重建 `AgentState` 供 C-5 复跑；人工抽检清单 [manual_review_sample.md](data/eval/d11/manual_review_sample.md) 已生成，每类 10 条，**人工判定列待填**）
+- [x] 数据卡片 `data/eval/d11/DATA_CARD.md`。（2026-09-15，[DATA_CARD.md](data/eval/d11/DATA_CARD.md)：来源、注入类型与子类说明、场景分布、字段说明、确定性层预览、已知偏差）
 
 验收标准：300 条（200 注入 + 100 干净），人工抽检注入有效率不低于 95%。
 
-验收结果（2026-09-15，`python3 scripts/eval/build_d11_fault_injection.py --per-type 50 --clean 100`，seed 20260915，耗时 2.2 s，无 LLM）：[fault_injection_eval.jsonl](/Users/ts/Desktop/thu/multi_Agent/data/eval/d11/fault_injection_eval.jsonl) 300 条 = 200 注入（四类各 50）+ 100 干净；候选池 numeric 189 / fake_reference 405 / applicability 53 / safety 55，numeric 与 fake_reference 子类各 10 条均衡，applicability（底稿 31）与 safety（底稿 43）因 ett_forecast 仅 22 条、设备号 9 条而复用底稿。构建时 C-2 确定性层预览：注入声明被标记 200/200 且全部命中期望约束，干净 100 条误报 0（该预览仅证明注入可被机器识别，不替代 C-5 评测）。自检 [tests/test_c4_d11.py](/Users/ts/Desktop/thu/multi_Agent/tests/test_c4_d11.py) 35 项通过（规模、字段、schema、注入位置确实改动、snapshot 重建后 ClaimChecker 复跑与预览一致 60/60、同 seed 可复现、文档产物）；回归 p0 87 / b1 47 / b2 34 / b3 33 / b4 51 / b5 30 / c1 50 / c2 59 / c3 84 全绿。**规模与结构验收通过。** 标注：「人工抽检 40 条有效率 ≥ 95%」为人工项，清单已生成待填写，完成后将 `annotation.status` 改为 `reviewed`。
+验收结果（2026-09-15，`python3 scripts/eval/build_d11_fault_injection.py --per-type 50 --clean 100`，seed 20260915，耗时 2.2 s，无 LLM）：[fault_injection_eval.jsonl](data/eval/d11/fault_injection_eval.jsonl) 300 条 = 200 注入（四类各 50）+ 100 干净；候选池 numeric 189 / fake_reference 405 / applicability 53 / safety 55，numeric 与 fake_reference 子类各 10 条均衡，applicability（底稿 31）与 safety（底稿 43）因 ett_forecast 仅 22 条、设备号 9 条而复用底稿。构建时 C-2 确定性层预览：注入声明被标记 200/200 且全部命中期望约束，干净 100 条误报 0（该预览仅证明注入可被机器识别，不替代 C-5 评测）。自检 [tests/test_c4_d11.py](tests/test_c4_d11.py) 35 项通过（规模、字段、schema、注入位置确实改动、snapshot 重建后 ClaimChecker 复跑与预览一致 60/60、同 seed 可复现、文档产物）；回归 p0 87 / b1 47 / b2 34 / b3 33 / b4 51 / b5 30 / c1 50 / c2 59 / c3 84 全绿。**规模与结构验收通过。** 标注：「人工抽检 40 条有效率 ≥ 95%」为人工项，清单已生成待填写，完成后将 `annotation.status` 改为 `reviewed`。
 
 ### C-5 对照实验与评测
 
-- [x] 新建 `scripts/eval/eval_validator.py`，三组对照：`v1`（现有整体评分 Validator）、`v2_check`（声明级核查，不路由）、`v2_route`（核查 + 补证重规划）。（2026-09-15，[eval_validator.py](/Users/ts/Desktop/thu/multi_Agent/scripts/eval/eval_validator.py)；在 D11 `snapshot` 重建的 `AgentState` 上以模拟 Generator（首轮输出注入声明，修订轮只修正被标记声明）驱动真实 `ValidatorAgent` / `supplement` / Retriever；两设定：E1 = D11 原样，E2 = 每条附加 2 条缺证声明考察补证；最终答案由独立 `ClaimChecker` 复核）
+- [x] 新建 `scripts/eval/eval_validator.py`，三组对照：`v1`（现有整体评分 Validator）、`v2_check`（声明级核查，不路由）、`v2_route`（核查 + 补证重规划）。（2026-09-15，[eval_validator.py](scripts/eval/eval_validator.py)；在 D11 `snapshot` 重建的 `AgentState` 上以模拟 Generator（首轮输出注入声明，修订轮只修正被标记声明）驱动真实 `ValidatorAgent` / `supplement` / Retriever；两设定：E1 = D11 原样，E2 = 每条附加 2 条缺证声明考察补证；最终答案由独立 `ClaimChecker` 复核）
 - [x] 指标：错误通过率（注入样本被判 PASS 的比例）、分类型检出率、干净样本误报率、无依据结论率（最终答案中 `unsupported` 声明占比）、约束违反率、弃答率、额外调用次数与 Token 成本。（2026-09-15，`summarize()` 另含残留率、期望约束命中率、平均轮次、补证触发数、修订统计 `n_fixed / n_dropped / n_regrounded / n_kept`、分类型 / 分子类）
 - [ ] 语义层 LLM 判定抽 10% 人工复核一致率。（后置：需启用 LLM，本轮全部为确定性层零 Token 运行；与 C-2 语义层人工一致率一并完成）
-- [x] 结果写入 `docs/validator_eval.md`，图表：分类型检出率柱状图、通过率-成本散点。（2026-09-15，[validator_eval.md](/Users/ts/Desktop/thu/multi_Agent/docs/validator_eval.md) / `validator_eval.json`；[fig_c5_detection_by_type.png](/Users/ts/Desktop/thu/multi_Agent/docs/figures/fig_c5_detection_by_type.png)、[fig_c5_pass_vs_cost.png](/Users/ts/Desktop/thu/multi_Agent/docs/figures/fig_c5_pass_vs_cost.png)；散点因三组重叠不可读改为「错误通过率 / 无依据结论率 / 弃答率 × E1,E2」三面板柱状图，标题标注 E2 平均额外调用）
+- [x] 结果写入 `docs/eval/validator_eval.md`，图表：分类型检出率柱状图、通过率-成本散点。（2026-09-15，[validator_eval.md](docs/eval/validator_eval.md) / `validator_eval.json`；[fig_c5_detection_by_type.png](docs/figures/fig_c5_detection_by_type.png)、[fig_c5_pass_vs_cost.png](docs/figures/fig_c5_pass_vs_cost.png)；散点因三组重叠不可读改为「错误通过率 / 无依据结论率 / 弃答率 × E1,E2」三面板柱状图，标题标注 E2 平均额外调用）
 
 验收标准：`v2_check` 相对 `v1` 错误通过率显著下降且干净样本误报率不高于 10%；`v2_route` 的无依据结论率进一步下降。
 
-验收结果（2026-09-15，`python3 scripts/eval/eval_validator.py`，D11 全量 300 条，seed 20260915，耗时 10.5 s，Token 0）：E1 错误通过率 v1 100% → v2_check 3% → v2_route 3%，分类型检出率 v2 四类均 100%，干净误报 0 / 0 / 0%，残留率 100 / 3 / 3%，无依据结论率 5.0 / 0.2 / 0.2%，约束违反率 66.7 / 2.0 / 2.0%，平均轮次 1.00 / 1.65 / 1.65；残余 3% 为 `inference / recommendation` 类伪造引用（`nonexistent_call / chunk / kg_edge`）在多声明底稿中占比未超 0.3 阈值。E2（附加缺证声明）：无依据结论率 36.4 / 18.7 / 7.2%，缺证声明仍无据 100 / 100 / 24.8%，v2_route 再落证 451 条、补证触发 264 次、额外调用 480 次（1.60 / 样本），弃答率 0 / 63 / 3%（v2_check 无补证能力只能反复修订至 ABSTAIN），约束违反率 100 / 100 / 35.7%，平均耗时 0.03 / 2.87 / 13.66 ms。`acceptance` 六项全 true。首跑 v2_check 错误通过率 23%（`dataset_swap / device_swap` 30 条与 17 条 observation 伪引用被 0.3 阈值稀释）暴露判定规则缺口，据此修订 C-2：`APPLICABILITY` 纳入硬约束（`claim_hard_constraints`，默认 `SAFETY / DATA / APPLICABILITY`）、`observation` 声明证据引用无效直接 REVISION（`claim_strict_observation`），已同步 [claim_schema.md](/Users/ts/Desktop/thu/multi_Agent/docs/claim_schema.md) §6 并重新生成 D11 预览。自检 [tests/test_c5_validator_eval.py](/Users/ts/Desktop/thu/multi_Agent/tests/test_c5_validator_eval.py) 44 项通过（判定规则、模拟 Generator、extras 构造、三组 run_one 行为、指标与验收逻辑、报告产物）；回归 p0 87 / b1 47 / b2 34 / b3 33 / b4 51 / b5 30 / c1 50 / c2 59 / c3 84 / c4 35 全绿。**验收通过。** 标注：全部为确定性层结果，语义层 LLM 判定与 10% 人工复核后置。
+验收结果（2026-09-15，`python3 scripts/eval/eval_validator.py`，D11 全量 300 条，seed 20260915，耗时 10.5 s，Token 0）：E1 错误通过率 v1 100% → v2_check 3% → v2_route 3%，分类型检出率 v2 四类均 100%，干净误报 0 / 0 / 0%，残留率 100 / 3 / 3%，无依据结论率 5.0 / 0.2 / 0.2%，约束违反率 66.7 / 2.0 / 2.0%，平均轮次 1.00 / 1.65 / 1.65；残余 3% 为 `inference / recommendation` 类伪造引用（`nonexistent_call / chunk / kg_edge`）在多声明底稿中占比未超 0.3 阈值。E2（附加缺证声明）：无依据结论率 36.4 / 18.7 / 7.2%，缺证声明仍无据 100 / 100 / 24.8%，v2_route 再落证 451 条、补证触发 264 次、额外调用 480 次（1.60 / 样本），弃答率 0 / 63 / 3%（v2_check 无补证能力只能反复修订至 ABSTAIN），约束违反率 100 / 100 / 35.7%，平均耗时 0.03 / 2.87 / 13.66 ms。`acceptance` 六项全 true。首跑 v2_check 错误通过率 23%（`dataset_swap / device_swap` 30 条与 17 条 observation 伪引用被 0.3 阈值稀释）暴露判定规则缺口，据此修订 C-2：`APPLICABILITY` 纳入硬约束（`claim_hard_constraints`，默认 `SAFETY / DATA / APPLICABILITY`）、`observation` 声明证据引用无效直接 REVISION（`claim_strict_observation`），已同步 [claim_schema.md](docs/design/claim_schema.md) §6 并重新生成 D11 预览。自检 [tests/test_c5_validator_eval.py](tests/test_c5_validator_eval.py) 44 项通过（判定规则、模拟 Generator、extras 构造、三组 run_one 行为、指标与验收逻辑、报告产物）；回归 p0 87 / b1 47 / b2 34 / b3 33 / b4 51 / b5 30 / c1 50 / c2 59 / c3 84 / c4 35 全绿。**验收通过。** 标注：全部为确定性层结果，语义层 LLM 判定与 10% 人工复核后置。
 
 ### C-6 章节素材
 
-- [x] 整理约束类型定义表、核查流程图（Mermaid）、路由状态机。（2026-09-15，[chapter4_claim_verification_material.md](/Users/ts/Desktop/thu/multi_Agent/docs/chapter4_claim_verification_material.md) §4.1 ~ §4.4：问题定义、表 4-1 声明类型、表 4-2 约束类型（含核查子项、容差、硬约束标记）、表 4-3 判定规则 R1 ~ R7（含 C-5 修订说明）、核查流程图、补证路由状态机、`missing_evidence` 工具映射）
+- [x] 整理约束类型定义表、核查流程图（Mermaid）、路由状态机。（2026-09-15，[chapter4_claim_verification_material.md](docs/thesis/chapter4_claim_verification_material.md) §4.1 ~ §4.4：问题定义、表 4-1 声明类型、表 4-2 约束类型（含核查子项、容差、硬约束标记）、表 4-3 判定规则 R1 ~ R7（含 C-5 修订说明）、核查流程图、补证路由状态机、`missing_evidence` 工具映射）
 - [x] 与 MAST「验证失效」分类、RT4CHART 声明级核查的差异说明：本文证据源为异构工具输出 + 文献 + 图谱，约束类型面向电力工程。（2026-09-15，同文件 §4.5 表 4-4 六维对照 + 三段可改写入论文的差异说明；§4.6 汇总 D11 与 C-5 E1 / E2 可引用数字并标注确定性层 / 语义层结果边界；§4.7 素材来源与文献条目）
 
-验收结果（2026-09-15）：素材文件引用的 7 个本地文件与 2 张图均存在，表中数字与 `docs/validator_eval.json` 核对一致（E1 错误通过率 1.0 / 0.03 / 0.03；E2 无依据结论率 0.364 / 0.187 / 0.072、弃答率 0 / 0.63 / 0.03、约束违反率 1.0 / 1.0 / 0.357、额外调用 0 / 0 / 1.60）。MAST 引用 arXiv:2503.13657（FM-3.1 ~ 3.3 定义与「验证器非万灵药、需多层级验证」结论），RT4CHART 引用 arXiv:2603.27752（声明分解、局部到全局分层验证、entailed / contradicted / baseless 三标签、context-only 设定）。**C 主线（C-1 ~ C-6）代码与文档项全部完成；后置人工 / LLM 项见各节标注。**
+验收结果（2026-09-15）：素材文件引用的 7 个本地文件与 2 张图均存在，表中数字与 `docs/eval/validator_eval.json` 核对一致（E1 错误通过率 1.0 / 0.03 / 0.03；E2 无依据结论率 0.364 / 0.187 / 0.072、弃答率 0 / 0.63 / 0.03、约束违反率 1.0 / 1.0 / 0.357、额外调用 0 / 0 / 1.60）。MAST 引用 arXiv:2503.13657（FM-3.1 ~ 3.3 定义与「验证器非万灵药、需多层级验证」结论），RT4CHART 引用 arXiv:2603.27752（声明分解、局部到全局分层验证、entailed / contradicted / baseless 三标签、context-only 设定）。**C 主线（C-1 ~ C-6）代码与文档项全部完成；后置人工 / LLM 项见各节标注。**
 
 ---
 
@@ -303,9 +303,9 @@
 
 - [ ] A-2 产出的百炼 ChatML 训练集 + 验证集上传（`purpose=fine-tune`），记录 `file_id`。（后置：需百炼账号与费用；文件已就绪并通过本地校验，`submit_job.py upload` 一条命令完成）
 - [ ] 控制台或 API 创建任务：`training_type=efficient_sft`，`n_epochs=3`、`batch_size=16`、`max_length=4096`、`learning_rate` 取平台默认，`split` 不用（已自带验证集）。（后置：`submit_job.py create` 请求体已按此固化，dry-run 核对通过）
-- [ ] 训练完成后部署，记录模型 ID 到 `config.yaml` 的 `llms.planner_finetuned`；`scripts/probe_llm_endpoint.py` 验证 `tool_calls` 能被 `_build_plan_from_tool_calls` 解析。（后置：需部署实例；离线已验证训练样本中的 `tool_calls` 结构可被 `_build_plan_from_tool_calls` 解析且参数校验通过、`call_id` 保留）
+- [ ] 训练完成后部署，记录模型 ID 到 `config.yaml` 的 `llms.planner_finetuned`；`scripts/dev/probe_llm_endpoint.py` 验证 `tool_calls` 能被 `_build_plan_from_tool_calls` 解析。（后置：需部署实例；离线已验证训练样本中的 `tool_calls` 结构可被 `_build_plan_from_tool_calls` 解析且参数校验通过、`call_id` 保留）
 - [ ] 在 D8 test 切分上跑 `eval_planner_offline.py`，与 A-1 的 M0 数字并列写入 `docs/planner_dpo_eval.md` 第一节。（后置：依赖 M1 部署与 A-1）
-- [x] 训练脚本、超参与 job_id 记录到 `training/planner_bailian/README.md`；新建 `training/planner_bailian/submit_job.py`（封装文件上传、任务创建、状态轮询、部署）。（2026-09-15：[submit_job.py](/Users/ts/Desktop/thu/multi_Agent/training/planner_bailian/submit_job.py) 提供 `upload / create(--stage sft|dpo) / status(--wait) / logs / deploy / deploy-status / undeploy` 子命令，仅标准库，默认 dry-run，`--execute` 才发请求并追加 `jobs.jsonl`；[README.md](/Users/ts/Desktop/thu/multi_Agent/training/planner_bailian/README.md) 记录路线约束、数据格式、操作步骤、任务记录表（job_id 占位）、计费与快照不可下载提示。）
+- [x] 训练脚本、超参与 job_id 记录到 `training/planner_bailian/README.md`；新建 `training/planner_bailian/submit_job.py`（封装文件上传、任务创建、状态轮询、部署）。（2026-09-15：[submit_job.py](training/planner_bailian/submit_job.py) 提供 `upload / create(--stage sft|dpo) / status(--wait) / logs / deploy / deploy-status / undeploy` 子命令，仅标准库，默认 dry-run，`--execute` 才发请求并追加 `jobs.jsonl`；[README.md](training/planner_bailian/README.md) 记录路线约束、数据格式、操作步骤、任务记录表（job_id 占位）、计费与快照不可下载提示。）
 
 验收标准：M1 部署可调用；离线 7 项指标相对 M0 有提升；50 条端到端任务跑通。
 
@@ -314,8 +314,8 @@
 ### D-2 偏好对构造（数据 D13）
 
 - [ ] 采样 prompt：从 D8 train 切分抽 1500 条任务（分层覆盖单工具 / 多工具 / 追问 / 错误恢复 / 无需工具），加 B-3 模拟器生成的 500 条部分观测任务。（分层抽样函数 `stratified_train_seeds` 已就绪；正式抽样与候选生成同步进行，后置）
-- [ ] 候选生成：对每条 prompt 用 M1 模型（temperature 0.7 / 1.0）各采样 2 个 Planner 输出，加 M0 基座 1 个，共 5 个候选；在真实工具环境执行（复用 [retriever.py](/Users/ts/Desktop/thu/multi_Agent/src/agents/retriever.py) 的执行与 `exec/business_success` 记录）。（后置：需 M1 部署与 M0 调用；候选文件格式 `{seed_id, candidate_id, source, raw{content, tool_calls}}` 已由 `score_candidates.py --candidates` 定义，真实执行部分已实现 `CandidatePlanner` + `Executor`）
-- [x] 候选打分（`scripts/planner_data/score_candidates.py`）：分项打分并加权求和，权重可配：格式合法（0/1）、工具与金标一致（0/1）、参数 Schema 通过（0/1）、工具业务成功（0/1）、下游声明忠实度（把候选轨迹送 Generator + C-2 核查器，取 `1 - unsupported_ratio`）、追问是否在推荐列表（B-2，0/1）、调用成本惩罚（`-0.1 × 多余调用数`）。（2026-09-15：[score_candidates.py](/Users/ts/Desktop/thu/multi_Agent/scripts/planner_data/score_candidates.py) `score_candidate` 六分项 + 成本惩罚，`WEIGHTS_EXEC / WEIGHTS_FULL` 可配；候选解析与线上一致（tool_calls 优先，否则 json_text）；追问项按金标 `missing` 命中判定（金标非追问而候选追问记 0）。）
+- [ ] 候选生成：对每条 prompt 用 M1 模型（temperature 0.7 / 1.0）各采样 2 个 Planner 输出，加 M0 基座 1 个，共 5 个候选；在真实工具环境执行（复用 [retriever.py](src/agents/retriever.py) 的执行与 `exec/business_success` 记录）。（后置：需 M1 部署与 M0 调用；候选文件格式 `{seed_id, candidate_id, source, raw{content, tool_calls}}` 已由 `score_candidates.py --candidates` 定义，真实执行部分已实现 `CandidatePlanner` + `Executor`）
+- [x] 候选打分（`scripts/planner_data/score_candidates.py`）：分项打分并加权求和，权重可配：格式合法（0/1）、工具与金标一致（0/1）、参数 Schema 通过（0/1）、工具业务成功（0/1）、下游声明忠实度（把候选轨迹送 Generator + C-2 核查器，取 `1 - unsupported_ratio`）、追问是否在推荐列表（B-2，0/1）、调用成本惩罚（`-0.1 × 多余调用数`）。（2026-09-15：[score_candidates.py](scripts/planner_data/score_candidates.py) `score_candidate` 六分项 + 成本惩罚，`WEIGHTS_EXEC / WEIGHTS_FULL` 可配；候选解析与线上一致（tool_calls 优先，否则 json_text）；追问项按金标 `missing` 命中判定（金标非追问而候选追问记 0）。）
 - [x] 配对规则：同一 prompt 内分差 ≥ 0.3 的最高与最低候选组成 `(chosen, rejected)`；分差不足则丢弃该 prompt；每 prompt 最多 1 对。（`make_pairs`，同分按 candidate_id 字典序，可复现）
 - [x] 偏好来源消融准备：额外导出两份子集，`D13-exec`（只用格式 + 工具 + 参数 + 业务成功打分）与 `D13-full`（加声明忠实度 + 推荐一致 + 成本），用于 D-4。（`d13_exec*.jsonl` / `d13_full*.jsonl` + `*_pairs_meta.jsonl` 记录分项）
 - [ ] 人工抽 100 对复核偏好方向正确率；泄漏检查：prompt 的 `seed_source` 不得出现在 D8 test 与 D10。（人工复核后置；泄漏检查 `leakage_check` 已实现：seed_source / group_key 对 D8 test 与 D10 双查，且要求 split=train）
@@ -323,7 +323,7 @@
 
 验收标准：有效偏好对不少于 1200 条；人工复核偏好方向正确率不低于 90%；泄漏 0。
 
-验收结果（2026-09-15，离线管线部分）：`--synthetic-demo --n 60 --seed 20260915`（金标 + 6 类扰动候选 280 条，真实工具执行，2.4 s，Token 0）：gold 平均 full 分 1.0，各扰动 0 ~ 0.83 且方向正确（格式坏 0、换错工具 0.53、多余调用 0.61、Schema 错 0.67、该问不问 0.83）；D13-exec 50 对（追问类 10 条在 exec 分下无分差，正是消融差异）、D13-full 60 对，非法记录 0，泄漏 0；[test_d2_preference_pairs.py](/Users/ts/Desktop/thu/multi_Agent/tests/test_d2_preference_pairs.py) 29 项通过。demo 产物仅验证管线、不用于训练（数据卡片已标注）。**离线可完成部分验收通过；1200 对与 90% 人工复核依赖 M1 / M0 候选生成与人工，后置。**
+验收结果（2026-09-15，离线管线部分）：`--synthetic-demo --n 60 --seed 20260915`（金标 + 6 类扰动候选 280 条，真实工具执行，2.4 s，Token 0）：gold 平均 full 分 1.0，各扰动 0 ~ 0.83 且方向正确（格式坏 0、换错工具 0.53、多余调用 0.61、Schema 错 0.67、该问不问 0.83）；D13-exec 50 对（追问类 10 条在 exec 分下无分差，正是消融差异）、D13-full 60 对，非法记录 0，泄漏 0；[test_d2_preference_pairs.py](tests/test_d2_preference_pairs.py) 29 项通过。demo 产物仅验证管线、不用于训练（数据卡片已标注）。**离线可完成部分验收通过；1200 对与 90% 人工复核依赖 M1 / M0 候选生成与人工，后置。**
 
 ### D-3 百炼 DPO 训练（M4）
 
@@ -345,10 +345,10 @@
 
 ### D-5 章节素材
 
-- [x] 偏好构造流程图、打分函数定义表、消融设计说明。（2026-09-16：[chapter5_planner_dpo_material.md](/Users/ts/Desktop/thu/multi_Agent/docs/chapter5_planner_dpo_material.md) §5.3 Mermaid 流程图、§5.4 表 5-1 ~ 5-3（分项定义、总分公式、金标扰动候选排序）、§5.5 偏好来源消融 M1 / M4-exec / M4-full 与判读规则；§5.7 数字表留空待 D-3 / D-4）
+- [x] 偏好构造流程图、打分函数定义表、消融设计说明。（2026-09-16：[chapter5_planner_dpo_material.md](docs/thesis/chapter5_planner_dpo_material.md) §5.3 Mermaid 流程图、§5.4 表 5-1 ~ 5-3（分项定义、总分公式、金标扰动候选排序）、§5.5 偏好来源消融 M1 / M4-exec / M4-full 与判读规则；§5.7 数字表留空待 D-3 / D-4）
 - [x] 与 ToolRL / ARTIST / Deep-DxSearch 的差异说明：本文奖励信号来自下游声明级验证器而非仅工具执行结果；采用 DPO 离线优化以适配平台约束。（2026-09-16：§5.6 表 5-4 七维对照 + 三段可改写文字；引用 arXiv:2504.13958 / 2505.01441 / 2508.15746，关键数字已核对：ToolRL 相对 SFT +15、ARTIST BFCL v3 最难子集最高 +16、Deep-DxSearch 四维奖励且动作空间无追问）
 
-验收结果（2026-09-16）：素材引用的 10 个本地文件全部存在；表 5-3 七行数字与 [summary_demo.json](/Users/ts/Desktop/thu/multi_Agent/data/planner/dpo/summary_demo.json) `source_mean_full` 一致；超参与 `submit_job.py` `HP_SFT / HP_DPO` 一致；train 3181 / dev 583 与 `training/planner_bailian/README.md` 一致。**D 主线离线可完成部分（D-1 / D-2 / D-5）全部完成；D-1 上传训练部署、D-2 正式候选生成与人工复核、D-3、D-4 需百炼账号，后置。**
+验收结果（2026-09-16）：素材引用的 10 个本地文件全部存在；表 5-3 七行数字与 [summary_demo.json](data/planner/dpo/summary_demo.json) `source_mean_full` 一致；超参与 `submit_job.py` `HP_SFT / HP_DPO` 一致；train 3181 / dev 583 与 `training/planner_bailian/README.md` 一致。**D 主线离线可完成部分（D-1 / D-2 / D-5）全部完成；D-1 上传训练部署、D-2 正式候选生成与人工复核、D-3、D-4 需百炼账号，后置。**
 
 ---
 
@@ -356,9 +356,9 @@
 
 ### E-1 五级模式重定义
 
-- [x] 重写 [system_modes.py](/Users/ts/Desktop/thu/multi_Agent/src/graph/system_modes.py) 为 §0.5 定义：`llm_only → tool_base → active_plan → claim_verify → dpo_planner`，相邻模式只差一组开关；`SystemModeSpec` 新增 `attribution_mode`、`with_eig`、`planner_strategy`、`validator_mode`、`generator_output`；`resolve_mode` 支持逐项覆盖并校验取值；新增 `apply_engine_settings`（进程级归因 / EIG 参数）与 `tool_stack_spec(cfg)`（组件级评测用全工具栈，供 C 系列脚本替代旧 `resolve_mode("mode5", ...)`）。（2026-09-16）
-- [x] `build_agents` 按字段构建 Generator / Validator / Planner 策略；[eval_system_modes.py](/Users/ts/Desktop/thu/multi_Agent/scripts/eval/eval_system_modes.py) 新增 `--validator-mode / --attribution-mode / --planner-strategy / --generator-output / --planner-decision / --tag`，报告增加平均问询次数、无依据结论率、补证轮数、模式开关表；[app.py](/Users/ts/Desktop/thu/multi_Agent/app.py) `run_workflow` 复用 `build_agents`，侧栏可覆盖全部子开关。C 系列 7 个脚本 / 测试改用 `tool_stack_spec`。（2026-09-16）
-- [x] OraclePlanner 在新 mode2 上重跑 D10 196 条：191/196 通过（97.4%），与旧 `oracle_mode5.jsonl`（50 条，46/50）公共 50 条中 4 条由 fail 变 pass，原因均为旧结果在模板生成模式（LLM 未启用）下 `ask_ok` / `faith_ok` 为 False，本次 LLM 正常生成；无 pass→fail。剩余 5 条失败（3 条 `single_tool_fact` 忠实度 0、2 条 `ask_user` 未触发追问判定）属 Generator 与评分口径问题，非模式重定义引入，留到 E-2 处理。结果见 [oracle_mode2.jsonl](/Users/ts/Desktop/thu/multi_Agent/data/eval/d10/results/oracle_mode2.jsonl)。（2026-09-16）
+- [x] 重写 [system_modes.py](src/graph/system_modes.py) 为 §0.5 定义：`llm_only → tool_base → active_plan → claim_verify → dpo_planner`，相邻模式只差一组开关；`SystemModeSpec` 新增 `attribution_mode`、`with_eig`、`planner_strategy`、`validator_mode`、`generator_output`；`resolve_mode` 支持逐项覆盖并校验取值；新增 `apply_engine_settings`（进程级归因 / EIG 参数）与 `tool_stack_spec(cfg)`（组件级评测用全工具栈，供 C 系列脚本替代旧 `resolve_mode("mode5", ...)`）。（2026-09-16）
+- [x] `build_agents` 按字段构建 Generator / Validator / Planner 策略；[eval_system_modes.py](scripts/eval/eval_system_modes.py) 新增 `--validator-mode / --attribution-mode / --planner-strategy / --generator-output / --planner-decision / --tag`，报告增加平均问询次数、无依据结论率、补证轮数、模式开关表；[app.py](app.py) `run_workflow` 复用 `build_agents`，侧栏可覆盖全部子开关。C 系列 7 个脚本 / 测试改用 `tool_stack_spec`。（2026-09-16）
+- [x] OraclePlanner 在新 mode2 上重跑 D10 196 条：191/196 通过（97.4%），与旧 `oracle_mode5.jsonl`（50 条，46/50）公共 50 条中 4 条由 fail 变 pass，原因均为旧结果在模板生成模式（LLM 未启用）下 `ask_ok` / `faith_ok` 为 False，本次 LLM 正常生成；无 pass→fail。剩余 5 条失败（3 条 `single_tool_fact` 忠实度 0、2 条 `ask_user` 未触发追问判定）属 Generator 与评分口径问题，非模式重定义引入，留到 E-2 处理。结果见 [oracle_mode2.jsonl](data/eval/d10/results/oracle_mode2.jsonl)。（2026-09-16）
 
 验收标准：五级模式各跑 D10 抽 5 条冒烟通过。
 验收结果（2026-09-16）：`--modes all --limit 5 --no-llm --tag smoke` 五级 25 条无异常，mode1-2 `llm_disabled`、mode3-5 `no_tool`（LLM 关闭时 active 策略无法决策，符合预期）；13 个测试文件共 608 项全部通过（p0 89、b 系列 196、c 系列 272、d 系列 51）；全部改动 `py_compile` 通过。
@@ -385,7 +385,7 @@
 - [ ] 六份报告齐全：`baseline.md`、`attribution_calibration.md`、`active_planning_eval.md`、`validator_eval.md`、`planner_dpo_eval.md`、`system_modes_eval.md`。
 - [x] 数据卡片：D11、D12、D13 新增；D8、D10 更新复核状态。（2026-09-16：D11 / D12 / D13 卡片已随 C-4 / B-3 / D-2 建立；D8 / D10 `reviewed` 状态待 A-3 人工复核后更新）
 - [x] `reproduce.sh` 更新为 A → B → C → E 一键（D 需百炼账号，提供 `submit_job.py` 与说明）。（2026-09-16：阶段名 `dga kb kg reflection planner_data d10 B C D E test`，D 阶段只跑偏好对 demo 与 `submit_job.py` dry-run；Oracle 抽样校验加 `--tag smoke` 避免覆盖正式 196 条结果，`*_smoke.jsonl` 入 `.gitignore`；D / E 阶段实跑通过，demo 产物重跑数字一致仅耗时变化）
-- [ ] README 更新架构图与三条主线说明；`docs/figures/fig3_1_architecture.png` 重绘加入 EIG 模块与声明核查器。（2026-09-17：README「项目架构」章节已完成，含分层图、运行时数据流、五智能体、工具层、五级模式、目录结构（`0128d32`）；PNG 重绘待做，可由 `scripts/make_arch_pptx.py` 改造）
+- [ ] README 更新架构图与三条主线说明；`docs/figures/fig3_1_architecture.png` 重绘加入 EIG 模块与声明核查器。（2026-09-17：README「项目架构」章节已完成，含分层图、运行时数据流、五智能体、工具层、五级模式、目录结构（`0128d32`）；PNG 重绘待做，可由 `scripts/report/make_arch_pptx.py` 改造）
 - [ ] 代码打 tag `v2-final`，与 `baseline-v0` 对照。
 - [ ] 已知局限：DGA 标签映射不代表真实故障部位；征兆成本表为专家设定；D11 为自动注入而非真实错误；评测依赖 LLM 裁判；DPO 偏好对由自动打分构造。
 - [ ] 论文第 3-6 章实验小节初稿，每章引用对应报告的表与图。
@@ -421,7 +421,7 @@
 | v1 五级模式（no_rag / naive_rag / planner_ft / kg / full） | 已替换（E-1，2026-09-16） | 知识库、图谱、词法反思从 mode2 起作为工程基座全开，不再单独归因；新五级按三条主线逐级加能力 |
 | Milvus / Zilliz 向量库路线（`rag_engine.py`、`milvus_setup.py`、`utils/embedding.py`、配置段、前端选项） | 已删除（A-5，2026-09-15） | 已被 `local_kb` 两路 BM25 取代，无引用 |
 | `remove_references.py`、`validate_dga_data.py`、早期两份 PPT 脚本、`data/rag.txt`、旧合成端到端报告 | 已删除（A-5，2026-09-15） | 功能已被 `build_units.py`、`eval_fault_attribution.py`、`make_ppt_full.py` 覆盖或为一次性残留 |
-| `run_matrix.sh`、`train.sh`、`plugin_loss_scale.py`、`docs/planner_training.md`（魔搭 ms-swift 路线） | 保留为备选，顶部标注 v1 | D-3 百炼 DPO 不可用时启用；不再维护 |
+| `run_matrix.sh`、`train.sh`、`plugin_loss_scale.py`、`docs/design/planner_training.md`（魔搭 ms-swift 路线） | 保留为备选，顶部标注 v1 | D-3 百炼 DPO 不可用时启用；不再维护 |
 | `tool_registry.validate_arguments` 宽松校验 | 已删除（A-5） | 只保留严格校验，避免两套口径 |
 | A-2 口语化改写实跑 | 后置 | 训练集格式与校验已就绪，改写只影响 SFT 基线数字，待百炼训练前一并执行 |
 
@@ -444,9 +444,9 @@
 | v1 阶段 | 复用资产 |
 |---|---|
 | P0 | 7 项缺陷修复、`exec/business_success` 分离、轨迹日志、`assert_not_synthetic`、数据清单、`baseline-v0` tag、87 项回归测试 |
-| P1 | MinerU 单元清洗、DP 分块 5404 块、子块 / 锚点两路 + RRF、`local_kb mode`、D3 1209 组、`docs/kb_ablation_test.md` |
+| P1 | MinerU 单元清洗、DP 分块 5404 块、子块 / 锚点两路 + RRF、`local_kb mode`、D3 1209 组、`docs/eval/kb_ablation_test.md` |
 | P2 | 8 实体 / 9 关系 schema、规则抽取 90 节点 / 190 边、`kg_search` 与三智能体接入、忠实度评测 HitAll 100% |
-| P3 | `ReflectionModule`、`LexicalScorer`、D9 298 对、`docs/reflection_eval.md` |
+| P3 | `ReflectionModule`、`LexicalScorer`、D9 298 对、`docs/eval/reflection_eval.md` |
 | P4 | 3482 单轮 + 多轮 / 错误恢复轨迹、分组切分 2311/439/732、三格式导出、数据卡片、`rewrite_queries.py` |
 | P5 | `eval_planner_offline.py`（7 指标 × 8 类别）、`planner_mode` 开关、`provider: dashscope`、`domain_terms.json`（609 项，可复用于 C-2 实体一致性核查） |
 | P6 | D10 196 条、`eval_system_modes.py`（任务成功率四要素、Token 成本）、前端轨迹 / 图谱 / 反思展示 |

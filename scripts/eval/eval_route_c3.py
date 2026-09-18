@@ -10,7 +10,7 @@ C-3 验收脚本：补证与重规划路由在 D10 上的去重与路径统计�
 以及 claim_check=check（不路由）的对照。
 
 用法：
-    python3 scripts/eval/eval_route_c3.py                    # 30 条，落盘 docs/route_acceptance.md/json
+    python3 scripts/eval/eval_route_c3.py                    # 30 条，落盘 docs/eval/route_acceptance.md/json
     python3 scripts/eval/eval_route_c3.py --n 6 --no-report  # 快速自检
 """
 
@@ -38,8 +38,8 @@ from src.tools.fault_attribution import configure_engine              # noqa: E4
 from eval_system_modes import build_mcp, OraclePlanner                # noqa: E402
 from eval_claims_c1 import load_d10, stratified_sample                # noqa: E402
 
-REPORT_MD = ROOT / "docs/route_acceptance.md"
-REPORT_JSON = ROOT / "docs/route_acceptance.json"
+REPORT_MD = ROOT / "docs/eval/route_acceptance.md"
+REPORT_JSON = ROOT / "docs/eval/route_acceptance.json"
 
 NO_LLM_CFG: Dict[str, Any] = {
     "llms": {"default": {"provider": "openai", "model_name": "x", "api_key": "", "api_key_env": "___DISABLED___",

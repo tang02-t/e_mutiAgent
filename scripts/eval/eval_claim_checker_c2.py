@@ -36,8 +36,8 @@ from src.tools.fault_attribution import configure_engine              # noqa: E4
 from eval_system_modes import build_mcp, OraclePlanner                # noqa: E402
 import eval_claims_c1 as C1                                           # noqa: E402
 
-REPORT_MD = ROOT / "docs/claim_checker_acceptance.md"
-REPORT_JSON = ROOT / "docs/claim_checker_acceptance.json"
+REPORT_MD = ROOT / "docs/eval/claim_checker_acceptance.md"
+REPORT_JSON = ROOT / "docs/eval/claim_checker_acceptance.json"
 
 
 def _load_cases():
@@ -138,7 +138,7 @@ def write_report(a: Dict[str, Any], b: Dict[str, Any]) -> None:
     lines += [
         f"| 合计 | {tot_bad} | {tot_det}（{tot_det / tot_bad * 100:.0f}%） | {tot_good} | {tot_fp} |",
         "",
-        f"**验收判定（确定性层）：{'通过' if pass_a else '未通过'}**（要求检出率 100%、误报 0）。样例定义见 [tests/test_c2_claim_checker.py](/Users/ts/Desktop/thu/multi_Agent/tests/test_c2_claim_checker.py)，正反例与 `docs/claim_schema.md` §4 对应。",
+        f"**验收判定（确定性层）：{'通过' if pass_a else '未通过'}**（要求检出率 100%、误报 0）。样例定义见 [tests/test_c2_claim_checker.py](/Users/ts/Desktop/thu/multi_Agent/tests/test_c2_claim_checker.py)，正反例与 `docs/design/claim_schema.md` §4 对应。",
         "",
         "## 2. D10 全量干净声明误报率",
         "",

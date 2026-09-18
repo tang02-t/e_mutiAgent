@@ -36,7 +36,7 @@ E-1 / E-2：五级系统模式对比评测（D10 → mode1..mode5）。
   python3 scripts/eval/eval_system_modes.py --modes all --no-llm                     # 仅流程连通性（Planner 禁用 → 全部 no plan）
 输出：
   data/eval/d10/results/<mode>.jsonl   逐条结果
-  docs/end2end_eval.md                 汇总表（追加模式列，保留已有结果）
+  docs/eval/end2end_eval.md                 汇总表（追加模式列，保留已有结果）
 """
 
 from __future__ import annotations
@@ -68,7 +68,7 @@ from src.utils.llm import USAGE                                 # noqa: E402
 
 D10 = ROOT / "data/eval/d10/end2end_eval.jsonl"
 RES_DIR = ROOT / "data/eval/d10/results"
-REPORT = ROOT / "docs/end2end_eval.md"
+REPORT = ROOT / "docs/eval/end2end_eval.md"
 
 ASK_PATTERNS = ["请提供", "请补充", "需要您", "需要你", "缺少", "请告知", "请说明", "能否提供", "麻烦提供", "请问", "是否可以提供"]
 TREND_WORDS = ["上升", "下降", "平稳", "趋势", "预测", "℃", "°C"]
@@ -538,7 +538,7 @@ def main() -> None:
         print(json.dumps({k: v for k, v in summaries[m].items() if k not in ("by_scenario", "spec")}, ensure_ascii=False))
 
     if args.oracle_planner:
-        print("\n[oracle] 金标 Planner 结果仅用于校验评分链路，不写入 docs/end2end_eval.md")
+        print("\n[oracle] 金标 Planner 结果仅用于校验评分链路，不写入 docs/eval/end2end_eval.md")
         return
     if args.tag:
         print(f"\n[tag={args.tag}] 交叉对照结果已写入 {RES_DIR}/<mode>_{args.tag}.jsonl，不写入主报告")

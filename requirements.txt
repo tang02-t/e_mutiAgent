@@ -13,4 +13,4 @@ python-docx==1.2.0
 # 可选
 # dashscope           # 调用百炼导入的 LoRA 模型（config: provider: dashscope）
 # graphviz            # 前端图谱可视化 st.graphviz_chart 需要系统安装 graphviz 二进制；缺失时自动降级为表格
-# ms-swift[llm]       # 训练环境（魔搭 A10），见 docs/planner_training.md
+# ms-swift[llm]       # 训练环境（魔搭 A10），见 docs/design/planner_training.md

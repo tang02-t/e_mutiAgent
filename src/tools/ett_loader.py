@@ -40,7 +40,7 @@ logger = get_logger(__name__)
 # 数据集根目录
 # ──────────────────────────────────────────────────────────────
 
-_DATA_ROOT = Path(__file__).parent.parent.parent / "data" / "ETT-small"
+_DATA_ROOT = Path(__file__).parent.parent.parent / "data" / "raw" / "ETT-small"
 
 _DATASET_FILES: dict[str, dict[str, Any]] = {
     "ETTh1": {"path": _DATA_ROOT / "ETTh1.csv", "freq": "H"},

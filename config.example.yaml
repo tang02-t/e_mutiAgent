@@ -71,7 +71,7 @@ workflow:
   # Planner 实验模式（P5-5 / P6 对比开关）：
   #   baseline  —— 使用 llms.planner（通用大模型）
   #   finetuned —— 使用 llms.planner_finetuned（LoRA 微调后的 Planner）；缺失时自动回退 baseline
-  # 可被 scripts/eval_end2end.py --planner-mode 与前端侧边栏覆盖
+  # 可被 scripts/eval/eval_end2end.py --planner-mode 与前端侧边栏覆盖
   planner_mode: baseline
   # B-4 主动规划开关：
   #   planner_strategy: free   —— v1 行为，Planner 只做意图分析 + 工具决策
@@ -87,7 +87,7 @@ workflow:
   attribution_mode: calibrated
   # C-1 Generator 输出模式：
   #   text   —— v1 行为，只输出自然语言草案
-  #   claims —— 先输出 JSON 声明列表（state.draft_claims，见 docs/claim_schema.md）再输出自然语言草案；
+  #   claims —— 先输出 JSON 声明列表（state.draft_claims，见 docs/design/claim_schema.md）再输出自然语言草案；
   #             LLM 不可用或 JSON 非法时按工具结果规则拼装声明，链路不断
   generator_output_mode: text
   # C-2 声明级约束核查（依赖 generator_output_mode=claims 或模板回退产出的规则声明）：

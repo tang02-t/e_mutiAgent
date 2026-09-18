@@ -58,12 +58,18 @@ multi_Agent/
 │       ├── data_guard.py         # assert_not_synthetic：合成数据不得进入评测 / 训练
 │       └── logging.py
 ├── templates/{planner,generator}/{system,user}.txt
-├── scripts/                      # 见第 6 节
+├── scripts/                      # 离线管线，按用途分子目录：data / kb / kg / planner_data / sim / eval / report / dev（见第 6 节）
 ├── training/planner_bailian/     # v2 主路线：百炼 SFT / DPO 提交脚本 submit_job.py 与说明
 ├── training/planner_sft/         # v1 魔搭 LoRA 路线（已降级为备选）
 ├── tests/                        # 13 个脚本式回归测试文件，608 项（逐文件 python3 运行）
-├── data/                         # 见第 5 节
-└── docs/                         # 技术报告 v2、速览卡、执行轨迹、数据与评测说明、各组件验收报告、论文章节素材
+├── data/                         # raw（原始输入，gitignore）/ real / synthetic / kb / kg / planner / eval（见第 5 节）
+├── docs/
+│   ├── design/                   # 规范与说明：data_and_evaluation、kg_schema、claim_schema、planner_training、术语与代号对照表
+│   ├── eval/                     # 脚本生成的评测报告（md + json）、walkthrough_traces 执行轨迹
+│   ├── thesis/                   # 论文与汇报交付物：技术报告 v2、速览卡、chapter3-5 素材、答辩论文、PPT、docx
+│   ├── progress/                 # 阶段进展报告
+│   └── figures/                  # 论文配图（png / pptx / vsdx）
+└── archive/                      # 历史日志、遗留 Milvus 配置（gitignore）
 ```
 
 ---
@@ -131,10 +137,10 @@ flowchart TD
 
 | 路径 | 内容 | 角色 |
 |---|---|---|
-| `data/dga/`（gitignore） | 三份 DGA 汇编原始文件 | R1–R3 原始 |
+| `data/raw/dga/`（gitignore） | 三份 DGA 汇编原始文件 | R1–R3 原始 |
 | `data/real/dga/` | `dga_records.jsonl`（5143）、`learned_params.json` | 归因参数学习 / 校准 |
-| `data/ETT-small/`（csv gitignore） | ETTh1/h2/m1/m2 | `ett_forecast` 数据源 |
-| `data/fast_md/`（gitignore） | 182 篇文献 MinerU 解析目录 | 知识库原始语料 |
+| `data/raw/ETT-small/`（csv gitignore） | ETTh1/h2/m1/m2 | `ett_forecast` 数据源 |
+| `data/raw/fast_md/`（gitignore） | 182 篇文献 MinerU 解析目录 | 知识库原始语料 |
 | `data/kb/` | 单元 / 分块 / 索引、1209 组检索评测集、反思 D9 298 对 | 知识库与其评测 |
 | `data/kg/` | `graph.json`（90 节点 / 190 边）、同义词表、304 条问答评测、56 条精度抽检 | 图谱与其评测 |
 | `data/planner/` | 3482 单轮种子 + 4538 条口语化改写 + 多轮轨迹；SFT 导出（百炼 ChatML train 7001 / dev 1301 本地不入库，test 四份封存入库 + `SEALED.md`）；`dpo/` D13 偏好对 demo | Planner 训练数据 |
@@ -142,9 +148,9 @@ flowchart TD
 | `data/eval/d11/` | 300 条故障注入评测集（四类各 50 + 干净 100） | 验证器对照 |
 | `data/eval/d12/` | 1500 条部分观测模拟集（轻 / 中 / 重各 500） | 主动规划对照 |
 | `data/synthetic/` | 合成 DGA / 时序 / 案例 / eval_set | 仅流程回归，`assert_not_synthetic` 阻止进入评测与训练 |
-| `data/external_transformer/`（gitignore） | `power_transformer_fault.csv` | 来源未核实，未使用 |
+| `data/raw/external_transformer/`（gitignore） | `power_transformer_fault.csv` | 来源未核实，未使用 |
 
-来源、许可、文件格式与角色隔离规则见 [docs/data_and_evaluation.md](docs/data_and_evaluation.md)（第一部分；原 `data_inventory.md` 已并入）。
+来源、许可、文件格式与角色隔离规则见 [docs/design/data_and_evaluation.md](docs/design/data_and_evaluation.md)（第一部分；原 `data_inventory.md` 已并入）。
 
 ---
 
@@ -152,19 +158,19 @@ flowchart TD
 
 | 目录 / 脚本 | 作用 |
 |---|---|
-| `scripts/convert_real_dga.py`、`learn_cpt.py` | DGA 三源合并、极大似然 + 拉普拉斯平滑学习先验 / CPT |
+| `scripts/data/convert_real_dga.py`、`learn_cpt.py` | DGA 三源合并、极大似然 + 拉普拉斯平滑学习先验 / CPT |
 | `scripts/kb/` | 知识库：`build_units → build_chunks → build_index`，检索评测集、消融、RRF 权重网格、反思评测集与对比 |
 | `scripts/kg/` | 图谱：规则抽取、建图、问答评测集、AI 预标注写回 |
 | `scripts/planner_data/` | Planner 造数：单轮种子（真实执行）、多轮 / 错误恢复、口语化改写 `rewrite_queries.py`（已实跑，守卫过滤）、SFT 导出（`--format bailian`）、`check_sealed.py` 封存核对、`score_candidates.py` 候选打分配对（D13） |
 | `scripts/sim/partial_obs_sim.py` | D12 部分观测模拟器（B-3） |
 | `scripts/eval/` | `build_d10.py`、`eval_system_modes.py`（五级模式端到端，`--oracle-planner` / `--tag` 旁路）、`eval_planner_offline.py`（7 指标 × 8 类别）、`eig_sanity_check.py`、`eval_active_planning.py`（B-5）、`eval_claims_c1.py` / `eval_claim_checker_c2.py` / `eval_route_c3.py`、`build_d11_fault_injection.py`、`eval_validator.py`（C-5） |
 | `training/planner_bailian/submit_job.py` | 百炼 upload / create / status / deploy 封装，默认 dry-run（D-1 / D-3） |
-| `scripts/eval_fault_attribution.py` | 归因引擎确定性评测 |
-| `scripts/eval_end2end.py` | 旧端到端接口（合成 eval_set 回归；正式评测已迁至 `eval_system_modes.py`） |
-| `scripts/generate_synthetic_data.py` | 合成数据生成（仅流程回归） |
-| `scripts/probe_llm_endpoint.py` | 探测对话 / function calling 接口 |
-| `scripts/make_figures.py`、`make_arch_pptx.py`、`make_vsdx.py`、`make_ppt_full.py`、`md_to_docx.py` | 论文配图、可编辑架构图、汇报 PPT、Markdown 转 Word |
-| `scripts/demo_traces.py` | 三条主线离线执行轨迹（`--write` 生成 `docs/walkthrough_traces.md`），零 LLM，用于快速理解数据流 |
+| `scripts/eval/eval_fault_attribution.py` | 归因引擎确定性评测 |
+| `scripts/eval/eval_end2end.py` | 旧端到端接口（合成 eval_set 回归；正式评测已迁至 `eval_system_modes.py`） |
+| `scripts/data/generate_synthetic_data.py` | 合成数据生成（仅流程回归） |
+| `scripts/dev/probe_llm_endpoint.py` | 探测对话 / function calling 接口 |
+| `scripts/report/make_figures.py`、`make_arch_pptx.py`、`make_vsdx.py`、`make_ppt_full.py`、`md_to_docx.py` | 论文配图、可编辑架构图、汇报 PPT、Markdown 转 Word |
+| `scripts/report/demo_traces.py` | 三条主线离线执行轨迹（`--write` 生成 `docs/eval/walkthrough_traces.md`），零 LLM，用于快速理解数据流 |
 | `training/planner_sft/` | v1 魔搭 ms-swift LoRA 训练脚本、加权损失插件、领域词典、预测脚本（已降级为备选） |
 
 ---
@@ -174,7 +180,7 @@ flowchart TD
 ```bash
 pip3 install -r requirements.txt
 cp config.example.yaml config.yaml          # 填 api_key
-python3 scripts/probe_llm_endpoint.py
+python3 scripts/dev/probe_llm_endpoint.py
 bash reproduce.sh                           # 离线全流程（阶段：dga kb kg reflection planner_data d10 B C D E test）+ 608 项回归
 bash run_frontend.sh                        # Streamlit，默认加载学习到的贝叶斯参数
 python3 scripts/eval/eval_system_modes.py --modes all --limit 5 --no-llm --tag smoke   # 五级模式冒烟（旁路，不写主报告）
@@ -187,7 +193,7 @@ for t in tests/test_*.py; do python3 "$t" | tail -1; done   # 回归；脚本式
 
 完成状态以 [PLAN_优化计划清单.md](PLAN_优化计划清单.md) §0.6 进度表为准（2026-09-17：79 / 113 项）。概括：A 基线与改写、B 主线一、C 主线二、E-1 五级重定义全部完成并验收；D 主线三脚本与素材就绪，训练 / 部署 / 评测待百炼账号；E-2 正式五级评测待 LLM 费用与 D10 人工复核；F 收尾剩三份报告数字、架构 PNG、tag、论文初稿。
 
-- 已产出的 LLM 数字仅 A-1 基线（`docs/baseline.md`）；M1 / M4 与五级模式正式数字未产出。
+- 已产出的 LLM 数字仅 A-1 基线（`docs/eval/baseline.md`）；M1 / M4 与五级模式正式数字未产出。
 - DGA 5143 条为文献汇编标签，无法逐条追溯；`dga_dataset.csv` 来源未核实；`power_transformer_fault.csv` 来源未核实且未使用。
 - 检索为 BM25 两路 RRF，无稠密向量与重排（v2 明确不做）；图谱为规则抽取，覆盖有限。
 - 反思评分器为词法基线；D9 人工评分、D10 人工复核、图谱精度人工标注均未完成（A-3）。
@@ -199,7 +205,7 @@ for t in tests/test_*.py; do python3 "$t" | tail -1; done   # 回归；脚本式
 
 - 改工作流路由 → `src/graph/workflow.py::_route_after_validator` / `_route_after_planner_active` / `_decide_supplement_route`、`src/agents/validator.py::run`
 - 改追问触发 → `src/tools/fault_attribution.py` 的 `uncertainty` 块、`src/tools/eig.py`、`src/agents/planner.py::eig_decide`
-- 改声明核查规则 → `src/agents/claim_checker.py`；claims 格式 → `src/agents/claims.py`、`docs/claim_schema.md`
+- 改声明核查规则 → `src/agents/claim_checker.py`；claims 格式 → `src/agents/claims.py`、`docs/design/claim_schema.md`
 - 新增工具 → `tool_registry.py::TOOL_SPECS` 加声明，在 `app.py::build_mcp` 与 `scripts/eval/eval_system_modes.py::build_mcp` 注册实现
 - 改故障类型 / CPT → `fault_attribution.py` 顶部 `FAULT_IDS / _FAULT_SYMPTOM_CPT / _PRIOR_PROBS / _DGA_RULES`
 - 改提示词 → `templates/planner/*.txt`、`templates/generator/*.txt`、`src/utils/prompts.py`

@@ -41,7 +41,7 @@
 
 - `injected` / `type` / `subtype` / `expected_constraints`：是否注入、类型、子类、期望被哪类约束检出（C-5 分类型检出率据此统计）。
 - `location {claim_id, field}` / `original` / `injection_detail`：注入位置、被替换的原始内容、注入描述。
-- `claims`：注入后的声明列表（schema 见 `docs/claim_schema.md`）；`draft_answer`：模板正文 + 声明清单，供 v1 Validator 评分。
+- `claims`：注入后的声明列表（schema 见 `docs/design/claim_schema.md`）；`draft_answer`：模板正文 + 声明清单，供 v1 Validator 评分。
 - `snapshot {user_query, context, tool_calls, retrieved_knowledge, inquiry_log}`：离线重建 `AgentState` 所需的全部证据，`eval_validator.py` 据此复跑 v1 / v2_check / v2_route。
 - `checker_preview`：构建时用 C-2 确定性层对该记录的预览（`target_flagged` 为注入声明是否被标记），仅供核对注入是否可被机器识别，不是验收结果。
 - `annotation.status=auto`：人工抽检 40 条（`manual_review_sample.md`）确认注入构成错误后改为 `reviewed`。

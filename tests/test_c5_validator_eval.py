@@ -9,7 +9,7 @@ C-5 验证器对照评测 自检测试（无 LLM、无 GPU）。
 [3] make_extras：只挑本轮未调用的工具；fault_attribution 需 context.dga；最多 k 条
 [4] run_one：三组在同一条注入记录上的行为（v1 PASS 放行；v2 首轮标记目标声明并命中期望约束；v2_route 对缺证 extras 触发补证）
 [5] summarize / acceptance：字段完整、比率区间合法、验收逻辑
-[6] 报告产物：docs/validator_eval.md / .json / 两张图存在且 JSON 中 acceptance.pass 为 True
+[6] 报告产物：docs/eval/validator_eval.md / .json / 两张图存在且 JSON 中 acceptance.pass 为 True
 """
 
 from __future__ import annotations
@@ -230,8 +230,8 @@ def test_5_summary() -> None:
 
 def test_6_artifacts() -> None:
     print("[6] 报告产物")
-    md = ROOT / "docs/validator_eval.md"
-    js = ROOT / "docs/validator_eval.json"
+    md = ROOT / "docs/eval/validator_eval.md"
+    js = ROOT / "docs/eval/validator_eval.json"
     check(md.exists() and "## 验收判定" in md.read_text(encoding="utf-8"), "validator_eval.md 存在且含验收判定")
     d = json.loads(js.read_text(encoding="utf-8"))
     check(d["acceptance"]["pass"] is True, "validator_eval.json acceptance.pass = True")

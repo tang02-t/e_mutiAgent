@@ -4,7 +4,7 @@
 P2-3/P2-4 图谱合并与构建：triples_rule.jsonl (+ triples_llm.jsonl 若存在, + triples_human.jsonl 若存在)
 → 约束检查 → 合并 → data/kg/graph.json
 
-约束（见 docs/kg_schema.md §3）：
+约束（见 docs/design/kg_schema.md §3）：
 - 头/尾类型必须满足关系的允许类型；
 - CAUSES 尾不能是 Condition，头不能是 Symptom/Indicator；
 - 自环拒绝；

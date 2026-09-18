@@ -24,7 +24,7 @@ Validator → (supplement → Retriever) → Generator 修订循环（复用 wor
   - 成本：额外工具调用次数、额外 Token（USAGE 差分）、平均耗时、平均 Generator 轮次
 
 用法：
-    python3 scripts/eval/eval_validator.py                       # 全量 300 条，落盘 docs/validator_eval.md/json + 图
+    python3 scripts/eval/eval_validator.py                       # 全量 300 条，落盘 docs/eval/validator_eval.md/json + 图
     python3 scripts/eval/eval_validator.py --n 30 --no-report    # 快速自检
 """
 
@@ -57,8 +57,8 @@ from eval_system_modes import build_mcp                               # noqa: E4
 import build_d11_fault_injection as d11                               # noqa: E402
 
 D11_PATH = ROOT / "data/eval/d11/fault_injection_eval.jsonl"
-REPORT_MD = ROOT / "docs/validator_eval.md"
-REPORT_JSON = ROOT / "docs/validator_eval.json"
+REPORT_MD = ROOT / "docs/eval/validator_eval.md"
+REPORT_JSON = ROOT / "docs/eval/validator_eval.json"
 FIG_DIR = ROOT / "docs/figures"
 
 ARMS = ("v1", "v2_check", "v2_route")

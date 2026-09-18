@@ -2,7 +2,7 @@
 
 - 文件：`data/eval/d12/partial_obs.jsonl`
 - 规模：1500 条（light / medium / heavy 各 500）；seed 20260915；sha256 `9e2a35b3e0758e9b…`
-- 来源：`data/real/dga/dga_records.jsonl` 非 normal 记录 3729 条（真实文献汇编 DGA，见 `docs/data_and_evaluation.md` §1.1 R1-R3），按故障类别分层抽样；同一真实记录可在不同档位重复出现（遮蔽不同），同档内不重复
+- 来源：`data/real/dga/dga_records.jsonl` 非 normal 记录 3729 条（真实文献汇编 DGA，见 `docs/design/data_and_evaluation.md` §1.1 R1-R3），按故障类别分层抽样；同一真实记录可在不同档位重复出现（遮蔽不同），同档内不重复
 - 生成：`python3 scripts/sim/partial_obs_sim.py --build`；校验：`--check`
 - 真实 / 合成：全部由真实 DGA 派生；`data_guard.assert_not_synthetic` 校验源路径
 

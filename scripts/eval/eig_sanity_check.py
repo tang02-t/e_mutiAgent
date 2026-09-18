@@ -4,7 +4,7 @@
 B-2 验收：20 条手工部分观测样例，检查 EIG 推荐是否符合领域直觉。
 
 每条样例给出：初始观测（部分 DGA / 现场征兆）、领域预期（专家按 DL/T 722 直觉认为最值得补的征兆集合，
-命中其一即算一致）、以及预期的理由。脚本输出推荐 Top-3 与是否命中，并写入 docs/eig_sanity_check.md 供人工复核。
+命中其一即算一致）、以及预期的理由。脚本输出推荐 Top-3 与是否命中，并写入 docs/eval/eig_sanity_check.md 供人工复核。
 
 用法：FAULT_ATTR_PARAMS=data/real/dga/learned_params.json python3 scripts/eval/eig_sanity_check.py
 """
@@ -141,7 +141,7 @@ def main() -> None:
     rate3 = sum(r["hit_top3"] for r in rows) / len(CASES)
     print(f"\nTop-1 一致率 {rate1:.0%}  Top-3 一致率 {rate3:.0%}  (n={len(CASES)})")
 
-    out = ROOT / "docs/eig_sanity_check.md"
+    out = ROOT / "docs/eval/eig_sanity_check.md"
     lines = [
         "# EIG 推荐领域一致性抽检（B-2 验收）",
         "",
@@ -166,7 +166,7 @@ def main() -> None:
         print("κ 敏感性:", ", ".join(f"κ={k:.1f}: {a:.0%}/{b:.0%}" for k, a, b in sens))
     lines += ["", "人工复核：<待填写：复核人 / 日期 / 修改的预期集合>"]
     out.write_text("\n".join(lines), encoding="utf-8")
-    (ROOT / "docs/eig_sanity_check.json").write_text(json.dumps(rows, ensure_ascii=False, indent=1), encoding="utf-8")
+    (ROOT / "docs/eval/eig_sanity_check.json").write_text(json.dumps(rows, ensure_ascii=False, indent=1), encoding="utf-8")
     print(f"写入 {out}")
 
 

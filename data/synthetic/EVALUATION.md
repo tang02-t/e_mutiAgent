@@ -14,7 +14,7 @@
 
 ### 运行
 ```bash
-python3 scripts/eval_fault_attribution.py
+python3 scripts/eval/eval_fault_attribution.py
 # 报告输出：data/synthetic/eval/report_fault_attribution.md
 ```
 
@@ -47,16 +47,16 @@ python3 scripts/eval_fault_attribution.py
 ### 运行
 ```bash
 # 1) 离线流程连通性测试（不调 LLM，仅验证流程不崩 + 规则能力下限）
-python3 scripts/eval_end2end.py --no-llm --limit 10
+python3 scripts/eval/eval_end2end.py --no-llm --limit 10
 
 # 2) 真实诊断能力评测（需 config.yaml 中 LLM 可用）
-python3 scripts/eval_end2end.py --limit 20
+python3 scripts/eval/eval_end2end.py --limit 20
 
 # 3) 用合成案例 mock 替代本地知识库（仅流程调试）
-python3 scripts/eval_end2end.py --kb-mode mock --limit 20
+python3 scripts/eval/eval_end2end.py --kb-mode mock --limit 20
 
 # 全量评测
-python3 scripts/eval_end2end.py
+python3 scripts/eval/eval_end2end.py
 # 报告输出：data/synthetic/eval/report_end2end_dev.md（合成数据只允许 dev_regression）
 ```
 
@@ -79,7 +79,7 @@ python3 scripts/eval_end2end.py
 > **结论**：评测框架本身工作正常（完成率 100%，正确捕获并报告了降级）。
 > 但要评估系统的**真实诊断能力**，必须先解决 LLM 调用问题：
 > 1. 在 `config.yaml` 更换为有额度的 API Key，或关闭"仅免费层"模式；
-> 2. 重新运行 `python3 scripts/eval_end2end.py --limit 20`。
+> 2. 重新运行 `python3 scripts/eval/eval_end2end.py --limit 20`。
 > 在 LLM 不可用前，端到端命中率仅代表模板/规则的能力下限，不代表系统真实水平。
 
 ---
@@ -95,6 +95,6 @@ python3 scripts/eval_end2end.py
 ## 脚本清单
 | 脚本 | 作用 |
 |------|------|
-| `scripts/generate_synthetic_data.py` | 生成 4 类模拟数据 |
-| `scripts/eval_fault_attribution.py` | 评测一：归因引擎 |
-| `scripts/eval_end2end.py` | 评测二：端到端多智能体 |
+| `scripts/data/generate_synthetic_data.py` | 生成 4 类模拟数据 |
+| `scripts/eval/eval_fault_attribution.py` | 评测一：归因引擎 |
+| `scripts/eval/eval_end2end.py` | 评测二：端到端多智能体 |

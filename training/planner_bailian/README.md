@@ -46,7 +46,7 @@ python3 training/planner_bailian/submit_job.py --execute deploy --model-name <fi
 
 部署完成后：
 1. `config.yaml` 新增 `llms.planner_finetuned`（`base_url` 为 DashScope 兼容模式，`model_name=<deployed_model>`），保持 `enable_thinking: false`。
-2. `python3 scripts/probe_llm_endpoint.py` 验证返回 `tool_calls` 可被 `PlannerAgent._build_plan_from_tool_calls` 解析（`id / name / arguments` 三字段）。
+2. `python3 scripts/dev/probe_llm_endpoint.py` 验证返回 `tool_calls` 可被 `PlannerAgent._build_plan_from_tool_calls` 解析（`id / name / arguments` 三字段）。
 3. 在 D8 test 上运行 `eval_planner_offline.py`，与 M0 一并写入 `docs/planner_dpo_eval.md` 第一节。
 
 ## 4. 任务记录（实际提交后填写）

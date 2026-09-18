@@ -181,7 +181,7 @@ def cmd_deploy(args: argparse.Namespace) -> None:
         out = data.get("output", {})
         print(f"deployed_model={out.get('deployed_model')}  status={out.get('status')}")
         print("部署完成后：把 deployed_model 写入 config.yaml 的 llms.planner_finetuned.model_name，"
-              "并运行 scripts/probe_llm_endpoint.py 验证 tool_calls 解析。")
+              "并运行 scripts/dev/probe_llm_endpoint.py 验证 tool_calls 解析。")
 
 
 def cmd_deploy_status(args: argparse.Namespace) -> None:

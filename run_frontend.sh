@@ -14,7 +14,7 @@ if [ "$USE_LEARNED_CPT" = "1" ]; then
     export FAULT_ATTR_PARAMS="$LEARNED_PARAMS"
     echo "[run_frontend] FAULT_ATTR_PARAMS=$FAULT_ATTR_PARAMS（数据学习参数）"
   else
-    echo "[run_frontend] 警告：未找到 $LEARNED_PARAMS，将使用专家默认 CPT。可先运行 python3 scripts/learn_cpt.py 生成。"
+    echo "[run_frontend] 警告：未找到 $LEARNED_PARAMS，将使用专家默认 CPT。可先运行 python3 scripts/data/learn_cpt.py 生成。"
     unset FAULT_ATTR_PARAMS
   fi
 else

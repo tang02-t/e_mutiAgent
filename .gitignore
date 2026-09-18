@@ -4,21 +4,21 @@ __pycache__/
 *.pyo
 .pytest_cache/
 
-# 日志与临时
+# 日志与临时（历史日志归档在 archive/logs/，不入库）
 *.log
-output_log.txt
-pip_install.log
+archive/logs/
 .DS_Store
 
-# 大体积数据（保留目录结构，数据用 docs/data_inventory.md 记录）
-data/ETT-small/*.csv
-data/fast_md/
-data/ele_trans/
-data/manuals/
-data/external_transformer/
-data/milvus_data/
-data/dga/*.xlsx
-data/dga/*.csv
+# 原始数据 data/raw/（大体积，来源与许可见 docs/design/data_and_evaluation.md）
+data/raw/ETT-small/*.csv
+data/raw/fast_md/
+data/raw/ele_trans/
+data/raw/manuals/
+data/raw/external_transformer/
+data/raw/dga/*.xlsx
+data/raw/dga/*.csv
+# 遗留 Milvus/Zilliz 配置含云端凭据，仅本地归档
+archive/milvus_data/
 data/real/dga/dga_records.csv
 data/real/dga/dga_records.jsonl
 data/synthetic/dga/
@@ -52,6 +52,7 @@ data/planner/sft/*.json
 
 # 训练产物、模型预测与 DPO 候选采样（体积大，可重建）
 output/
+scripts/report/progress_ppt/node_modules/
 data/planner/predictions/
 data/planner/dpo/candidates/
 
@@ -60,6 +61,6 @@ data/planner/dpo/*.jsonl
 
 # 复现脚本冒烟产物（可重生成）
 data/eval/d10/results/*_smoke.jsonl
-# A-1 基线旁路结果 60 KB，纳入版本库（见 docs/baseline.md）；其余 tag 旁路结果不入库
+# A-1 基线旁路结果 60 KB，纳入版本库（见 docs/eval/baseline.md）；其余 tag 旁路结果不入库
 data/eval/d10/results/*_a1_*.jsonl
 !data/eval/d10/results/mode2_a1_baseline.jsonl
